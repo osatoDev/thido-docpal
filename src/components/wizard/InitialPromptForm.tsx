@@ -1,0 +1,79 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { INITIAL_QUESTIONS } from "@/lib/wizardQuestions";
+
+export function InitialPromptForm() {
+  const router = useRouter();
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const createRes = await fetch("/api/documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!createRes.ok) throw new Error("Could not create document");
+      const { documentId } = await createRes.json();
+
+      const answersPayload = INITIAL_QUESTIONS.map((q) => ({
+        order: q.order,
+        question: q.question,
+        answer: answers[q.key]?.trim() ?? "",
+      }));
+
+      const answersRes = await fetch(
+        `/api/documents/${documentId}/prompt-answers`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ answers: answersPayload }),
+        },
+      );
+      if (!answersRes.ok) throw new Error("Could not save your answers");
+
+      router.push(`/documents/${documentId}/wizard`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      {INITIAL_QUESTIONS.map((q) => (
+        <label key={q.key} className="flex flex-col gap-1">
+          <span className="text-sm font-medium">{q.label}</span>
+          <span className="text-sm text-gray-500">{q.question}</span>
+          <textarea
+            required
+            rows={2}
+            value={answers[q.key] ?? ""}
+            onChange={(e) =>
+              setAnswers((prev) => ({ ...prev, [q.key]: e.target.value }))
+            }
+            className="mt-1 resize-none rounded-md border p-2 text-sm outline-none focus:ring-1 focus:ring-black"
+          />
+        </label>
+      ))}
+
+      {error && <p className="text-sm text-red-600">{error}</p>}
+
+      <button
+        type="submit"
+        disabled={submitting}
+        className="self-start rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+      >
+        {submitting ? "Starting…" : "Continue"}
+      </button>
+    </form>
+  );
+}

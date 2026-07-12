@@ -1,0 +1,188 @@
+// Prisma schema for Thido DocPal
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------- Auth.js required models ----------
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------- App models ----------
+
+model User {
+  id            String        @id @default(cuid())
+  name          String?
+  email         String?       @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime      @default(now())
+  accounts      Account[]
+  sessions      Session[]
+  documents     Document[]
+  comments      Comment[]
+  settings      UserSettings?
+}
+
+enum AICommentMode {
+  PROPOSE
+  AUTO_APPLY
+}
+
+model UserSettings {
+  id            String        @id @default(cuid())
+  userId        String        @unique
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiCommentMode AICommentMode @default(PROPOSE)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+enum DocumentStatus {
+  DRAFTING
+  GENERATING
+  READY
+}
+
+model Document {
+  id            String         @id @default(cuid())
+  title         String         @default("Untitled Document")
+  ownerId       String
+  owner         User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  status        DocumentStatus @default(DRAFTING)
+  content       Json?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  promptAnswers PromptAnswer[]
+  comments      Comment[]
+
+  @@index([ownerId])
+}
+
+enum PromptStage {
+  INITIAL
+  FOLLOWUP
+}
+
+model PromptAnswer {
+  id         String      @id @default(cuid())
+  documentId String
+  document   Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  stage      PromptStage
+  order      Int
+  question   String      @db.Text
+  answer     String      @default("") @db.Text
+  createdAt  DateTime    @default(now())
+
+  @@index([documentId])
+}
+
+enum AuthorType {
+  USER
+  AI
+}
+
+enum CommentIntent {
+  QUESTION
+  CHANGE_REQUEST
+  FEEDBACK
+}
+
+enum CommentStatus {
+  OPEN
+  RESOLVED
+}
+
+model Comment {
+  id         String        @id @default(cuid())
+  documentId String
+  document   Document      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  authorId   String?
+  author     User?         @relation(fields: [authorId], references: [id])
+  authorType AuthorType    @default(USER)
+
+  parentId String?
+  parent   Comment?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Comment[] @relation("CommentThread")
+
+  // Anchoring — matches the Tiptap CommentMark's commentId attribute
+  anchorMarkId String
+  quotedText   String  @db.Text
+  isOrphaned   Boolean @default(false)
+
+  intent CommentIntent?
+  status CommentStatus  @default(OPEN)
+  body   String         @db.Text
+
+  suggestion Suggestion?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([documentId])
+  @@index([anchorMarkId])
+  @@index([parentId])
+}
+
+enum SuggestionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  AUTO_APPLIED
+}
+
+model Suggestion {
+  id         String  @id @default(cuid())
+  commentId  String  @unique
+  comment    Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  documentId String
+
+  anchorMarkId String
+  originalText String           @db.Text
+  proposedText String           @db.Text
+  status       SuggestionStatus @default(PENDING)
+
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  @@index([documentId])
+}
