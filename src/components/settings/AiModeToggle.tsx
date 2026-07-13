@@ -32,13 +32,14 @@ export function AiModeToggle() {
   if (!mode) return null;
 
   return (
-    <div className="flex items-center gap-2 text-xs text-gray-500">
+    <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
       <span>When AI suggests an edit:</span>
       <select
         value={mode}
         disabled={saving}
         onChange={(e) => updateMode(e.target.value as Mode)}
-        className="rounded-md border px-2 py-1 text-xs"
+        aria-label="AI suggestion behavior"
+        className="app-input rounded-lg px-2 py-1 text-xs outline-none"
       >
         <option value="PROPOSE">Propose for my approval</option>
         <option value="AUTO_APPLY">Apply automatically</option>

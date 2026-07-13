@@ -71,8 +71,8 @@ export function FollowupPromptForm({
   if (phase === "generating") {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-black" />
-        <p className="text-sm text-gray-600">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent-strong)]" />
+        <p className="text-sm text-[var(--muted)]">
           Writing your document{charsGenerated > 0 ? ` (${charsGenerated} characters so far)…` : "…"}
         </p>
       </div>
@@ -80,7 +80,7 @@ export function FollowupPromptForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+    <form onSubmit={handleSubmit} className="app-panel flex flex-col gap-6 rounded-2xl p-5 sm:p-7">
       {followups.map((f) => (
         <label key={f.id} className="flex flex-col gap-1">
           <span className="text-sm font-medium">{f.question}</span>
@@ -91,16 +91,16 @@ export function FollowupPromptForm({
             onChange={(e) =>
               setAnswers((prev) => ({ ...prev, [f.id]: e.target.value }))
             }
-            className="mt-1 resize-none rounded-md border p-2 text-sm outline-none focus:ring-1 focus:ring-black"
+            className="app-input mt-1 resize-none rounded-xl p-3 text-sm outline-none"
           />
         </label>
       ))}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
 
       <button
         type="submit"
-        className="self-start rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+        className="primary-button self-start rounded-xl px-4 py-2.5 text-sm font-semibold"
       >
         Generate document
       </button>

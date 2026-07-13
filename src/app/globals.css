@@ -2,31 +2,182 @@
 @plugin "@tailwindcss/typography";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f6f1;
+  --foreground: #17231e;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-subtle: #efeee8;
+  --muted: #66716c;
+  --muted-soft: #98a09c;
+  --border: #deddd6;
+  --border-strong: #c7c7bf;
+  --accent: #74d5b0;
+  --accent-strong: #187c5e;
+  --accent-contrast: #10251d;
+  --warm: #e2a65e;
+  --danger: #bd3f42;
+  --ring: #218b6c;
+  --shadow: 0 16px 40px rgb(24 35 30 / 0.08);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --background: #101713;
+  --foreground: #edf3ef;
+  --surface: #17211c;
+  --surface-raised: #1c2822;
+  --surface-subtle: #202c26;
+  --muted: #a6b2ac;
+  --muted-soft: #76847d;
+  --border: #314038;
+  --border-strong: #46564d;
+  --accent: #67cda7;
+  --accent-strong: #79deb8;
+  --accent-contrast: #10251d;
+  --warm: #efb66f;
+  --danger: #ff8588;
+  --ring: #79deb8;
+  --shadow: 0 18px 48px rgb(0 0 0 / 0.28);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  transition: border-color 150ms ease, background-color 150ms ease,
+    color 150ms ease, opacity 150ms ease, box-shadow 150ms ease;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 48%, transparent);
+}
+
+.app-panel {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.app-input {
+  border: 1px solid var(--border-strong);
+  background: var(--surface-raised);
+  color: var(--foreground);
+}
+
+.app-input::placeholder {
+  color: var(--muted-soft);
+}
+
+.app-input:focus {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent);
+}
+
+.primary-button {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.primary-button:hover {
+  background: var(--accent-strong);
+  color: var(--accent-contrast);
+}
+
+.secondary-button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.secondary-button:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-subtle);
+  color: var(--foreground);
+}
+
+.theme-toggle {
+  position: fixed;
+  z-index: 50;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-raised) 90%, transparent);
+  color: var(--muted);
+  padding: 0.5rem 0.7rem;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.theme-toggle:hover {
+  color: var(--foreground);
+  border-color: var(--accent-strong);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.theme-toggle svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .comment-highlight {
-  background-color: #fef3c7;
-  border-bottom: 2px solid #f59e0b;
+  border-bottom: 2px solid var(--warm);
+  background-color: color-mix(in srgb, var(--warm) 24%, transparent);
+  border-radius: 2px;
+}
+
+.ProseMirror {
+  color: var(--foreground);
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: var(--muted-soft);
+}
+
+@media (max-width: 640px) {
+  .theme-toggle span {
+    display: none;
+  }
+
+  .theme-toggle {
+    padding: 0.65rem;
+  }
 }

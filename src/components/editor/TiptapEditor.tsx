@@ -8,6 +8,7 @@ import { Toolbar } from "./Toolbar";
 import { CommentSidebar } from "@/components/comments/CommentSidebar";
 import { CommentComposer } from "@/components/comments/CommentComposer";
 import { AiModeToggle } from "@/components/settings/AiModeToggle";
+import { Brand } from "@/components/Brand";
 import type { CommentWithReplies } from "@/lib/types";
 
 type Props = {
@@ -35,7 +36,12 @@ export function TiptapEditor({
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [comments, setComments] = useState<CommentWithReplies[]>(initialComments);
   const [activeComposer, setActiveComposer] = useState<ActiveComposer | null>(null);
+  const [pendingCommentIds, setPendingCommentIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [commentError, setCommentError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(true);
 
   const editor = useEditor({
     extensions: getEditorExtensions(),
@@ -44,7 +50,7 @@ export function TiptapEditor({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm sm:prose-base max-w-none min-h-[60vh] focus:outline-none",
+          "prose prose-sm sm:prose-base max-w-none min-h-[60vh] focus:outline-none prose-headings:text-[var(--foreground)] prose-p:text-[var(--foreground)] prose-strong:text-[var(--foreground)] prose-blockquote:text-[var(--muted)]",
       },
     },
     onUpdate: ({ editor }) => {
@@ -53,7 +59,9 @@ export function TiptapEditor({
   });
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, []);
@@ -98,34 +106,87 @@ export function TiptapEditor({
     setActiveComposer(null);
   }
 
-  async function submitComment(body: string) {
+  function submitComment(body: string) {
     if (!activeComposer) return;
+    const composer = activeComposer;
+    setCommentError(null);
+    setActiveComposer(null);
+
+    void persistComment(composer, body);
+  }
+
+  async function persistComment(composer: ActiveComposer, body: string) {
     try {
       const res = await fetch(`/api/documents/${documentId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          anchorMarkId: activeComposer.anchorMarkId,
-          quotedText: activeComposer.quotedText,
+          anchorMarkId: composer.anchorMarkId,
+          quotedText: composer.quotedText,
           body,
         }),
       });
       if (!res.ok) throw new Error("Could not create comment");
       const data = await res.json();
-
-      const newComment: CommentWithReplies = {
+      const savedComment: CommentWithReplies = {
         ...data.comment,
-        replies: data.aiReply ? [data.aiReply] : [],
-        suggestion: data.suggestion ?? null,
+        replies: [],
+        suggestion: null,
       };
-      setComments((prev) => [newComment, ...prev]);
 
-      if (data.documentContent && editor) {
-        editor.commands.setContent(data.documentContent);
-      }
-    } finally {
-      setActiveComposer(null);
+      if (!mountedRef.current) return;
+      setComments((prev) => [savedComment, ...prev]);
+      setPendingCommentIds((prev) => new Set(prev).add(savedComment.id));
+
+      void pollForAiResponse(savedComment.id);
+    } catch {
+      if (!mountedRef.current) return;
+      setCommentError("The comment could not be saved. You can keep editing and try again.");
     }
+  }
+
+  async function pollForAiResponse(commentId: string) {
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 1250));
+      if (!mountedRef.current) return;
+
+      try {
+        const res = await fetch(`/api/documents/${documentId}/comments`, {
+          cache: "no-store",
+        });
+        if (!res.ok) continue;
+        const data = await res.json();
+        const refreshed = data.comments as CommentWithReplies[];
+        const target = refreshed.find((comment) => comment.id === commentId);
+
+        setComments(refreshed);
+
+        const finished =
+          !!target && (target.replies.length > 0 || !!target.suggestion);
+        if (finished) {
+          setPendingCommentIds((prev) => {
+            const next = new Set(prev);
+            next.delete(commentId);
+            return next;
+          });
+
+          if (
+            target.suggestion?.status === "AUTO_APPLIED" &&
+            data.documentContent &&
+            editor
+          ) {
+            editor.commands.setContent(data.documentContent);
+          }
+          return;
+        }
+      } catch {
+        // A transient refresh failure should not interrupt editing or other
+        // comment submissions. The next polling attempt can recover.
+      }
+    }
+
+    // Keep the accurate processing state if the response is unusually slow.
+    // A later page load will include the completed server-side response.
   }
 
   function handleCommentChange(updated: CommentWithReplies) {
@@ -143,8 +204,12 @@ export function TiptapEditor({
   }
 
   return (
-    <div className="flex flex-1">
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 p-8">
+    <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+      <div className="flex w-full min-w-0 flex-1 flex-col gap-5 p-3 sm:p-5 lg:p-7">
+        <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <Brand />
+          <AiModeToggle />
+        </header>
         <div className="flex items-center justify-between gap-4">
           <input
             value={title}
@@ -152,11 +217,11 @@ export function TiptapEditor({
               setTitle(e.target.value);
               scheduleSave({ title: e.target.value });
             }}
-            className="w-full border-none text-xl font-semibold outline-none"
+            aria-label="Document title"
+            className="w-full border-none bg-transparent text-2xl font-semibold tracking-[-0.04em] outline-none"
           />
           <div className="flex shrink-0 items-center gap-3">
-            <AiModeToggle />
-            <span className="text-xs text-gray-400">
+            <span className="font-mono text-[0.65rem] text-[var(--muted-soft)]">
               {saveState === "saving" && "Saving…"}
               {saveState === "saved" && "Saved"}
               {saveState === "error" && "Save failed"}
@@ -164,30 +229,36 @@ export function TiptapEditor({
           </div>
         </div>
 
-        <div className="flex flex-1 flex-col rounded-md border">
+        {commentError && (
+          <p className="text-xs text-[var(--danger)]" role="alert">
+            {commentError}
+          </p>
+        )}
+
+        <div className="app-panel flex flex-1 flex-col overflow-hidden rounded-2xl">
           <Toolbar editor={editor} />
           {editor && (
             <BubbleMenu editor={editor}>
-              <div className="flex items-center gap-1 rounded-md border bg-white p-1 shadow-md">
+              <div className="app-panel flex items-center gap-1 rounded-lg p-1">
                 <button
                   type="button"
                   onClick={startComment}
-                  className="rounded px-2 py-1 text-xs font-medium hover:bg-gray-100"
+                  className="rounded-md px-2 py-1 text-xs font-semibold hover:bg-[var(--surface-subtle)]"
                 >
                   💬 Comment
                 </button>
               </div>
             </BubbleMenu>
           )}
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-5 sm:p-8">
             <EditorContent editor={editor} />
           </div>
         </div>
       </div>
 
-      <div className="flex w-80 shrink-0 flex-col">
+      <div className="flex min-h-72 w-full shrink-0 flex-col border-t border-[var(--border)] lg:min-h-0 lg:w-80 lg:border-t-0">
         {activeComposer && (
-          <div className="border-b p-4">
+          <div className="border-b border-[var(--border)] bg-[var(--surface)] p-4">
             <CommentComposer
               quotedText={activeComposer.quotedText}
               onSubmit={submitComment}
@@ -200,6 +271,7 @@ export function TiptapEditor({
           onChange={handleCommentChange}
           onDelete={handleCommentDelete}
           onDocumentContentUpdated={handleDocumentContentUpdated}
+          pendingCommentIds={pendingCommentIds}
         />
       </div>
     </div>

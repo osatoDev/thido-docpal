@@ -38,20 +38,20 @@ export function SuggestionCard({
   }
 
   return (
-    <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs">
-      <p className="mb-1 font-medium text-amber-800">
+    <div className="mt-2 rounded-lg border border-[color-mix(in_srgb,var(--warm)_48%,var(--border))] bg-[color-mix(in_srgb,var(--warm)_12%,var(--surface))] p-2 text-xs">
+      <p className="mb-1 font-medium text-[var(--warm)]">
         {STATUS_LABEL[suggestion.status]}
       </p>
-      <p className="text-gray-500 line-through">{suggestion.originalText}</p>
-      <p className="text-gray-800">{suggestion.proposedText}</p>
-      {error && <p className="mt-1 text-red-600">{error}</p>}
+      <p className="text-[var(--muted)] line-through">{suggestion.originalText}</p>
+      <p>{suggestion.proposedText}</p>
+      {error && <p className="mt-1 text-[var(--danger)]">{error}</p>}
       {suggestion.status === "PENDING" && (
         <div className="mt-2 flex gap-2">
           <button
             type="button"
             disabled={busy}
             onClick={() => respond("accept")}
-            className="rounded bg-black px-2 py-1 text-white hover:bg-gray-800 disabled:opacity-50"
+            className="primary-button rounded-lg px-2 py-1 disabled:opacity-50"
           >
             Accept
           </button>
@@ -59,7 +59,7 @@ export function SuggestionCard({
             type="button"
             disabled={busy}
             onClick={() => respond("reject")}
-            className="rounded border px-2 py-1 hover:bg-gray-100 disabled:opacity-50"
+            className="secondary-button rounded-lg px-2 py-1 disabled:opacity-50"
           >
             Reject
           </button>

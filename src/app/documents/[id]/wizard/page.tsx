@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getOwnedDocument } from "@/lib/documentAuth";
 import { generateFollowupQuestions } from "@/lib/ai/generateFollowups";
 import { FollowupPromptForm } from "@/components/wizard/FollowupPromptForm";
+import { Brand } from "@/components/Brand";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -36,7 +37,7 @@ export default async function WizardPage({ params }: Props) {
   } catch (error) {
     console.error("Failed to generate follow-up questions", error);
     return (
-      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center gap-3 p-5 text-center sm:p-8">
         <p className="text-sm font-medium">
           We couldn&apos;t generate follow-up questions right now.
         </p>
@@ -46,7 +47,7 @@ export default async function WizardPage({ params }: Props) {
         </p>
         <a
           href={`/documents/${id}/wizard`}
-          className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+          className="primary-button rounded-xl px-4 py-2 text-sm font-semibold"
         >
           Try again
         </a>
@@ -55,10 +56,12 @@ export default async function WizardPage({ params }: Props) {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 p-8">
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 p-5 sm:p-8">
+      <Brand />
       <div>
-        <h1 className="text-xl font-semibold">A few more details</h1>
-        <p className="text-sm text-gray-500">
+        <p className="mb-1 font-mono text-[0.65rem] font-semibold tracking-[0.16em] text-[var(--accent-strong)] uppercase">One more pass</p>
+        <h1 className="text-3xl font-semibold tracking-[-0.04em]">A few details make the draft yours.</h1>
+        <p className="mt-2 text-sm text-[var(--muted)]">
           Answer these and Thido will write the first draft.
         </p>
       </div>

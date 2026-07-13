@@ -48,11 +48,11 @@ export function InitialPromptForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+    <form onSubmit={handleSubmit} className="app-panel flex flex-col gap-6 rounded-2xl p-5 sm:p-7">
       {INITIAL_QUESTIONS.map((q) => (
         <label key={q.key} className="flex flex-col gap-1">
           <span className="text-sm font-medium">{q.label}</span>
-          <span className="text-sm text-gray-500">{q.question}</span>
+          <span className="text-sm text-[var(--muted)]">{q.question}</span>
           <textarea
             required
             rows={2}
@@ -60,17 +60,17 @@ export function InitialPromptForm() {
             onChange={(e) =>
               setAnswers((prev) => ({ ...prev, [q.key]: e.target.value }))
             }
-            className="mt-1 resize-none rounded-md border p-2 text-sm outline-none focus:ring-1 focus:ring-black"
+            className="app-input mt-1 resize-none rounded-xl p-3 text-sm outline-none"
           />
         </label>
       ))}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
 
       <button
         type="submit"
         disabled={submitting}
-        className="self-start rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+        className="primary-button self-start rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-50"
       >
         {submitting ? "Starting…" : "Continue"}
       </button>

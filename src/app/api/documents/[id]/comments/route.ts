@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import type { JSONContent } from "@tiptap/react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -10,6 +10,38 @@ import { replaceCommentMarkText } from "@/lib/documentMarks";
 import { checkRateLimit } from "@/lib/rateLimit";
 
 type Params = { params: Promise<{ id: string }> };
+
+export async function GET(_request: Request, { params }: Params) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id: documentId } = await params;
+  const document = await prisma.document.findFirst({
+    where: { id: documentId, ownerId: session.user.id },
+    select: {
+      content: true,
+      comments: {
+        where: { parentId: null },
+        orderBy: { createdAt: "desc" },
+        include: {
+          replies: { orderBy: { createdAt: "asc" } },
+          suggestion: true,
+        },
+      },
+    },
+  });
+
+  if (!document) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({
+    comments: document.comments,
+    documentContent: document.content,
+  });
+}
 
 export async function POST(request: Request, { params }: Params) {
   const session = await auth();
@@ -48,12 +80,38 @@ export async function POST(request: Request, { params }: Params) {
     },
   });
 
-  let aiReply = null;
-  let suggestion = null;
-  let updatedDocumentContent: JSONContent | null = null;
+  after(async () => {
+    await generateAiResponse({
+      commentId: comment.id,
+      documentId,
+      userId: session.user.id,
+      anchorMarkId,
+      quotedText,
+      commentBody,
+    });
+  });
+
+  return NextResponse.json({ comment }, { status: 201 });
+}
+
+async function generateAiResponse({
+  commentId,
+  documentId,
+  userId,
+  anchorMarkId,
+  quotedText,
+  commentBody,
+}: {
+  commentId: string;
+  documentId: string;
+  userId: string;
+  anchorMarkId: string;
+  quotedText: string;
+  commentBody: string;
+}) {
 
   try {
-    if (!checkRateLimit(`ai:${session.user.id}`, 15, 60_000)) {
+    if (!checkRateLimit(`ai:${userId}`, 15, 60_000)) {
       throw new Error("Rate limited — skipping AI response for this comment");
     }
 
@@ -87,15 +145,15 @@ export async function POST(request: Request, { params }: Params) {
     const parsed = message.parsed_output;
     if (parsed) {
       const settings = await prisma.userSettings.findUnique({
-        where: { userId: session.user.id },
+        where: { userId },
       });
       const mode = settings?.aiCommentMode ?? "PROPOSE";
 
-      aiReply = await prisma.comment.create({
+      await prisma.comment.create({
         data: {
           documentId,
           authorType: "AI",
-          parentId: comment.id,
+          parentId: commentId,
           anchorMarkId,
           quotedText,
           body: parsed.reply,
@@ -109,24 +167,16 @@ export async function POST(request: Request, { params }: Params) {
       });
 
       if (parsed.intent === "change_request" && parsed.proposed_text) {
-        if (mode === "AUTO_APPLY" && document.content) {
-          const updatedContent = replaceCommentMarkText(
-            document.content as JSONContent,
+        if (mode === "AUTO_APPLY") {
+          const updatedContent = await applyReplacementWithoutClobbering({
+            documentId,
             anchorMarkId,
-            parsed.proposed_text,
-          );
+            proposedText: parsed.proposed_text,
+          });
 
-          if (updatedContent) {
-            await prisma.document.update({
-              where: { id: documentId },
-              data: { content: updatedContent },
-            });
-            updatedDocumentContent = updatedContent;
-          }
-
-          suggestion = await prisma.suggestion.create({
+          await prisma.suggestion.create({
             data: {
-              commentId: comment.id,
+              commentId,
               documentId,
               anchorMarkId,
               originalText: quotedText,
@@ -137,13 +187,13 @@ export async function POST(request: Request, { params }: Params) {
           });
 
           await prisma.comment.update({
-            where: { id: comment.id },
+            where: { id: commentId },
             data: { status: "RESOLVED" },
           });
         } else {
-          suggestion = await prisma.suggestion.create({
+          await prisma.suggestion.create({
             data: {
-              commentId: comment.id,
+              commentId,
               documentId,
               anchorMarkId,
               originalText: quotedText,
@@ -154,14 +204,41 @@ export async function POST(request: Request, { params }: Params) {
       }
     }
   } catch (error) {
-    // The user's comment is already saved; the AI reply is best-effort.
+    // The user's comment is already saved; the background AI response is
+    // best-effort and must never block further editor interaction.
     console.error("AI comment response failed", error);
   }
+}
 
-  return NextResponse.json({
-    comment,
-    aiReply,
-    suggestion,
-    documentContent: updatedDocumentContent,
-  });
+async function applyReplacementWithoutClobbering({
+  documentId,
+  anchorMarkId,
+  proposedText,
+}: {
+  documentId: string;
+  anchorMarkId: string;
+  proposedText: string;
+}): Promise<JSONContent | null> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const latest = await prisma.document.findUnique({
+      where: { id: documentId },
+      select: { content: true, updatedAt: true },
+    });
+    if (!latest?.content) return null;
+
+    const updatedContent = replaceCommentMarkText(
+      latest.content as JSONContent,
+      anchorMarkId,
+      proposedText,
+    );
+    if (!updatedContent) return null;
+
+    const update = await prisma.document.updateMany({
+      where: { id: documentId, updatedAt: latest.updatedAt },
+      data: { content: updatedContent },
+    });
+    if (update.count === 1) return updatedContent;
+  }
+
+  return null;
 }

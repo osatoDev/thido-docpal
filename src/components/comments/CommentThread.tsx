@@ -9,11 +9,13 @@ export function CommentThread({
   onChange,
   onDelete,
   onDocumentContentUpdated,
+  isPending = false,
 }: {
   comment: CommentWithReplies;
   onChange: (updated: CommentWithReplies) => void;
   onDelete: (id: string) => void;
   onDocumentContentUpdated: (content: unknown) => void;
+  isPending?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
 
@@ -63,14 +65,14 @@ export function CommentThread({
 
   return (
     <div
-      className={`flex flex-col gap-2 rounded-md border p-3 text-sm ${
+      className={`flex flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm ${
         comment.status === "RESOLVED" ? "opacity-60" : ""
       }`}
     >
-      <blockquote className="border-l-2 border-gray-300 pl-2 text-xs italic text-gray-500">
+      <blockquote className="border-l-2 border-[var(--border-strong)] pl-2 text-xs italic text-[var(--muted)]">
         &ldquo;{comment.quotedText}&rdquo;
         {comment.isOrphaned && (
-          <span className="ml-1 not-italic text-amber-600">
+          <span className="ml-1 not-italic text-[var(--warm)]">
             (highlighted text was removed)
           </span>
         )}
@@ -78,6 +80,12 @@ export function CommentThread({
 
       <p>{comment.body}</p>
 
+      {isPending && (
+        <p className="flex items-center gap-2 text-xs text-[var(--muted)]" role="status">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--accent-strong)]" />
+          Saved — Thido is responding in the background
+        </p>
+      )}
       {comment.suggestion && (
         <SuggestionCard
           suggestion={comment.suggestion}
@@ -89,21 +97,21 @@ export function CommentThread({
         <div className="flex flex-col gap-2 border-l pl-3">
           {comment.replies.map((reply) => (
             <div key={reply.id} className="text-xs">
-              <span className="font-medium text-gray-700">
+              <span className="font-medium text-[var(--foreground)]">
                 {reply.authorType === "AI" ? "Thido AI" : "You"}
               </span>
-              <p className="text-gray-600">{reply.body}</p>
+              <p className="text-[var(--muted)]">{reply.body}</p>
             </div>
           ))}
         </div>
       )}
 
-      <div className="flex items-center gap-3 text-xs text-gray-400">
+      <div className="flex items-center gap-3 text-xs text-[var(--muted-soft)]">
         <button
           type="button"
           disabled={busy}
           onClick={toggleResolved}
-          className="hover:text-gray-700"
+          className="hover:text-[var(--foreground)]"
         >
           {comment.status === "OPEN" ? "Resolve" : "Reopen"}
         </button>
@@ -111,7 +119,7 @@ export function CommentThread({
           type="button"
           disabled={busy}
           onClick={handleDelete}
-          className="hover:text-red-600"
+          className="hover:text-[var(--danger)]"
         >
           Delete
         </button>
