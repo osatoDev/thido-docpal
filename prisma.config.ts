@@ -12,7 +12,7 @@ const isGenerateCommand = process.argv.includes("generate");
 const generateOnlyUrl =
   "postgresql://generate:generate@127.0.0.1:5432/generate";
 
-function databaseUrl(name: "DATABASE_URL" | "DIRECT_URL") {
+function databaseUrl(name: "DATABASE_URL" | "DATABASE_URL_UNPOOLED") {
   if (process.env[name]) return process.env[name];
   if (isGenerateCommand) return generateOnlyUrl;
   return env(name);
@@ -26,6 +26,6 @@ export default defineConfig({
   engine: "classic",
   datasource: {
     url: databaseUrl("DATABASE_URL"),
-    directUrl: databaseUrl("DIRECT_URL"),
+    directUrl: databaseUrl("DATABASE_URL_UNPOOLED"),
   },
 });

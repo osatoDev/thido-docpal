@@ -38,7 +38,7 @@ Copy `.env.example` to `.env` and fill in:
 
 | Variable | Where to get it |
 |---|---|
-| `DATABASE_URL` / `DIRECT_URL` | Your Postgres connection string (same value for both locally; in production on Neon, `DATABASE_URL` is the pooled string and `DIRECT_URL` is the direct one, used for migrations) |
+| `DATABASE_URL` / `DATABASE_URL_UNPOOLED` | Your Postgres connection string (same value for both locally; in production on Neon, `DATABASE_URL` is the pooled string and `DATABASE_URL_UNPOOLED` is the direct one, used for migrations) |
 | `AUTH_SECRET` | `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | `http://localhost:3000` locally |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) — create an OAuth 2.0 Client ID (Web application), with `http://localhost:3000/api/auth/callback/google` as an authorized redirect URI |
@@ -72,7 +72,7 @@ Open [http://localhost:3000](http://localhost:3000).
 1. Push to GitHub and import the repo into Vercel.
 2. Provision a Neon Postgres database (Vercel Storage → Postgres, or
    directly on [neon.tech](https://neon.tech)) and set `DATABASE_URL`
-   (pooled) / `DIRECT_URL` (direct) in the Vercel project's environment
+   (pooled) / `DATABASE_URL_UNPOOLED` (direct) in the Vercel project's environment
    variables.
 3. Set `AUTH_SECRET`, `NEXTAUTH_URL` (your production URL),
    `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `ANTHROPIC_API_KEY`.
