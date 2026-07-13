@@ -4,6 +4,20 @@
 import "dotenv/config";
 import { defineConfig, env } from "prisma/config";
 
+// `prisma generate` only produces TypeScript client code; it never connects to
+// Postgres. Allow it to run during a first Vercel install before a database has
+// been provisioned. Commands that actually use the database (such as
+// `prisma migrate deploy`) still require the real environment variables.
+const isGenerateCommand = process.argv.includes("generate");
+const generateOnlyUrl =
+  "postgresql://generate:generate@127.0.0.1:5432/generate";
+
+function databaseUrl(name: "DATABASE_URL" | "DIRECT_URL") {
+  if (process.env[name]) return process.env[name];
+  if (isGenerateCommand) return generateOnlyUrl;
+  return env(name);
+}
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
@@ -11,6 +25,7 @@ export default defineConfig({
   },
   engine: "classic",
   datasource: {
-    url: env("DATABASE_URL"),
+    url: databaseUrl("DATABASE_URL"),
+    directUrl: databaseUrl("DIRECT_URL"),
   },
 });
