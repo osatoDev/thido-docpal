@@ -3,7 +3,8 @@ import type { JSONContent } from "@tiptap/react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOwnedDocument } from "@/lib/documentAuth";
-import { anthropic, CLAUDE_MODEL } from "@/lib/ai/client";
+import { anthropic } from "@/lib/ai/client";
+import { getUserAiModel } from "@/lib/ai/userModel";
 import { commentResponseSchema } from "@/lib/ai/schemas";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { replaceCommentMarkText } from "@/lib/documentMarks";
@@ -115,11 +116,11 @@ async function generateAiResponse({
       throw new Error("Rate limited — skipping AI response for this comment");
     }
 
+    const model = await getUserAiModel(userId);
     const message = await anthropic.messages.parse({
-      model: CLAUDE_MODEL,
+      model,
       max_tokens: 1024,
       output_config: {
-        effort: "low",
         format: zodOutputFormat(commentResponseSchema),
       },
       system:

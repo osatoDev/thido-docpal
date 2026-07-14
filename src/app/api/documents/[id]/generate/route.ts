@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOwnedDocument } from "@/lib/documentAuth";
-import { anthropic, CLAUDE_MODEL } from "@/lib/ai/client";
+import { anthropic } from "@/lib/ai/client";
+import { supportsAdaptiveThinking } from "@/lib/ai/models";
+import { getUserAiModel } from "@/lib/ai/userModel";
 import { markdownToTiptapJSON } from "@/lib/markdownToTiptap";
 import { checkRateLimit } from "@/lib/rateLimit";
 
@@ -48,10 +50,14 @@ export async function POST(_request: Request, { params }: Params) {
     .map((a) => `Q: ${a.question}\nA: ${a.answer}`)
     .join("\n\n");
 
+  const model = await getUserAiModel(session.user.id);
+
   const claudeStream = anthropic.messages.stream({
-    model: CLAUDE_MODEL,
+    model,
     max_tokens: 16000,
-    thinking: { type: "adaptive" },
+    ...(supportsAdaptiveThinking(model)
+      ? { thinking: { type: "adaptive" as const } }
+      : {}),
     system:
       "You write complete, well-structured documents from a user's answers " +
       "to a short planning questionnaire. Respond with only the document " +

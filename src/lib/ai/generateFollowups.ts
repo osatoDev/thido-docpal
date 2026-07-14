@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { anthropic, CLAUDE_MODEL } from "@/lib/ai/client";
+import { anthropic } from "@/lib/ai/client";
+import { supportsAdaptiveThinking } from "@/lib/ai/models";
+import { getUserAiModel } from "@/lib/ai/userModel";
 import { followupQuestionsSchema } from "@/lib/ai/schemas";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 
@@ -27,10 +29,19 @@ export async function generateFollowupQuestions(documentId: string) {
     .map((a) => `Q: ${a.question}\nA: ${a.answer}`)
     .join("\n\n");
 
+  const document = await prisma.document.findUnique({
+    where: { id: documentId },
+    select: { ownerId: true },
+  });
+  if (!document) throw new Error("Document not found");
+  const model = await getUserAiModel(document.ownerId);
+
   const message = await anthropic.messages.parse({
-    model: CLAUDE_MODEL,
+    model,
     max_tokens: 2000,
-    thinking: { type: "adaptive" },
+    ...(supportsAdaptiveThinking(model)
+      ? { thinking: { type: "adaptive" as const } }
+      : {}),
     system:
       "You are helping a user plan a document before it is written. " +
       "Given their answers to five initial questions about the document " +

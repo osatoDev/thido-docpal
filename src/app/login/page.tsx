@@ -23,7 +23,7 @@ export default function LoginPage() {
         <form
           action={async () => {
             "use server";
-            await signIn("google", { redirectTo: "/dashboard" });
+            await signIn("google", { redirectTo: "/" });
           }}
           className="w-full"
         >
@@ -42,7 +42,7 @@ export default function LoginPage() {
               await signIn("test-login", {
                 email: formData.get("email"),
                 name: formData.get("name"),
-                redirectTo: "/dashboard",
+                redirectTo: "/",
               });
             }}
             className="flex w-full flex-col gap-3 border-t border-[var(--border)] pt-6"

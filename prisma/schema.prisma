@@ -68,13 +68,20 @@ enum AICommentMode {
   AUTO_APPLY
 }
 
+enum DocumentStartMode {
+  NEW_DOCUMENT
+  MOST_RECENT
+}
+
 model UserSettings {
-  id            String        @id @default(cuid())
-  userId        String        @unique
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  aiCommentMode AICommentMode @default(PROPOSE)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id                String            @id @default(cuid())
+  userId            String            @unique
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiCommentMode     AICommentMode     @default(PROPOSE)
+  aiModel           String            @default("claude-sonnet-5")
+  documentStartMode DocumentStartMode @default(NEW_DOCUMENT)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 }
 
 enum DocumentStatus {

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-export function Brand({ href = "/dashboard" }: { href?: string }) {
+export function Brand({ href = "/" }: { href?: string }) {
   return (
     <Link
       href={href}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { EditorContent, useEditor, type JSONContent } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { getEditorExtensions } from "@/lib/editorExtensions";
@@ -208,7 +209,21 @@ export function TiptapEditor({
       <div className="flex w-full min-w-0 flex-1 flex-col gap-5 p-3 sm:p-5 lg:p-7">
         <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-center sm:justify-between">
           <Brand />
-          <AiModeToggle />
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/dashboard"
+              className="text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)]"
+            >
+              All documents
+            </Link>
+            <Link
+              href="/settings"
+              className="text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)]"
+            >
+              Settings
+            </Link>
+            <AiModeToggle />
+          </div>
         </header>
         <div className="flex items-center justify-between gap-4">
           <input
