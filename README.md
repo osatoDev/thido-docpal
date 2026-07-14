@@ -1,4 +1,4 @@
-# Thido DocPal
+# Thido
 
 An AI document-creation platform: answer a short questionnaire, let Claude
 draft the first version, then edit it in a Google-Docs-like editor. Highlight

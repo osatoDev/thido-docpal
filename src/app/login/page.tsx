@@ -13,7 +13,7 @@ export default function LoginPage() {
             Think · Draft · Refine
           </p>
           <h1 className="text-3xl font-semibold tracking-[-0.045em]">
-            Your document has a new pal.
+            Think clearly. Draft confidently.
           </h1>
           <p className="max-w-sm text-sm leading-6 text-[var(--muted)]">
             Turn early thoughts into a strong first draft, then refine every

@@ -6,7 +6,7 @@ export function Brand({ href = "/dashboard" }: { href?: string }) {
     <Link
       href={href}
       className="brand-lockup inline-flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-      aria-label="ThidoDocPal home"
+      aria-label="Thido home"
     >
       <Image
         src="/thido-docpal-mark.svg"
@@ -16,7 +16,7 @@ export function Brand({ href = "/dashboard" }: { href?: string }) {
         priority
       />
       <span className="text-lg font-semibold tracking-[-0.045em]">
-        Thido<span className="text-[var(--accent-strong)]">DocPal</span>
+        Thido
       </span>
     </Link>
   );

@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ThidoDocPal — Think, draft, refine",
+  title: "Thido — Think clearly. Draft confidently.",
   description: "An AI document companion for thoughtful first drafts and collaborative refinement.",
   icons: { icon: "/thido-docpal-mark.svg" },
 };

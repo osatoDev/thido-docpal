@@ -1,4 +1,4 @@
-// Prisma schema for Thido DocPal
+// Prisma schema for Thido
 // Docs: https://pris.ly/d/prisma-schema
 
 generator client {

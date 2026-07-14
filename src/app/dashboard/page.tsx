@@ -68,7 +68,7 @@ export default async function DashboardPage() {
           <div className="app-panel flex flex-col items-start gap-3 rounded-2xl border-dashed p-8">
             <p className="font-medium">A clear page, ready when you are.</p>
             <p className="max-w-md text-sm leading-6 text-[var(--muted)]">
-              Answer a few focused questions and ThidoDocPal will shape them
+              Answer a few focused questions and Thido will shape them
               into a first draft you can edit and discuss.
             </p>
             <Link href="/documents/new" className="text-sm font-semibold text-[var(--accent-strong)] hover:underline">
