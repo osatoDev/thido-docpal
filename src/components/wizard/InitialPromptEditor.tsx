@@ -193,7 +193,7 @@ export function InitialPromptEditor({
           type="submit"
           className="primary-button rounded-md px-4 py-2.5 text-sm font-medium"
         >
-          {isAuthenticated ? "Continue" : "Sign in to generate and save"}
+          Generate
         </button>
       </div>
     </form>
