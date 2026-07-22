@@ -4,7 +4,9 @@ import { prisma } from "@/lib/prisma";
 
 export default async function Home() {
   const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  if (!session?.user?.id) {
+    redirect("/login?notice=sign-in-required&callbackUrl=/");
+  }
 
   const settings = await prisma.userSettings.upsert({
     where: { userId: session.user.id },

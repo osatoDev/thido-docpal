@@ -66,6 +66,14 @@ h1,
   line-height: 1.02;
 }
 
+.brand-wordmark {
+  font-family: Iowan Old Style, Baskerville, "Times New Roman", serif;
+  font-size: 1.55rem;
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
 button,
 input,
 textarea,

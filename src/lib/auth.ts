@@ -116,10 +116,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/login",
   },
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        return token;
       }
+
+      const userId =
+        typeof token.id === "string"
+          ? token.id
+          : typeof token.sub === "string"
+            ? token.sub
+            : null;
+
+      if (!userId) return null;
+
+      try {
+        const existingUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true },
+        });
+
+        if (!existingUser) return null;
+        token.id = existingUser.id;
+      } catch (error) {
+        // A temporary database outage should not sign every user out. Keep the
+        // token and let the requested operation surface the service failure.
+        console.error("Unable to validate authenticated user", error);
+      }
+
       return token;
     },
     session({ session, user, token }) {

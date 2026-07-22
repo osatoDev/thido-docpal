@@ -4,17 +4,25 @@ import { NextResponse } from "next/server";
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const { pathname } = req.nextUrl;
+  const hasSessionCookie = req.cookies.getAll().some(({ name }) =>
+    name.startsWith("authjs.session-token") ||
+    name.startsWith("__Secure-authjs.session-token"),
+  );
 
   const isPublicRoute =
     pathname === "/login" ||
     pathname === "/register" ||
-    pathname === "/" ||
-    pathname.startsWith("/api/auth") ||
+    pathname === "/forbidden" ||
+    pathname.startsWith("/api/") ||
     /\.[^/]+$/.test(pathname);
 
   if (!isLoggedIn && !isPublicRoute) {
     const loginUrl = new URL("/login", req.nextUrl.origin);
-    loginUrl.searchParams.set("callbackUrl", pathname);
+    loginUrl.searchParams.set("callbackUrl", `${pathname}${req.nextUrl.search}`);
+    loginUrl.searchParams.set(
+      "notice",
+      hasSessionCookie ? "session-expired" : "sign-in-required",
+    );
     return NextResponse.redirect(loginUrl);
   }
 

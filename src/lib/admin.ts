@@ -20,11 +20,11 @@ export async function requireAdmin() {
   const session = await auth();
 
   if (!session?.user?.id) {
-    redirect("/login?callbackUrl=/admin");
+    redirect("/login?notice=sign-in-required&callbackUrl=/admin");
   }
 
   if (!isAdminEmail(session.user.email)) {
-    redirect("/dashboard");
+    redirect("/forbidden?from=/admin");
   }
 
   return session;

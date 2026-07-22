@@ -9,13 +9,14 @@ import { commentResponseSchema } from "@/lib/ai/schemas";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { replaceCommentMarkText } from "@/lib/documentMarks";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { unauthorizedResponse } from "@/lib/apiResponses";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorizedResponse();
   }
 
   const { id: documentId } = await params;
@@ -47,7 +48,7 @@ export async function GET(_request: Request, { params }: Params) {
 export async function POST(request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorizedResponse();
   }
 
   const { id: documentId } = await params;

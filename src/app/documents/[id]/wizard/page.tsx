@@ -10,11 +10,13 @@ type Props = { params: Promise<{ id: string }> };
 
 export default async function WizardPage({ params }: Props) {
   const session = await auth();
+  const { id } = await params;
   if (!session?.user?.id) {
-    redirect("/login");
+    redirect(
+      `/login?notice=sign-in-required&callbackUrl=${encodeURIComponent(`/documents/${id}/wizard`)}`,
+    );
   }
 
-  const { id } = await params;
   const document = await getOwnedDocument(id, session.user.id);
   if (!document) {
     notFound();

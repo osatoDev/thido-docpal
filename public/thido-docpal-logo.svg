@@ -1,16 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="540" height="200" viewBox="0 0 540 200" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="144" viewBox="0 0 480 144" role="img" aria-labelledby="title desc">
   <title id="title">Thido</title>
-  <desc id="desc">A document and conversation mark beside the Thido wordmark.</desc>
-  <rect width="540" height="200" rx="36" fill="#F7F6F1"/>
-  <g transform="translate(30 34)">
-    <rect width="132" height="132" rx="34" fill="#17231E"/>
-    <path d="M39 27h37l21 21v49a9 9 0 0 1-9 9H39a9 9 0 0 1-9-9V36a9 9 0 0 1 9-9Z" fill="#F7F6F1"/>
-    <path d="M76 27v17a7 7 0 0 0 7 7h14" fill="none" stroke="#74D5B0" stroke-width="7" stroke-linejoin="round"/>
-    <path d="M47 67h34M47 82h24" fill="none" stroke="#17231E" stroke-width="6" stroke-linecap="round"/>
-    <circle cx="91" cy="92" r="22" fill="#E2A65E" stroke="#17231E" stroke-width="6"/>
-    <path d="m83 99-3 10 11-7" fill="#E2A65E" stroke="#17231E" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="85" cy="90" r="2.8" fill="#17231E"/><circle cx="96" cy="90" r="2.8" fill="#17231E"/>
+  <desc id="desc">An editorial T mark beside the Thido wordmark.</desc>
+  <g transform="translate(18 18)">
+    <rect width="108" height="108" rx="20" fill="#F4F2ED"/>
+    <path d="M17 24h74M39 24v64" fill="none" stroke="#222622" stroke-width="7" stroke-linecap="square"/>
+    <path d="M54 46h37M54 66h27M54 86h17" fill="none" stroke="#315F4E" stroke-width="6" stroke-linecap="square"/>
   </g>
-  <text x="188" y="108" fill="#17231E" font-family="Geist, Inter, Arial, sans-serif" font-size="64" font-weight="650" letter-spacing="-3">Thido</text>
-  <text x="191" y="142" fill="#218B6C" font-family="Geist Mono, ui-monospace, monospace" font-size="14" font-weight="600" letter-spacing="2">THINK CLEARLY · DRAFT CONFIDENTLY</text>
+  <text x="150" y="94" fill="#222622" font-family="Iowan Old Style, Baskerville, Times New Roman, serif" font-size="68" font-weight="600" letter-spacing="-3">Thido</text>
 </svg>

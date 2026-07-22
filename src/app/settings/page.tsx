@@ -8,7 +8,9 @@ import { SettingsForm } from "@/components/settings/SettingsForm";
 
 export default async function SettingsPage() {
   const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  if (!session?.user?.id) {
+    redirect("/login?notice=sign-in-required&callbackUrl=/settings");
+  }
 
   const settings = await prisma.userSettings.upsert({
     where: { userId: session.user.id },

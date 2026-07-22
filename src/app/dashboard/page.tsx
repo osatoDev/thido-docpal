@@ -21,7 +21,7 @@ async function deleteDocument(formData: FormData) {
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) {
-    redirect("/login");
+    redirect("/login?notice=sign-in-required&callbackUrl=/dashboard");
   }
 
   const documents = await prisma.document.findMany({
@@ -57,7 +57,7 @@ export default async function DashboardPage() {
           <form
             action={async () => {
               "use server";
-              await signOut({ redirectTo: "/login" });
+              await signOut({ redirectTo: "/login?notice=signed-out" });
             }}
           >
             <button

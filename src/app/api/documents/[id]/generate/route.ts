@@ -8,13 +8,14 @@ import { supportsAdaptiveThinking } from "@/lib/ai/models";
 import { getUserAiModel } from "@/lib/ai/userModel";
 import { markdownToTiptapJSON } from "@/lib/markdownToTiptap";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { unauthorizedResponse } from "@/lib/apiResponses";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(_request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorizedResponse();
   }
 
   if (!checkRateLimit(`ai:${session.user.id}`, 15, 60_000)) {

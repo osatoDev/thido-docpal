@@ -7,12 +7,24 @@ import Link from "next/link";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string | string[] }>;
+  searchParams: Promise<{
+    callbackUrl?: string | string[];
+    notice?: string | string[];
+  }>;
 }) {
   const params = await searchParams;
   const callbackUrl = safeRedirectPath(
     Array.isArray(params.callbackUrl) ? params.callbackUrl[0] : params.callbackUrl,
   );
+  const notice = Array.isArray(params.notice) ? params.notice[0] : params.notice;
+  const noticeMessage =
+    notice === "session-expired"
+      ? "Your previous session is no longer valid. Please sign in again."
+      : notice === "sign-in-required"
+        ? "Please sign in to continue."
+        : notice === "signed-out"
+          ? "You have signed out successfully."
+          : null;
 
   return (
     <main className="relative flex flex-1 items-center justify-center overflow-hidden p-6 sm:p-8">
@@ -32,6 +44,14 @@ export default async function LoginPage({
             line with focused AI feedback.
           </p>
         </div>
+        {noticeMessage && (
+          <div
+            role="status"
+            className="w-full rounded-lg border border-[var(--border-strong)] bg-[var(--surface-muted)] px-4 py-3 text-sm leading-5 text-[var(--foreground)]"
+          >
+            {noticeMessage}
+          </div>
+        )}
         <form
           action={async () => {
             "use server";

@@ -4,13 +4,14 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOwnedDocument } from "@/lib/documentAuth";
 import { collectCommentMarkIds } from "@/lib/documentMarks";
+import { unauthorizedResponse } from "@/lib/apiResponses";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorizedResponse();
   }
 
   const { id } = await params;
@@ -39,7 +40,7 @@ export async function GET(_request: Request, { params }: Params) {
 export async function PATCH(request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorizedResponse();
   }
 
   const { id } = await params;
@@ -101,7 +102,7 @@ async function reconcileOrphanedComments(documentId: string, content: JSONConten
 export async function DELETE(_request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorizedResponse();
   }
 
   const { id } = await params;

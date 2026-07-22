@@ -8,11 +8,13 @@ type Props = { params: Promise<{ id: string }> };
 
 export default async function EditDocumentPage({ params }: Props) {
   const session = await auth();
+  const { id } = await params;
   if (!session?.user?.id) {
-    redirect("/login");
+    redirect(
+      `/login?notice=sign-in-required&callbackUrl=${encodeURIComponent(`/documents/${id}/edit`)}`,
+    );
   }
 
-  const { id } = await params;
   const document = await prisma.document.findFirst({
     where: { id, ownerId: session.user.id },
     include: {

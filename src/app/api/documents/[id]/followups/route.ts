@@ -3,13 +3,14 @@ import { auth } from "@/lib/auth";
 import { getOwnedDocument } from "@/lib/documentAuth";
 import { generateFollowupQuestions } from "@/lib/ai/generateFollowups";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { unauthorizedResponse } from "@/lib/apiResponses";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(_request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorizedResponse();
   }
 
   if (!checkRateLimit(`ai:${session.user.id}`, 15, 60_000)) {
