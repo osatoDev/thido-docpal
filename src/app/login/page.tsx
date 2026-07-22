@@ -24,6 +24,10 @@ export default async function LoginPage({
         ? "Please sign in to continue."
         : notice === "signed-out"
           ? "You have signed out successfully."
+          : notice === "email-verified"
+            ? "Your email is verified. You can sign in now."
+            : notice === "password-reset"
+              ? "Your password has been updated. Sign in with your new password."
           : null;
 
   return (

@@ -42,6 +42,8 @@ Copy `.env.example` to `.env` and fill in:
 | `AUTH_SECRET` | `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | `http://localhost:3000` locally |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) — create an OAuth 2.0 Client ID (Web application), with `http://localhost:3000/api/auth/callback/google` as an authorized redirect URI |
+| `RESEND_API_KEY` | Resend API key used for verification and password-reset emails |
+| `AUTH_EMAIL_FROM` | Verified Resend sender, for example `Thido <auth@thido.ai>` |
 | `ANTHROPIC_API_KEY` | [Anthropic Console](https://console.anthropic.com/settings/keys) |
 
 Without `ANTHROPIC_API_KEY`, everything works except the AI-dependent steps
@@ -75,7 +77,8 @@ Open [http://localhost:3000](http://localhost:3000).
    (pooled) / `DATABASE_URL_UNPOOLED` (direct) in the Vercel project's environment
    variables.
 3. Set `AUTH_SECRET`, `NEXTAUTH_URL` (your production URL),
-   `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `ANTHROPIC_API_KEY`.
+   `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`,
+   `AUTH_EMAIL_FROM`, and `ANTHROPIC_API_KEY`.
 4. Add your production callback URL
    (`https://<your-domain>/api/auth/callback/google`) to the Google OAuth
    client's authorized redirect URIs.
@@ -99,7 +102,10 @@ in `/admin`. Team-owned projects also require `VERCEL_TEAM_ID`.
 
 People can create an account at `/register` and sign in with email and password
 at `/login`. Passwords are salted and hashed with Node.js scrypt; plaintext
-passwords are never stored. Run the committed Prisma migrations before using
-this flow in a deployed environment. Password reset and email verification are
-not configured yet; users who lose an email/password credential will need
-operator assistance until a reset flow is added.
+passwords are never stored. Password accounts must verify their email before
+signing in. Verification links expire after 24 hours, password-reset links
+expire after one hour, and both are single-use. Run the committed Prisma
+migrations and configure Resend before using these flows in production.
+
+Authentication documentation is in `docs/authjs.md`, `docs/sign-out.md`,
+`docs/rate-limiting.md`, and `docs/account-linking.md`.

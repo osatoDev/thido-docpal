@@ -2,6 +2,8 @@
 
 import { AuthError } from "next-auth";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { AuthTokenType } from "@prisma/client";
 
 import { signIn } from "@/lib/auth";
 import {
@@ -9,9 +11,11 @@ import {
   registrationSchema,
   safeRedirectPath,
 } from "@/lib/authInput";
-import { hashPassword } from "@/lib/password";
+import { hashPassword, verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { issueAuthToken } from "@/lib/authTokenStore";
+import { sendVerificationEmail } from "@/lib/email";
 
 export type AuthActionState = {
   message?: string;
@@ -53,6 +57,24 @@ export async function loginWithPassword(
     });
   } catch (error) {
     if (error instanceof AuthError) {
+      const parsedEmail = loginSchema.shape.email.safeParse(formData.get("email"));
+      const password = formData.get("password");
+      if (parsedEmail.success && typeof password === "string") {
+        const user = await prisma.user.findFirst({
+          where: { email: { equals: parsedEmail.data, mode: "insensitive" } },
+          select: { passwordHash: true, emailVerified: true },
+        });
+        if (
+          user?.passwordHash &&
+          !user.emailVerified &&
+          (await verifyPassword(password, user.passwordHash))
+        ) {
+          return {
+            message:
+              "Verify your email before signing in. You can request a new link below.",
+          };
+        }
+      }
       return { message: GENERIC_LOGIN_ERROR };
     }
     throw error;
@@ -82,6 +104,7 @@ export async function registerWithPassword(
 
   const { name, email, password } = parsed.data;
   const passwordHash = await hashPassword(password);
+  let user: { id: string; email: string | null };
 
   try {
     const existingUser = await prisma.user.findFirst({
@@ -91,33 +114,36 @@ export async function registerWithPassword(
 
     if (existingUser) return { message: GENERIC_REGISTRATION_ERROR };
 
-    await prisma.user.create({
+    user = await prisma.user.create({
       data: {
         name,
         email,
         passwordHash,
         settings: { create: {} },
       },
+      select: { id: true, email: true },
     });
+
   } catch {
     // Includes the unique-index race if two registrations arrive together.
     return { message: GENERIC_REGISTRATION_ERROR };
   }
 
+  if (!user.email) return { message: GENERIC_REGISTRATION_ERROR };
+
+  let deliveryFailed = false;
   try {
-    await signIn("password", {
-      email,
-      password,
-      redirectTo: safeRedirectPath(formData.get("callbackUrl")),
-    });
+    const token = await issueAuthToken(
+      user.id,
+      AuthTokenType.EMAIL_VERIFICATION,
+    );
+    await sendVerificationEmail(user.email, token);
   } catch (error) {
-    if (error instanceof AuthError) {
-      return {
-        message: "Your account was created. Please sign in to continue.",
-      };
-    }
-    throw error;
+    deliveryFailed = true;
+    console.error("Unable to send initial verification email", error);
   }
 
-  return {};
+  redirect(
+    `/verify-email?${deliveryFailed ? "delivery=failed" : "sent=1"}&email=${encodeURIComponent(email)}`,
+  );
 }

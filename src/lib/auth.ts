@@ -59,7 +59,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           user?.passwordHash,
         );
 
-        if (!user || !passwordMatches) return null;
+        if (!user || !passwordMatches || !user.emailVerified) return null;
 
         return {
           id: user.id,
@@ -119,6 +119,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        const authenticatedUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { sessionVersion: true },
+        });
+        if (!authenticatedUser) return null;
+        token.sessionVersion = authenticatedUser.sessionVersion;
         return token;
       }
 
@@ -129,15 +135,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             ? token.sub
             : null;
 
-      if (!userId) return null;
+      if (!userId || typeof token.sessionVersion !== "number") return null;
 
       try {
         const existingUser = await prisma.user.findUnique({
           where: { id: userId },
-          select: { id: true },
+          select: { id: true, sessionVersion: true },
         });
 
-        if (!existingUser) return null;
+        if (
+          !existingUser ||
+          existingUser.sessionVersion !== token.sessionVersion
+        ) {
+          return null;
+        }
         token.id = existingUser.id;
       } catch (error) {
         // A temporary database outage should not sign every user out. Keep the

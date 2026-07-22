@@ -23,6 +23,13 @@ export const registrationSchema = z.object({
     .max(128, "Use no more than 128 characters."),
 });
 
+export const emailSchema = z.string().trim().toLowerCase().email().max(254);
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(32).max(256),
+  password: registrationSchema.shape.password,
+});
+
 export function safeRedirectPath(value: unknown): string {
   return typeof value === "string" && value.startsWith("/") && !value.startsWith("//")
     ? value

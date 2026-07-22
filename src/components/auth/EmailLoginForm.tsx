@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 
 import {
@@ -32,9 +33,14 @@ export function EmailLoginForm({ callbackUrl }: { callbackUrl: string }) {
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="login-password" className="text-sm font-medium">
-          Password
-        </label>
+        <div className="flex items-center justify-between gap-3">
+          <label htmlFor="login-password" className="text-sm font-medium">
+            Password
+          </label>
+          <Link href="/forgot-password" className="text-link text-xs">
+            Forgot password?
+          </Link>
+        </div>
         <input
           id="login-password"
           type="password"
@@ -61,6 +67,12 @@ export function EmailLoginForm({ callbackUrl }: { callbackUrl: string }) {
       >
         {pending ? "Signing in…" : "Sign in"}
       </button>
+      <Link
+        href="/verify-email"
+        className="text-link text-center text-xs"
+      >
+        Resend verification email
+      </Link>
     </form>
   );
 }

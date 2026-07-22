@@ -12,6 +12,9 @@ export default auth((req) => {
   const isPublicRoute =
     pathname === "/login" ||
     pathname === "/register" ||
+    pathname === "/forgot-password" ||
+    pathname === "/reset-password" ||
+    pathname === "/verify-email" ||
     pathname === "/forbidden" ||
     pathname.startsWith("/api/") ||
     /\.[^/]+$/.test(pathname);
