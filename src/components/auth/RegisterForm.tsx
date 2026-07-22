@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 
 import {
@@ -89,6 +90,17 @@ export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
       >
         {pending ? "Creating account…" : "Create account"}
       </button>
+      <p className="text-center text-xs leading-5 text-[var(--muted)]">
+        By creating an account, you agree to the{" "}
+        <Link className="text-link underline" href="/terms">
+          Terms of Service
+        </Link>{" "}
+        and acknowledge the{" "}
+        <Link className="text-link underline" href="/privacy">
+          Privacy Policy
+        </Link>
+        .
+      </p>
     </form>
   );
 }

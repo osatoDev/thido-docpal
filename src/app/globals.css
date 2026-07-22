@@ -142,6 +142,95 @@ select {
   text-decoration: underline;
 }
 
+.legal-document section + section {
+  margin-top: 2.75rem;
+}
+
+.legal-document h2 {
+  margin-bottom: 0.9rem;
+  font-family: Iowan Old Style, Baskerville, "Times New Roman", serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.legal-document h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.legal-document p,
+.legal-document li {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.8;
+}
+
+.legal-document p + p,
+.legal-document ul + p {
+  margin-top: 0.9rem;
+}
+
+.legal-document ul {
+  margin-top: 0.75rem;
+  list-style: disc;
+  padding-left: 1.35rem;
+}
+
+.legal-document li + li {
+  margin-top: 0.35rem;
+}
+
+.legal-document a {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 0.22em;
+}
+
+.legal-document a:hover {
+  text-decoration-color: var(--accent-strong);
+}
+
+.legal-table-wrap {
+  margin: 1.25rem 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+}
+
+.legal-document table {
+  width: 100%;
+  min-width: 38rem;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.legal-document th,
+.legal-document td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.8rem 0.9rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  vertical-align: top;
+}
+
+.legal-document th {
+  background: var(--surface-subtle);
+  color: var(--foreground);
+  font-weight: 650;
+}
+
+.legal-document td {
+  color: var(--muted);
+}
+
+.legal-document tbody tr:last-child td {
+  border-bottom: 0;
+}
+
 .secondary-button:hover {
   border-color: var(--border-strong);
   background: var(--surface-subtle);

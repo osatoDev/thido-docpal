@@ -87,6 +87,17 @@ export default async function LoginPage({
             Create an account
           </Link>
         </p>
+        <nav
+          aria-label="Legal"
+          className="flex items-center gap-4 text-xs text-[var(--muted)]"
+        >
+          <Link className="text-link" href="/terms">
+            Terms of Service
+          </Link>
+          <Link className="text-link" href="/privacy">
+            Privacy Policy
+          </Link>
+        </nav>
 
         {isTestLoginEnabled && (
           <form

@@ -109,3 +109,5 @@ migrations and configure Resend before using these flows in production.
 
 Authentication documentation is in `docs/authjs.md`, `docs/sign-out.md`,
 `docs/rate-limiting.md`, and `docs/account-linking.md`.
+
+The running production-readiness checklist is in `docs/production-todo.md`.

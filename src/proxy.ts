@@ -16,6 +16,8 @@ export default auth((req) => {
     pathname === "/reset-password" ||
     pathname === "/verify-email" ||
     pathname === "/forbidden" ||
+    pathname === "/terms" ||
+    pathname === "/privacy" ||
     pathname.startsWith("/api/") ||
     /\.[^/]+$/.test(pathname);
 
