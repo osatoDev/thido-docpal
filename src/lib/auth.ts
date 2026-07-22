@@ -3,7 +3,10 @@ import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 
+import { loginSchema } from "@/lib/authInput";
+import { verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 // Test login lets you sign in as any email with no OAuth round-trip, purely
 // for local/CI testing. Never enabled in production, even if the env var
@@ -18,6 +21,54 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    }),
+    Credentials({
+      id: "password",
+      name: "Email and password",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials, request) {
+        const parsed = loginSchema.safeParse(credentials);
+        if (!parsed.success) return null;
+
+        const address =
+          request.headers.get("x-real-ip") ??
+          request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+          "unknown";
+        const { email, password } = parsed.data;
+        const withinAddressLimit = checkRateLimit(
+          `password-login:${address}`,
+          20,
+          15 * 60 * 1000,
+        );
+        const withinCombinationLimit = checkRateLimit(
+          `password-login:${address}:${email}`,
+          8,
+          15 * 60 * 1000,
+        );
+
+        if (!withinAddressLimit || !withinCombinationLimit) return null;
+
+        const user = await prisma.user.findFirst({
+          where: { email: { equals: email, mode: "insensitive" } },
+        });
+        const passwordMatches = await verifyPassword(
+          password,
+          user?.passwordHash,
+        );
+
+        if (!user || !passwordMatches) return null;
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          emailVerified: user.emailVerified,
+        };
+      },
     }),
     ...(isTestLoginEnabled
       ? [
@@ -58,9 +109,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         ]
       : []),
   ],
-  // Credentials sign-in is only supported with JWT sessions, so test login
-  // forces the whole app onto JWT rather than database sessions.
-  session: { strategy: isTestLoginEnabled ? "jwt" : "database" },
+  // Auth.js credentials providers require JWT sessions. OAuth users continue
+  // to be persisted through the Prisma adapter.
+  session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
   },

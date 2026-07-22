@@ -17,11 +17,11 @@ export function CommentSidebar({
   pendingCommentIds: Set<string>;
 }) {
   return (
-    <aside className="flex h-full w-full shrink-0 flex-col gap-3 overflow-y-auto border-l border-[var(--border)] bg-[var(--surface)] p-4 lg:w-80">
+    <aside className="flex h-full w-full shrink-0 flex-col gap-4 overflow-y-auto border-l border-[var(--border)] bg-[var(--background)] p-5 lg:w-80">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">Comments</h2>
         {pendingCommentIds.size > 0 && (
-          <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 font-mono text-[0.6rem] text-[var(--muted)]">
+          <span className="text-xs text-[var(--muted)]">
             {pendingCommentIds.size} processing
           </span>
         )}

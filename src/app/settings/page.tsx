@@ -17,7 +17,7 @@ export default async function SettingsPage() {
   });
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 p-5 sm:p-8">
+    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-12 px-5 py-6 sm:px-8 sm:py-10">
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-6">
         <Brand />
         <nav className="flex items-center gap-4 text-sm text-[var(--muted)]" aria-label="Settings navigation">
@@ -31,11 +31,9 @@ export default async function SettingsPage() {
       </header>
 
       <div>
-        <p className="mb-1 font-mono text-[0.65rem] font-semibold tracking-[0.16em] text-[var(--accent-strong)] uppercase">
-          Preferences
-        </p>
-        <h1 className="text-3xl font-semibold tracking-[-0.04em]">Settings</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
+        <p className="page-kicker mb-3">Preferences</p>
+        <h1 className="page-title">Settings</h1>
+        <p className="mt-4 text-sm text-[var(--muted)]">
           Signed in as {session.user.email}
         </p>
       </div>

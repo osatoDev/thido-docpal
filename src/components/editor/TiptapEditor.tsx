@@ -206,7 +206,7 @@ export function TiptapEditor({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-      <div className="flex w-full min-w-0 flex-1 flex-col gap-5 p-3 sm:p-5 lg:p-7">
+      <div className="flex w-full min-w-0 flex-1 flex-col gap-6 px-4 py-5 sm:px-7 sm:py-6 lg:px-10">
         <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-center sm:justify-between">
           <Brand />
           <div className="flex flex-wrap items-center gap-3">
@@ -225,7 +225,7 @@ export function TiptapEditor({
             <AiModeToggle />
           </div>
         </header>
-        <div className="flex items-center justify-between gap-4">
+        <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4">
           <input
             value={title}
             onChange={(e) => {
@@ -233,10 +233,10 @@ export function TiptapEditor({
               scheduleSave({ title: e.target.value });
             }}
             aria-label="Document title"
-            className="w-full border-none bg-transparent text-2xl font-semibold tracking-[-0.04em] outline-none"
+            className="editor-title w-full border-none bg-transparent font-serif text-3xl font-normal tracking-[-0.035em] outline-none sm:text-4xl"
           />
           <div className="flex shrink-0 items-center gap-3">
-            <span className="font-mono text-[0.65rem] text-[var(--muted-soft)]">
+            <span className="text-xs text-[var(--muted-soft)]">
               {saveState === "saving" && "Saving…"}
               {saveState === "saved" && "Saved"}
               {saveState === "error" && "Save failed"}
@@ -250,22 +250,22 @@ export function TiptapEditor({
           </p>
         )}
 
-        <div className="app-panel flex flex-1 flex-col overflow-hidden rounded-2xl">
+        <div className="app-panel mx-auto flex w-full max-w-4xl flex-1 flex-col overflow-hidden rounded-sm">
           <Toolbar editor={editor} />
           {editor && (
             <BubbleMenu editor={editor}>
-              <div className="app-panel flex items-center gap-1 rounded-lg p-1">
+              <div className="app-panel flex items-center gap-1 rounded-sm p-1">
                 <button
                   type="button"
                   onClick={startComment}
-                  className="rounded-md px-2 py-1 text-xs font-semibold hover:bg-[var(--surface-subtle)]"
+                  className="rounded-sm px-2 py-1 text-xs font-medium hover:bg-[var(--surface-subtle)]"
                 >
-                  💬 Comment
+                  Comment
                 </button>
               </div>
             </BubbleMenu>
           )}
-          <div className="flex-1 overflow-y-auto p-5 sm:p-8">
+          <div className="flex-1 overflow-y-auto px-6 py-8 sm:px-12 sm:py-12">
             <EditorContent editor={editor} />
           </div>
         </div>

@@ -39,9 +39,9 @@ export function SettingsForm({
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="app-panel rounded-2xl p-5 sm:p-7">
-        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center">
+    <div className="flex flex-col border-t border-[var(--border-strong)]">
+      <section className="border-b border-[var(--border)] py-7">
+        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
           <div>
             <h2 className="font-semibold">When Thido opens</h2>
             <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
@@ -56,7 +56,7 @@ export function SettingsForm({
               setDocumentStartMode(next);
               void save({ documentStartMode: next });
             }}
-            className="app-input rounded-xl px-3 py-2.5 text-sm outline-none"
+            className="app-input rounded-md px-3 py-2.5 text-sm outline-none"
           >
             <option value="NEW_DOCUMENT">Create a new blank document</option>
             <option value="MOST_RECENT">Open my most recent document</option>
@@ -64,8 +64,8 @@ export function SettingsForm({
         </div>
       </section>
 
-      <section className="app-panel rounded-2xl p-5 sm:p-7">
-        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center">
+      <section className="border-b border-[var(--border)] py-7">
+        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
           <div>
             <h2 className="font-semibold">Default AI model</h2>
             <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
@@ -79,7 +79,7 @@ export function SettingsForm({
               setAiModel(next);
               void save({ aiModel: next });
             }}
-            className="app-input rounded-xl px-3 py-2.5 text-sm outline-none"
+            className="app-input rounded-md px-3 py-2.5 text-sm outline-none"
           >
             {AI_MODELS.map((model) => (
               <option key={model.id} value={model.id}>
@@ -90,8 +90,8 @@ export function SettingsForm({
         </div>
       </section>
 
-      <section className="app-panel rounded-2xl p-5 sm:p-7">
-        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center">
+      <section className="border-b border-[var(--border)] py-7">
+        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
           <div>
             <h2 className="font-semibold">AI edit suggestions</h2>
             <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
@@ -106,7 +106,7 @@ export function SettingsForm({
               setCommentMode(next);
               void save({ aiCommentMode: next });
             }}
-            className="app-input rounded-xl px-3 py-2.5 text-sm outline-none"
+            className="app-input rounded-md px-3 py-2.5 text-sm outline-none"
           >
             <option value="PROPOSE">Ask for my approval</option>
             <option value="AUTO_APPLY">Apply automatically</option>
@@ -114,7 +114,7 @@ export function SettingsForm({
         </div>
       </section>
 
-      <p className="min-h-5 font-mono text-[0.65rem] text-[var(--muted)]" role="status">
+      <p className="min-h-5 pt-3 text-xs text-[var(--muted)]" role="status">
         {saveState === "saving" && "Saving…"}
         {saveState === "saved" && "Settings saved"}
         {saveState === "error" && "Could not save settings"}

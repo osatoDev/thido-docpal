@@ -54,7 +54,7 @@ export function AiModeToggle() {
   if (!mode || !model) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--muted)]">
+    <div className="flex flex-wrap items-center gap-4 text-xs text-[var(--muted)]">
       <label className="flex items-center gap-2">
         <span>Model</span>
         <select
@@ -62,7 +62,7 @@ export function AiModeToggle() {
           disabled={saving}
           onChange={(event) => updateModel(event.target.value as AiModelId)}
           aria-label="AI model"
-          className="app-input rounded-lg px-2 py-1 text-xs outline-none"
+          className="app-input rounded-sm px-2 py-1 text-xs outline-none"
         >
           {AI_MODELS.map((option) => (
             <option key={option.id} value={option.id}>
@@ -78,7 +78,7 @@ export function AiModeToggle() {
         disabled={saving}
         onChange={(e) => updateMode(e.target.value as Mode)}
         aria-label="AI suggestion behavior"
-        className="app-input rounded-lg px-2 py-1 text-xs outline-none"
+        className="app-input rounded-sm px-2 py-1 text-xs outline-none"
       >
         <option value="PROPOSE">Propose for my approval</option>
         <option value="AUTO_APPLY">Apply automatically</option>

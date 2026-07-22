@@ -1,13 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-type Theme = "light" | "dark";
+import { isTheme, THEME_COOKIE_NAME, type Theme } from "@/lib/theme";
 
 function applyTheme(theme: Theme) {
-  document.documentElement.classList.toggle("dark", theme === "dark");
   document.documentElement.dataset.theme = theme;
-  document.documentElement.style.colorScheme = theme;
+}
+
+function currentTheme(): Theme {
+  const explicitTheme = document.documentElement.dataset.theme;
+  if (isTheme(explicitTheme)) return explicitTheme;
+
+  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function saveTheme(theme: Theme) {
+  const secure = location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${THEME_COOKIE_NAME}=${theme}; Path=/; Max-Age=31536000; SameSite=Lax${secure}`;
 }
 
 export function ThemeToggle() {
@@ -15,10 +24,7 @@ export function ThemeToggle() {
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
-      const current = document.documentElement.classList.contains("dark")
-        ? "dark"
-        : "light";
-      setTheme(current);
+      setTheme(currentTheme());
     });
     return () => cancelAnimationFrame(frame);
   }, []);
@@ -26,7 +32,7 @@ export function ThemeToggle() {
   function toggleTheme() {
     const next = theme === "dark" ? "light" : "dark";
     applyTheme(next);
-    localStorage.setItem("thido-theme", next);
+    saveTheme(next);
     setTheme(next);
   }
 

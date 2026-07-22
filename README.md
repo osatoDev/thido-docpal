@@ -9,7 +9,7 @@ edits the document directly, based on your settings.
 
 - Next.js (App Router) + TypeScript + Tailwind CSS
 - PostgreSQL + Prisma
-- Auth.js v5 (Google OAuth) + `@auth/prisma-adapter`
+- Auth.js v5 (Google OAuth and email/password) + `@auth/prisma-adapter`
 - Tiptap (ProseMirror) for the rich text editor, with a custom `CommentMark`
   extension for anchoring comments to text spans
 - `@anthropic-ai/sdk` (Claude, model `claude-opus-4-8`) for the prompt
@@ -79,5 +79,27 @@ Open [http://localhost:3000](http://localhost:3000).
 4. Add your production callback URL
    (`https://<your-domain>/api/auth/callback/google`) to the Google OAuth
    client's authorized redirect URIs.
-5. Run `npx prisma migrate deploy` against the production database (e.g. via
-   a Vercel build step or manually) before or during the first deploy.
+5. In the GitHub repository, create a `production` environment and add
+   `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct) as environment
+   secrets. The `Production database migrations` workflow applies committed
+   Prisma migrations whenever migration-related files reach `main`. It can also
+   be run manually from the repository's Actions tab.
+
+### Admin console
+
+Set `ADMIN_EMAILS` to a comma-separated allowlist of account emails that may
+access `/admin`. This value is a server-only secret.
+
+Web Analytics page tracking is enabled through `@vercel/analytics`. Enable Web
+Analytics for the Vercel project, then set the server-only `VERCEL_TOKEN` and
+`VERCEL_PROJECT_ID` variables to show seven-day traffic totals and top routes
+in `/admin`. Team-owned projects also require `VERCEL_TEAM_ID`.
+
+### Password authentication
+
+People can create an account at `/register` and sign in with email and password
+at `/login`. Passwords are salted and hashed with Node.js scrypt; plaintext
+passwords are never stored. Run the committed Prisma migrations before using
+this flow in a deployed environment. Password reset and email verification are
+not configured yet; users who lose an email/password credential will need
+operator assistance until a reset flow is added.

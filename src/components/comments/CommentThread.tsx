@@ -65,7 +65,7 @@ export function CommentThread({
 
   return (
     <div
-      className={`flex flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm ${
+      className={`flex flex-col gap-3 border-t border-[var(--border)] py-4 text-sm ${
         comment.status === "RESOLVED" ? "opacity-60" : ""
       }`}
     >

@@ -7,6 +7,7 @@ export default auth((req) => {
 
   const isPublicRoute =
     pathname === "/login" ||
+    pathname === "/register" ||
     pathname === "/" ||
     pathname.startsWith("/api/auth") ||
     /\.[^/]+$/.test(pathname);

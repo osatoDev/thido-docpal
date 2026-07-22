@@ -1,7 +1,19 @@
 import { isTestLoginEnabled, signIn } from "@/lib/auth";
 import { Brand } from "@/components/Brand";
+import { EmailLoginForm } from "@/components/auth/EmailLoginForm";
+import { safeRedirectPath } from "@/lib/authInput";
+import Link from "next/link";
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ callbackUrl?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const callbackUrl = safeRedirectPath(
+    Array.isArray(params.callbackUrl) ? params.callbackUrl[0] : params.callbackUrl,
+  );
+
   return (
     <main className="relative flex flex-1 items-center justify-center overflow-hidden p-6 sm:p-8">
       <div className="pointer-events-none absolute -left-32 top-8 h-96 w-96 rounded-full bg-[color-mix(in_srgb,var(--accent)_22%,transparent)] blur-3xl" />
@@ -23,7 +35,7 @@ export default function LoginPage() {
         <form
           action={async () => {
             "use server";
-            await signIn("google", { redirectTo: "/" });
+            await signIn("google", { redirectTo: callbackUrl });
           }}
           className="w-full"
         >
@@ -34,6 +46,23 @@ export default function LoginPage() {
             Continue with Google
           </button>
         </form>
+
+        <div className="flex w-full items-center gap-3 text-xs text-[var(--muted)]">
+          <span className="h-px flex-1 bg-[var(--border)]" />
+          <span>or use email</span>
+          <span className="h-px flex-1 bg-[var(--border)]" />
+        </div>
+
+        <EmailLoginForm callbackUrl={callbackUrl} />
+        <p className="text-center text-sm text-[var(--muted)]">
+          New to Thido?{" "}
+          <Link
+            href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+            className="text-link font-medium text-[var(--foreground)]"
+          >
+            Create an account
+          </Link>
+        </p>
 
         {isTestLoginEnabled && (
           <form

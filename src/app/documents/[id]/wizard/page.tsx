@@ -56,12 +56,12 @@ export default async function WizardPage({ params }: Props) {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 p-5 sm:p-8">
+    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-12 px-5 py-6 sm:px-8 sm:py-10">
       <Brand />
       <div>
-        <p className="mb-1 font-mono text-[0.65rem] font-semibold tracking-[0.16em] text-[var(--accent-strong)] uppercase">One more pass</p>
-        <h1 className="text-3xl font-semibold tracking-[-0.04em]">A few details make the draft yours.</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
+        <p className="page-kicker mb-3">One more pass</p>
+        <h1 className="page-title max-w-2xl">Add the detail that makes it yours.</h1>
+        <p className="mt-5 text-sm text-[var(--muted)]">
           Answer these and Thido will write the first draft.
         </p>
       </div>

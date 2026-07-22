@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/lib/auth";
+import { isAdminEmail } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { Brand } from "@/components/Brand";
 
@@ -29,10 +30,18 @@ export default async function DashboardPage() {
   });
 
   return (
-    <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col gap-10 p-5 sm:p-8">
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-14 px-5 py-6 sm:px-8 sm:py-10">
       <header className="flex flex-col gap-6 border-b border-[var(--border)] pb-7 sm:flex-row sm:items-center sm:justify-between">
         <Brand />
         <div className="flex items-center gap-3">
+          {isAdminEmail(session.user.email) && (
+            <Link
+              href="/admin"
+              className="text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)]"
+            >
+              Admin
+            </Link>
+          )}
           <Link
             href="/settings"
             className="text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)]"
@@ -41,7 +50,7 @@ export default async function DashboardPage() {
           </Link>
           <Link
             href="/documents/new"
-            className="primary-button rounded-xl px-4 py-2.5 text-sm font-semibold"
+              className="primary-button rounded-md px-4 py-2.5 text-sm font-medium"
           >
             New document
           </Link>
@@ -53,7 +62,7 @@ export default async function DashboardPage() {
           >
             <button
               type="submit"
-              className="secondary-button rounded-xl px-3 py-2.5 text-sm"
+              className="secondary-button rounded-md px-3 py-2.5 text-sm"
             >
               Sign out
             </button>
@@ -61,18 +70,18 @@ export default async function DashboardPage() {
         </div>
       </header>
 
-      <section className="flex flex-col gap-6">
-        <div>
-          <p className="mb-1 font-mono text-[0.65rem] font-semibold tracking-[0.16em] text-[var(--accent-strong)] uppercase">
-            Your workspace
+      <section className="flex flex-col gap-8">
+        <div className="max-w-2xl">
+          <p className="page-kicker mb-3">Your documents</p>
+          <h1 className="page-title">Work in progress.</h1>
+          <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+            Draft, revise, and keep the thinking behind every document in one place.
           </p>
-          <h1 className="text-3xl font-semibold tracking-[-0.04em]">Documents</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">{session.user.email}</p>
         </div>
 
         {documents.length === 0 ? (
-          <div className="app-panel flex flex-col items-start gap-3 rounded-2xl border-dashed p-8">
-            <p className="font-medium">A clear page, ready when you are.</p>
+          <div className="flex flex-col items-start gap-3 border-y border-[var(--border)] py-10">
+            <p className="text-lg font-medium">A clear page, ready when you are.</p>
             <p className="max-w-md text-sm leading-6 text-[var(--muted)]">
               Answer a few focused questions and Thido will shape them
               into a first draft you can edit and discuss.
@@ -82,23 +91,29 @@ export default async function DashboardPage() {
             </Link>
           </div>
         ) : (
-        <ul className="app-panel flex flex-col divide-y divide-[var(--border)] overflow-hidden rounded-2xl">
+        <div className="border-t border-[var(--border-strong)]">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 border-b border-[var(--border)] py-2 text-xs text-[var(--muted)] sm:grid-cols-[minmax(0,1fr)_7rem_7rem]">
+            <span>Title</span>
+            <span className="hidden sm:block">Status</span>
+            <span className="text-right">Action</span>
+          </div>
+        <ul className="flex flex-col divide-y divide-[var(--border)]">
           {documents.map((doc) => (
-            <li key={doc.id} className="flex items-center justify-between gap-4 p-5 hover:bg-[var(--surface-subtle)]">
+            <li key={doc.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-5 sm:grid-cols-[minmax(0,1fr)_7rem_7rem]">
               <Link
                 href={
                   doc.status === "READY"
                     ? `/documents/${doc.id}/edit`
                     : `/documents/${doc.id}/wizard`
                 }
-                className="flex-1 text-sm font-semibold"
+                className="text-[0.95rem] font-medium underline-offset-4 hover:underline"
               >
                 {doc.title}
-                <span className="ml-2 rounded-full bg-[var(--surface-subtle)] px-2 py-1 font-mono text-[0.6rem] font-medium tracking-wide text-[var(--muted)]">
-                  {doc.status.toLowerCase()}
-                </span>
               </Link>
-              <form action={deleteDocument}>
+              <span className="hidden text-xs capitalize text-[var(--muted)] sm:block">
+                {doc.status.toLowerCase()}
+              </span>
+              <form action={deleteDocument} className="text-right">
                 <input type="hidden" name="id" value={doc.id} />
                 <button
                   type="submit"
@@ -110,6 +125,7 @@ export default async function DashboardPage() {
             </li>
           ))}
         </ul>
+        </div>
         )}
       </section>
     </main>

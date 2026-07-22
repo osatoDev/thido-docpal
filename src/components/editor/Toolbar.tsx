@@ -19,8 +19,8 @@ function ToolbarButton({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className={`rounded-md px-2 py-1 text-sm font-medium hover:bg-[var(--surface-subtle)] ${
-        isActive ? "bg-[var(--surface-subtle)] text-[var(--accent-strong)]" : ""
+      className={`rounded-sm px-2 py-1 text-sm font-medium hover:bg-[var(--surface-subtle)] ${
+        isActive ? "bg-[var(--foreground)] text-[var(--surface)]" : ""
       }`}
     >
       {children}
@@ -32,7 +32,7 @@ export function Toolbar({ editor }: { editor: Editor | null }) {
   if (!editor) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-1 border-b border-[var(--border)] bg-[var(--surface-subtle)] p-2">
+    <div className="flex flex-wrap items-center gap-1 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2">
       <ToolbarButton
         label="Bold"
         isActive={editor.isActive("bold")}

@@ -38,8 +38,8 @@ export function SuggestionCard({
   }
 
   return (
-    <div className="mt-2 rounded-lg border border-[color-mix(in_srgb,var(--warm)_48%,var(--border))] bg-[color-mix(in_srgb,var(--warm)_12%,var(--surface))] p-2 text-xs">
-      <p className="mb-1 font-medium text-[var(--warm)]">
+    <div className="mt-2 border-l-2 border-[var(--warm)] bg-[color-mix(in_srgb,var(--warm)_7%,var(--surface))] px-3 py-2 text-xs">
+      <p className="mb-2 font-medium text-[var(--warm)]">
         {STATUS_LABEL[suggestion.status]}
       </p>
       <p className="text-[var(--muted)] line-through">{suggestion.originalText}</p>
@@ -51,7 +51,7 @@ export function SuggestionCard({
             type="button"
             disabled={busy}
             onClick={() => respond("accept")}
-            className="primary-button rounded-lg px-2 py-1 disabled:opacity-50"
+            className="primary-button rounded-sm px-2 py-1 disabled:opacity-50"
           >
             Accept
           </button>
@@ -59,7 +59,7 @@ export function SuggestionCard({
             type="button"
             disabled={busy}
             onClick={() => respond("reject")}
-            className="secondary-button rounded-lg px-2 py-1 disabled:opacity-50"
+            className="secondary-button rounded-sm px-2 py-1 disabled:opacity-50"
           >
             Reject
           </button>

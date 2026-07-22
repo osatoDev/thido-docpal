@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "db:migrate:prod": "prisma migrate deploy",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -20,6 +21,7 @@
     "@tiptap/pm": "^3.27.3",
     "@tiptap/react": "^3.27.3",
     "@tiptap/starter-kit": "^3.27.3",
+    "@vercel/analytics": "^2.0.1",
     "happy-dom": "^20.10.6",
     "marked": "^18.0.5",
     "next": "16.2.10",

@@ -3,12 +3,12 @@ import { Brand } from "@/components/Brand";
 
 export default function NewDocumentPage() {
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 p-5 sm:p-8">
+    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-12 px-5 py-6 sm:px-8 sm:py-10">
       <Brand />
       <div>
-        <p className="mb-1 font-mono text-[0.65rem] font-semibold tracking-[0.16em] text-[var(--accent-strong)] uppercase">New document</p>
-        <h1 className="text-3xl font-semibold tracking-[-0.04em]">Let&apos;s find the shape of it.</h1>
-        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+        <p className="page-kicker mb-3">New document</p>
+        <h1 className="page-title max-w-2xl">Start with what you know.</h1>
+        <p className="mt-5 max-w-xl text-sm leading-6 text-[var(--muted)]">
           Answer a few questions and Thido will draft a first version for you.
         </p>
       </div>

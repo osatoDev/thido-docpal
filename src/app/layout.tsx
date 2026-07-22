@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { isTheme, THEME_COOKIE_NAME } from "@/lib/theme";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,27 +22,24 @@ export const metadata: Metadata = {
   icons: { icon: "/thido-docpal-mark.svg" },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const savedTheme = (await cookies()).get(THEME_COOKIE_NAME)?.value;
+  const theme = isTheme(savedTheme) ? savedTheme : "system";
+
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-      suppressHydrationWarning
+      data-theme={theme}
     >
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('thido-theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.classList.toggle('dark',t==='dark');document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t}catch(e){}})()`,
-          }}
-        />
-      </head>
       <body className="flex min-h-full flex-col">
         {children}
         <ThemeToggle />
+        <Analytics />
       </body>
     </html>
   );

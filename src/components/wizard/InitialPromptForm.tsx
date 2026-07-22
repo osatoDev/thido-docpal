@@ -48,11 +48,13 @@ export function InitialPromptForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="app-panel flex flex-col gap-6 rounded-2xl p-5 sm:p-7">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-8 border-t border-[var(--border-strong)] pt-8">
       {INITIAL_QUESTIONS.map((q) => (
-        <label key={q.key} className="flex flex-col gap-1">
+        <label key={q.key} className="grid gap-2 border-b border-[var(--border)] pb-8 sm:grid-cols-[12rem_minmax(0,1fr)] sm:gap-8">
+          <span>
           <span className="text-sm font-medium">{q.label}</span>
-          <span className="text-sm text-[var(--muted)]">{q.question}</span>
+          <span className="mt-1 block text-xs leading-5 text-[var(--muted)]">{q.question}</span>
+          </span>
           <textarea
             required
             rows={2}
@@ -60,7 +62,7 @@ export function InitialPromptForm() {
             onChange={(e) =>
               setAnswers((prev) => ({ ...prev, [q.key]: e.target.value }))
             }
-            className="app-input mt-1 resize-none rounded-xl p-3 text-sm outline-none"
+            className="app-input min-h-24 resize-y rounded-md p-3 text-sm leading-6 outline-none"
           />
         </label>
       ))}
@@ -70,7 +72,7 @@ export function InitialPromptForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="primary-button self-start rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-50"
+        className="primary-button self-start rounded-md px-4 py-2.5 text-sm font-medium disabled:opacity-50"
       >
         {submitting ? "Starting…" : "Continue"}
       </button>

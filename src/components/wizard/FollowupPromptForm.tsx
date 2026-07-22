@@ -80,10 +80,10 @@ export function FollowupPromptForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="app-panel flex flex-col gap-6 rounded-2xl p-5 sm:p-7">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-8 border-t border-[var(--border-strong)] pt-8">
       {followups.map((f) => (
-        <label key={f.id} className="flex flex-col gap-1">
-          <span className="text-sm font-medium">{f.question}</span>
+        <label key={f.id} className="grid gap-3 border-b border-[var(--border)] pb-8 sm:grid-cols-[12rem_minmax(0,1fr)] sm:gap-8">
+          <span className="text-sm font-medium leading-5">{f.question}</span>
           <textarea
             required
             rows={2}
@@ -91,7 +91,7 @@ export function FollowupPromptForm({
             onChange={(e) =>
               setAnswers((prev) => ({ ...prev, [f.id]: e.target.value }))
             }
-            className="app-input mt-1 resize-none rounded-xl p-3 text-sm outline-none"
+            className="app-input min-h-24 resize-y rounded-md p-3 text-sm leading-6 outline-none"
           />
         </label>
       ))}
@@ -100,7 +100,7 @@ export function FollowupPromptForm({
 
       <button
         type="submit"
-        className="primary-button self-start rounded-xl px-4 py-2.5 text-sm font-semibold"
+        className="primary-button self-start rounded-md px-4 py-2.5 text-sm font-medium"
       >
         Generate document
       </button>
