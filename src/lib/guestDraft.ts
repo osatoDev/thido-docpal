@@ -8,11 +8,12 @@ export const GUEST_DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 const storedAnswerSchema = z.string().max(4_000);
 
-const storedGuestDraftSchema = z
+const guidedGuestDraftSchema = z
   .object({
     version: z.literal(GUEST_DRAFT_VERSION),
     draftId: z.string().uuid(),
     savedAt: z.string().datetime(),
+    mode: z.literal("GUIDED").default("GUIDED"),
     answers: z.object({
       purpose: storedAnswerSchema,
       audience: storedAnswerSchema,
@@ -23,23 +24,63 @@ const storedGuestDraftSchema = z
   })
   .strict();
 
-export const guestDraftSchema = storedGuestDraftSchema
-  .refine(
-    (draft) => Object.values(draft.answers).every((answer) => answer.trim()),
-    { message: "Every outline answer is required." },
-  )
-  .refine(
-    (draft) =>
-      Object.values(draft.answers).reduce(
-        (total, answer) => total + answer.length,
-        0,
-      ) <= 12_000,
-    { message: "The outline is too large." },
-  );
+const freeformGuestDraftSchema = z
+  .object({
+    version: z.literal(GUEST_DRAFT_VERSION),
+    draftId: z.string().uuid(),
+    savedAt: z.string().datetime(),
+    mode: z.literal("FREEFORM"),
+    prompt: z.string().max(12_000),
+  })
+  .strict();
+
+const storedGuestDraftSchema = z.union([
+  guidedGuestDraftSchema,
+  freeformGuestDraftSchema,
+]);
+
+export const guestDraftSchema = storedGuestDraftSchema.superRefine(
+  (draft, context) => {
+    if (draft.mode === "FREEFORM") {
+      if (!draft.prompt.trim()) {
+        context.addIssue({
+          code: "custom",
+          message: "A freeform prompt is required.",
+          path: ["prompt"],
+        });
+      }
+      return;
+    }
+
+    if (!Object.values(draft.answers).every((answer) => answer.trim())) {
+      context.addIssue({
+        code: "custom",
+        message: "Every outline answer is required.",
+        path: ["answers"],
+      });
+    }
+
+    const totalLength = Object.values(draft.answers).reduce(
+      (total, answer) => total + answer.length,
+      0,
+    );
+    if (totalLength > 12_000) {
+      context.addIssue({
+        code: "custom",
+        message: "The outline is too large.",
+        path: ["answers"],
+      });
+    }
+  },
+);
 
 export type GuestDraft = z.infer<typeof guestDraftSchema>;
 export type StoredGuestDraft = z.infer<typeof storedGuestDraftSchema>;
-export type GuestDraftAnswers = StoredGuestDraft["answers"];
+export type GuestDraftMode = StoredGuestDraft["mode"];
+export type GuestDraftAnswers = Extract<
+  StoredGuestDraft,
+  { mode: "GUIDED" }
+>["answers"];
 
 function isCurrentDraft(draft: StoredGuestDraft) {
   const savedAt = Date.parse(draft.savedAt);
@@ -71,6 +112,16 @@ export function parseStoredGuestDraft(
 }
 
 export function toInitialPromptAnswers(draft: GuestDraft) {
+  if (draft.mode === "FREEFORM") {
+    return [
+      {
+        order: 1,
+        question: "What would you like Thido to draft?",
+        answer: draft.prompt.trim(),
+      },
+    ];
+  }
+
   return INITIAL_QUESTIONS.map((question) => ({
     order: question.order,
     question: question.question,

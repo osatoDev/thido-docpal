@@ -25,11 +25,33 @@ describe("guest drafts", () => {
     const draft = parseGuestDraft(validDraft);
 
     expect(draft).not.toBeNull();
+    expect(draft?.mode).toBe("GUIDED");
     expect(toInitialPromptAnswers(draft!)).toHaveLength(5);
     expect(toInitialPromptAnswers(draft!)[0]).toMatchObject({
       order: 1,
       answer: "Prepare a project brief",
     });
+  });
+
+  it("accepts a freeform brief as one canonical prompt answer", () => {
+    const draft = parseGuestDraft({
+      version: 1,
+      draftId: "4d6f0a20-3931-4d36-bb17-7d9c3481b404",
+      savedAt: new Date().toISOString(),
+      mode: "FREEFORM",
+      prompt:
+        "Write a concise launch plan for a neighborhood bakery opening in September.",
+    });
+
+    expect(draft).not.toBeNull();
+    expect(toInitialPromptAnswers(draft!)).toEqual([
+      {
+        order: 1,
+        question: "What would you like Thido to draft?",
+        answer:
+          "Write a concise launch plan for a neighborhood bakery opening in September.",
+      },
+    ]);
   });
 
   it("rejects expired, incomplete, and malformed stored drafts", () => {
@@ -47,5 +69,14 @@ describe("guest drafts", () => {
       }),
     ).toBeNull();
     expect(parseStoredGuestDraft("not json")).toBeNull();
+    expect(
+      parseGuestDraft({
+        version: 1,
+        draftId: "4d6f0a20-3931-4d36-bb17-7d9c3481b404",
+        savedAt: new Date().toISOString(),
+        mode: "FREEFORM",
+        prompt: "   ",
+      }),
+    ).toBeNull();
   });
 });

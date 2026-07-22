@@ -52,6 +52,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Invalidate existing JWT sessions after a password reset.
 - [x] Detect sessions whose database user no longer exists.
 - [x] Show explicit sign-in, expired-session, sign-out, verification, and password-reset notices.
+- [x] Use a responsive wide login layout that keeps authentication controls readable without excessive desktop side margins.
 - [x] Provide a dedicated forbidden page for authorization failures.
 - [ ] Add an authenticated connected-accounts screen for deliberately linking Google and password credentials.
 - [ ] Add recent-authentication checks before linking or unlinking credentials.
@@ -94,7 +95,8 @@ This is the running source of truth for production-readiness work. Completed box
 
 - [x] Store editable Thido document content and metadata in PostgreSQL.
 - [x] Implement the limited guest-first drafting flow described in `docs/guest-document-flow.md`.
-- [x] Keep guest input local until authentication and require sign-in before AI generation or permanent database storage.
+- [x] Keep guest input local, present the same **Generate** action to every user, and prompt guests to sign in only after they request generation; require authentication before AI generation or permanent database storage.
+- [x] Let users switch between guided initial questions and a freeform prompt; retain tailored follow-ups for guided briefs and generate directly from freeform briefs.
 - [ ] Decide whether Thido will support uploaded source files, exports, images, or attachments.
 - [ ] If binary files are added, provision object storage such as Vercel Blob or S3 and store only object metadata and keys in PostgreSQL.
 - [ ] Define maximum document size and API request-body limits.
@@ -168,6 +170,7 @@ This is the running source of truth for production-readiness work. Completed box
 
 - [x] Publish Terms of Service and a Privacy Policy at `/terms` and `/privacy`.
 - [x] State how documents, prompts, account data, analytics, and AI-provider processing are handled.
+- [x] Enrich the first-time document-start page with a returning-user header action, a dropdown of more than ten document starters that replace the current outline, guest-flow reassurance, and a concise explanation of what happens after submission.
 - [ ] Have qualified counsel review the policies for Thido's intended markets before public launch.
 - [ ] Add the operator's complete legal name, business address, and specific governing law once confirmed.
 - [ ] Create and monitor `legal@thido.ai`, `privacy@thido.ai`, and `support@thido.ai`, or replace them in the policies with verified contact addresses.

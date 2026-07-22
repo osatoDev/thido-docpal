@@ -60,8 +60,8 @@ export async function POST(_request: Request, { params }: Params) {
       ? { thinking: { type: "adaptive" as const } }
       : {}),
     system:
-      "You write complete, well-structured documents from a user's answers " +
-      "to a short planning questionnaire. Respond with only the document " +
+      "You write complete, well-structured documents from a user's brief " +
+      "and any planning answers. Respond with only the document " +
       "itself, formatted as Markdown (headings, paragraphs, and lists as " +
       "appropriate) — no preamble, no meta-commentary about the document, " +
       "and no closing remarks.",

@@ -7,7 +7,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 
 /**
  * Generates (and persists) the AI follow-up questions for a document, based
- * on its 5 initial prompt answers. Idempotent — returns the existing
+ * on its initial brief or prompt answers. Idempotent — returns the existing
  * follow-ups if they were already generated.
  */
 export async function generateFollowupQuestions(documentId: string) {
@@ -44,7 +44,7 @@ export async function generateFollowupQuestions(documentId: string) {
       : {}),
     system:
       "You are helping a user plan a document before it is written. " +
-      "Given their answers to five initial questions about the document " +
+      "Given their initial brief about the document " +
       "they want, ask 3-5 tailored follow-up questions that would " +
       "meaningfully improve the quality and specificity of the final " +
       "document. Ask about concrete details the initial answers left " +
