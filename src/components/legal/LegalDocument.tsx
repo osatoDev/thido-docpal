@@ -13,7 +13,7 @@ export function LegalDocument({
   children: ReactNode;
 }) {
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-5 py-8 sm:px-8 sm:py-12">
+    <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col px-5 py-8 sm:px-6 sm:py-12 lg:px-8">
       <header className="flex items-center justify-between gap-4 border-b border-[var(--border)] pb-6">
         <Brand href="/" />
         <nav aria-label="Legal pages" className="flex items-center gap-4 text-sm">

@@ -7,7 +7,7 @@ export default async function ForbiddenPage() {
   const session = await auth();
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center gap-10 px-5 py-12 sm:px-8">
+    <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col justify-center gap-10 px-5 py-12 sm:px-6 lg:px-8">
       <Brand />
       <section className="max-w-xl border-t border-[var(--border-strong)] pt-8">
         <p className="page-kicker mb-3">Access denied</p>

@@ -39,7 +39,7 @@ export default async function WizardPage({ params }: Props) {
   } catch (error) {
     console.error("Failed to generate follow-up questions", error);
     return (
-      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center gap-3 p-5 text-center sm:p-8">
+      <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col items-center justify-center gap-3 px-5 py-12 text-center sm:px-6 lg:px-8">
         <p className="text-sm font-medium">
           We couldn&apos;t generate follow-up questions right now.
         </p>
@@ -58,7 +58,7 @@ export default async function WizardPage({ params }: Props) {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-12 px-5 py-6 sm:px-8 sm:py-10">
+    <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col gap-12 px-5 py-6 sm:px-6 sm:py-10 lg:px-8">
       <Brand />
       <div>
         <p className="page-kicker mb-3">One more pass</p>

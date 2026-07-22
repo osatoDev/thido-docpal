@@ -173,6 +173,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Enrich the first-time document-start page with a returning-user header action, a dropdown of more than ten document starters that replace the current outline, guest-flow reassurance, and a concise explanation of what happens after submission.
 - [x] Default first-time visitors to light mode while retaining an explicit light or dark preference across visits.
 - [x] Make guided brief and follow-up fields optional, clearly identify that Thido can infer omitted details, and require only one initial piece of direction before generation.
+- [x] Use a consistent wide responsive shell across full-page surfaces and require an accessible confirmation with a visible pending state before deleting documents.
 - [ ] Have qualified counsel review the policies for Thido's intended markets before public launch.
 - [ ] Add the operator's complete legal name, business address, and specific governing law once confirmed.
 - [ ] Create and monitor `legal@thido.ai`, `privacy@thido.ai`, and `support@thido.ai`, or replace them in the policies with verified contact addresses.

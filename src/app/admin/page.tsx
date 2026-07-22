@@ -61,7 +61,7 @@ export default async function AdminPage() {
   const environment = process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "unknown";
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-8 p-5 sm:p-8">
+    <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col gap-8 px-5 py-6 sm:px-6 sm:py-10 lg:px-8">
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-6">
         <Brand href="/admin" />
         <nav className="flex items-center gap-4 text-sm text-[var(--muted)]" aria-label="Admin navigation">

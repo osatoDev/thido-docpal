@@ -19,7 +19,7 @@ export default async function SettingsPage() {
   });
 
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-12 px-5 py-6 sm:px-8 sm:py-10">
+    <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col gap-12 px-5 py-6 sm:px-6 sm:py-10 lg:px-8">
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-6">
         <Brand />
         <nav className="flex items-center gap-4 text-sm text-[var(--muted)]" aria-label="Settings navigation">
