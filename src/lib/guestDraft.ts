@@ -52,10 +52,10 @@ export const guestDraftSchema = storedGuestDraftSchema.superRefine(
       return;
     }
 
-    if (!Object.values(draft.answers).every((answer) => answer.trim())) {
+    if (!Object.values(draft.answers).some((answer) => answer.trim())) {
       context.addIssue({
         code: "custom",
-        message: "Every outline answer is required.",
+        message: "Add at least one detail to guide the document.",
         path: ["answers"],
       });
     }

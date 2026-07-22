@@ -54,7 +54,23 @@ describe("guest drafts", () => {
     ]);
   });
 
-  it("rejects expired, incomplete, and malformed stored drafts", () => {
+  it("accepts a partial guided brief", () => {
+    const draft = parseGuestDraft({
+      ...validDraft,
+      answers: {
+        purpose: "Prepare a project brief",
+        audience: "",
+        tone: "",
+        keyPoints: "",
+        format: "",
+      },
+    });
+
+    expect(draft).not.toBeNull();
+    expect(toInitialPromptAnswers(draft!)).toHaveLength(5);
+  });
+
+  it("rejects expired, empty, and malformed stored drafts", () => {
     expect(
       parseGuestDraft({
         ...validDraft,
@@ -65,7 +81,13 @@ describe("guest drafts", () => {
       parseGuestDraft({
         ...validDraft,
         savedAt: new Date().toISOString(),
-        answers: { ...validDraft.answers, purpose: "" },
+        answers: {
+          purpose: "",
+          audience: "",
+          tone: "",
+          keyPoints: "",
+          format: "",
+        },
       }),
     ).toBeNull();
     expect(parseStoredGuestDraft("not json")).toBeNull();

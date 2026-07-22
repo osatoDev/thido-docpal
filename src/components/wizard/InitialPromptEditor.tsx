@@ -148,7 +148,7 @@ export function InitialPromptEditor({
       setError(
         mode === "FREEFORM"
           ? "Write a prompt before generating your document."
-          : "Complete every question before continuing.",
+          : "Add at least one detail so Thido knows what to draft.",
       );
       return;
     }
@@ -209,11 +209,17 @@ export function InitialPromptEditor({
         </div>
       )}
 
-      {resumeGuestDraft && !resumableDraft && (
-        <p role="alert" className="mb-8 text-sm text-[var(--danger)]">
-          We could not find a complete temporary outline in this browser. Your
-          available answers are shown below.
-        </p>
+      {resumeGuestDraft &&
+        isAuthenticated &&
+        initialDraft &&
+        !resumableDraft && (
+          <div className="mb-8 border-l-2 border-[var(--accent-strong)] pl-4">
+            <p className="text-sm font-medium">Your saved work is here.</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+              Continue where you left off, then generate when the brief is
+              ready.
+            </p>
+          </div>
       )}
 
       <fieldset className="border-y border-[var(--border-strong)] py-6">
@@ -290,6 +296,16 @@ export function InitialPromptEditor({
         </fieldset>
       )}
 
+      {mode === "GUIDED" && (
+        <div className="border-b border-[var(--border-strong)] py-6">
+          <p className="text-sm font-medium">Share only what you know.</p>
+          <p className="mt-1 max-w-2xl text-xs leading-5 text-[var(--muted)]">
+            Every question is optional. Leave any answer blank and Thido will
+            make a reasonable choice from the rest of your brief.
+          </p>
+        </div>
+      )}
+
       {mode === "GUIDED" &&
         INITIAL_QUESTIONS.map((question) => (
           <label
@@ -297,13 +313,15 @@ export function InitialPromptEditor({
             className="grid gap-2 border-b border-[var(--border)] py-8 sm:grid-cols-[12rem_minmax(0,1fr)] sm:gap-8"
           >
             <span>
-              <span className="text-sm font-medium">{question.label}</span>
+              <span className="text-sm font-medium">{question.label}</span>{" "}
+              <span className="ml-2 text-xs font-normal text-[var(--muted)]">
+                Optional
+              </span>
               <span className="mt-1 block text-xs leading-5 text-[var(--muted)]">
                 {question.question}
               </span>
             </span>
             <textarea
-              required
               rows={2}
               maxLength={4_000}
               value={answers[question.key]}

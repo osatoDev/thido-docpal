@@ -64,7 +64,8 @@ export default async function WizardPage({ params }: Props) {
         <p className="page-kicker mb-3">One more pass</p>
         <h1 className="page-title max-w-2xl">Add the detail that makes it yours.</h1>
         <p className="mt-5 text-sm text-[var(--muted)]">
-          Answer these and Thido will write the first draft.
+          Add any details you care about, or let Thido make reasonable choices
+          for you.
         </p>
       </div>
       <FollowupPromptForm

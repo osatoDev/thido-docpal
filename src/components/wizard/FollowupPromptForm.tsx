@@ -81,11 +81,21 @@ export function FollowupPromptForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-8 border-t border-[var(--border-strong)] pt-8">
+      <div className="border-l-2 border-[var(--accent-strong)] pl-4">
+        <p className="text-sm font-medium">Answer only what you want.</p>
+        <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+          Leave any question blank and Thido will make a reasonable assumption.
+        </p>
+      </div>
       {followups.map((f) => (
         <label key={f.id} className="grid gap-3 border-b border-[var(--border)] pb-8 sm:grid-cols-[12rem_minmax(0,1fr)] sm:gap-8">
-          <span className="text-sm font-medium leading-5">{f.question}</span>
+          <span>
+            <span className="block text-sm font-medium leading-5">{f.question}</span>
+            <span className="mt-1 block text-xs leading-5 text-[var(--muted)]">
+              Optional — leave blank for Thido
+            </span>
+          </span>
           <textarea
-            required
             rows={2}
             value={answers[f.id] ?? ""}
             onChange={(e) =>

@@ -3,6 +3,9 @@ import { InitialPromptForm } from "@/components/wizard/InitialPromptForm";
 import { Brand } from "@/components/Brand";
 import { auth } from "@/lib/auth";
 
+const RESUME_LOGIN_HREF =
+  "/login?callbackUrl=%2Fdocuments%2Fnew%3Fresume%3D1";
+
 const WORKFLOW_STEPS = [
   {
     number: "01",
@@ -35,7 +38,7 @@ export default async function NewDocumentPage({
       <header className="flex items-center justify-between border-b border-[var(--border)] pb-6">
         <Brand />
         <Link
-          href={isAuthenticated ? "/dashboard" : "/login?callbackUrl=%2Fdocuments%2Fnew"}
+          href={isAuthenticated ? "/dashboard" : RESUME_LOGIN_HREF}
           className="secondary-button rounded-md px-3.5 py-2 text-sm font-medium"
         >
           {isAuthenticated ? "My documents" : "Sign in"}
@@ -87,7 +90,7 @@ export default async function NewDocumentPage({
         <nav aria-label="Legal and account links" className="flex items-center gap-5">
           <Link href="/privacy" className="text-link">Privacy</Link>
           <Link href="/terms" className="text-link">Terms</Link>
-          {!isAuthenticated && <Link href="/login?callbackUrl=%2Fdocuments%2Fnew" className="text-link">Sign in</Link>}
+          {!isAuthenticated && <Link href={RESUME_LOGIN_HREF} className="text-link">Sign in</Link>}
         </nav>
       </footer>
     </main>

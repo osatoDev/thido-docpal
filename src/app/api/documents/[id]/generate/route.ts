@@ -48,7 +48,10 @@ export async function POST(_request: Request, { params }: Params) {
   });
 
   const qaText = promptAnswers
-    .map((a) => `Q: ${a.question}\nA: ${a.answer}`)
+    .map(
+      (a) =>
+        `Q: ${a.question}\nA: ${a.answer.trim() || "Not provided — infer a reasonable default."}`,
+    )
     .join("\n\n");
 
   const model = await getUserAiModel(session.user.id);
@@ -61,7 +64,9 @@ export async function POST(_request: Request, { params }: Params) {
       : {}),
     system:
       "You write complete, well-structured documents from a user's brief " +
-      "and any planning answers. Respond with only the document " +
+      "and any planning answers. Infer sensible choices wherever the user " +
+      "left an answer blank, without calling attention to the missing input. " +
+      "Respond with only the document " +
       "itself, formatted as Markdown (headings, paragraphs, and lists as " +
       "appropriate) — no preamble, no meta-commentary about the document, " +
       "and no closing remarks.",

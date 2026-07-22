@@ -26,7 +26,10 @@ export async function generateFollowupQuestions(documentId: string) {
   }
 
   const qaText = initialAnswers
-    .map((a) => `Q: ${a.question}\nA: ${a.answer}`)
+    .map(
+      (a) =>
+        `Q: ${a.question}\nA: ${a.answer.trim() || "Not provided — infer a reasonable default."}`,
+    )
     .join("\n\n");
 
   const document = await prisma.document.findUnique({
@@ -48,7 +51,8 @@ export async function generateFollowupQuestions(documentId: string) {
       "they want, ask 3-5 tailored follow-up questions that would " +
       "meaningfully improve the quality and specificity of the final " +
       "document. Ask about concrete details the initial answers left " +
-      "vague — not generic restatements of the same questions.",
+      "vague — not generic restatements of the same questions. The user may " +
+      "skip any follow-up, so make reasonable assumptions when needed.",
     messages: [{ role: "user", content: qaText }],
     output_config: { format: zodOutputFormat(followupQuestionsSchema) },
   });
