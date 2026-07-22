@@ -103,6 +103,7 @@ export async function registerWithPassword(
   }
 
   const { name, email, password } = parsed.data;
+  const callbackUrl = safeRedirectPath(formData.get("callbackUrl"));
   const passwordHash = await hashPassword(password);
   let user: { id: string; email: string | null };
 
@@ -137,13 +138,16 @@ export async function registerWithPassword(
       user.id,
       AuthTokenType.EMAIL_VERIFICATION,
     );
-    await sendVerificationEmail(user.email, token);
+    await sendVerificationEmail(user.email, token, callbackUrl);
   } catch (error) {
     deliveryFailed = true;
     console.error("Unable to send initial verification email", error);
   }
 
-  redirect(
-    `/verify-email?${deliveryFailed ? "delivery=failed" : "sent=1"}&email=${encodeURIComponent(email)}`,
-  );
+  const verificationParams = new URLSearchParams({
+    [deliveryFailed ? "delivery" : "sent"]: deliveryFailed ? "failed" : "1",
+    email,
+    callbackUrl,
+  });
+  redirect(`/verify-email?${verificationParams.toString()}`);
 }

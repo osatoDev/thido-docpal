@@ -89,8 +89,15 @@ function emailShell(title: string, body: string, action: string, url: string) {
 </html>`;
 }
 
-export async function sendVerificationEmail(email: string, token: string) {
-  const url = appUrl(`/verify-email?token=${encodeURIComponent(token)}`);
+export async function sendVerificationEmail(
+  email: string,
+  token: string,
+  callbackUrl = "/",
+) {
+  const verificationUrl = new URL(appUrl("/verify-email"));
+  verificationUrl.searchParams.set("token", token);
+  verificationUrl.searchParams.set("callbackUrl", callbackUrl);
+  const url = verificationUrl.toString();
   await sendEmail({
     to: email,
     subject: "Verify your Thido email",

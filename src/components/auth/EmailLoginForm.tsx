@@ -68,7 +68,7 @@ export function EmailLoginForm({ callbackUrl }: { callbackUrl: string }) {
         {pending ? "Signing in…" : "Sign in"}
       </button>
       <Link
-        href="/verify-email"
+        href={`/verify-email?callbackUrl=${encodeURIComponent(callbackUrl)}`}
         className="text-link text-center text-xs"
       >
         Resend verification email

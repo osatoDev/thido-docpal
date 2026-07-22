@@ -10,6 +10,7 @@ export default auth((req) => {
   );
 
   const isPublicRoute =
+    pathname === "/" ||
     pathname === "/login" ||
     pathname === "/register" ||
     pathname === "/forgot-password" ||
@@ -18,6 +19,7 @@ export default auth((req) => {
     pathname === "/forbidden" ||
     pathname === "/terms" ||
     pathname === "/privacy" ||
+    pathname === "/documents/new" ||
     pathname.startsWith("/api/") ||
     /\.[^/]+$/.test(pathname);
 

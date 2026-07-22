@@ -41,6 +41,12 @@ export default function PrivacyPage() {
           in its PostgreSQL database; it does not currently store documents as
           uploaded files in object storage.
         </p>
+        <p>
+          You may begin an outline before signing in. During that guest flow,
+          the answers are kept temporarily in your browser and are not sent to
+          Thido&apos;s servers until you authenticate and ask us to create the
+          document.
+        </p>
 
         <h3>Communications</h3>
         <p>
@@ -176,12 +182,21 @@ export default function PrivacyPage() {
       </section>
 
       <section>
-        <h2>6. Analytics and cookies</h2>
+        <h2>6. Analytics, cookies, and browser storage</h2>
         <p>
           Thido uses essential cookies for authentication and security, plus a
           preference cookie that remembers your light or dark theme. Disabling
           essential cookies may prevent sign-in and other core features from
           working.
+        </p>
+        <p>
+          The guest drafting flow uses your browser&apos;s session storage to
+          preserve unfinished outline answers during navigation, refreshes, and
+          the sign-in redirect. Thido treats a stored guest outline as expired
+          after 24 hours and removes it after the authenticated document is
+          created. Session storage is local to the browser tab or session and may
+          disappear sooner if you close the tab, clear site data, or use browser
+          privacy controls.
         </p>
         <p>
           We use Vercel Web Analytics to measure page visits and product usage.

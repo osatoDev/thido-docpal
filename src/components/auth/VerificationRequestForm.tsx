@@ -9,7 +9,13 @@ import {
 
 const initialState: AuthFlowState = {};
 
-export function VerificationRequestForm({ email = "" }: { email?: string }) {
+export function VerificationRequestForm({
+  email = "",
+  callbackUrl = "/",
+}: {
+  email?: string;
+  callbackUrl?: string;
+}) {
   const [state, formAction, pending] = useActionState(
     requestVerificationEmail,
     initialState,
@@ -17,6 +23,7 @@ export function VerificationRequestForm({ email = "" }: { email?: string }) {
 
   return (
     <form action={formAction} className="flex w-full flex-col gap-3">
+      <input type="hidden" name="callbackUrl" value={callbackUrl} />
       <div className="flex flex-col gap-1.5">
         <label htmlFor="verification-email" className="text-sm font-medium">
           Email

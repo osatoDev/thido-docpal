@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 export default async function Home() {
   const session = await auth();
   if (!session?.user?.id) {
-    redirect("/login?notice=sign-in-required&callbackUrl=/");
+    redirect("/documents/new");
   }
 
   const settings = await prisma.userSettings.upsert({

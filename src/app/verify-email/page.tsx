@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { Brand } from "@/components/Brand";
 import { VerificationRequestForm } from "@/components/auth/VerificationRequestForm";
 import { verifyEmailToken } from "@/lib/authTokenStore";
-import { emailSchema } from "@/lib/authInput";
+import { emailSchema, safeRedirectPath } from "@/lib/authInput";
 
 export default async function VerifyEmailPage({
   searchParams,
@@ -14,6 +14,7 @@ export default async function VerifyEmailPage({
     sent?: string | string[];
     delivery?: string | string[];
     email?: string | string[];
+    callbackUrl?: string | string[];
   }>;
 }) {
   const params = await searchParams;
@@ -24,6 +25,11 @@ export default async function VerifyEmailPage({
     "failed";
   const rawEmail = Array.isArray(params.email) ? params.email[0] : params.email;
   const parsedEmail = emailSchema.safeParse(rawEmail);
+  const callbackUrl = safeRedirectPath(
+    Array.isArray(params.callbackUrl)
+      ? params.callbackUrl[0]
+      : params.callbackUrl,
+  );
 
   let invalidToken = false;
   let verified = false;
@@ -41,7 +47,11 @@ export default async function VerifyEmailPage({
     }
   }
 
-  if (verified) redirect("/login?notice=email-verified");
+  if (verified) {
+    redirect(
+      `/login?notice=email-verified&callbackUrl=${encodeURIComponent(callbackUrl)}`,
+    );
+  }
 
   return (
     <main className="relative flex flex-1 items-center justify-center overflow-hidden p-6 sm:p-8">
@@ -68,8 +78,12 @@ export default async function VerifyEmailPage({
         </div>
         <VerificationRequestForm
           email={parsedEmail.success ? parsedEmail.data : ""}
+          callbackUrl={callbackUrl}
         />
-        <Link href="/login" className="text-link text-sm font-medium">
+        <Link
+          href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+          className="text-link text-sm font-medium"
+        >
           Return to sign in
         </Link>
       </section>

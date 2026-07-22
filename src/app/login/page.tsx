@@ -18,7 +18,9 @@ export default async function LoginPage({
   );
   const notice = Array.isArray(params.notice) ? params.notice[0] : params.notice;
   const noticeMessage =
-    notice === "session-expired"
+    notice === "draft-ready"
+      ? "Your outline is ready. Sign in to generate your draft and save it to your account."
+      : notice === "session-expired"
       ? "Your previous session is no longer valid. Please sign in again."
       : notice === "sign-in-required"
         ? "Please sign in to continue."
@@ -78,6 +80,12 @@ export default async function LoginPage({
         </div>
 
         <EmailLoginForm callbackUrl={callbackUrl} />
+        <Link
+          href="/documents/new"
+          className="secondary-button w-full rounded-xl px-4 py-3 text-center text-sm font-semibold"
+        >
+          Start a draft without an account
+        </Link>
         <p className="text-center text-sm text-[var(--muted)]">
           New to Thido?{" "}
           <Link
@@ -106,11 +114,12 @@ export default async function LoginPage({
               await signIn("test-login", {
                 email: formData.get("email"),
                 name: formData.get("name"),
-                redirectTo: "/",
+                redirectTo: safeRedirectPath(formData.get("callbackUrl")),
               });
             }}
             className="flex w-full flex-col gap-3 border-t border-[var(--border)] pt-6"
           >
+            <input type="hidden" name="callbackUrl" value={callbackUrl} />
             <p className="font-mono text-[0.65rem] font-semibold tracking-[0.14em] text-[var(--muted)] uppercase">
               Local test login
             </p>

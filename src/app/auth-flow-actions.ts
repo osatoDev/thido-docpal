@@ -5,7 +5,11 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { issueAuthToken, resetPasswordWithToken } from "@/lib/authTokenStore";
-import { emailSchema, resetPasswordSchema } from "@/lib/authInput";
+import {
+  emailSchema,
+  resetPasswordSchema,
+  safeRedirectPath,
+} from "@/lib/authInput";
 import {
   sendPasswordResetEmail,
   sendVerificationEmail,
@@ -69,6 +73,7 @@ export async function requestVerificationEmail(
   formData: FormData,
 ): Promise<AuthFlowState> {
   const parsedEmail = emailSchema.safeParse(formData.get("email"));
+  const callbackUrl = safeRedirectPath(formData.get("callbackUrl"));
   const address = await clientAddress();
 
   if (
@@ -94,7 +99,7 @@ export async function requestVerificationEmail(
         user.id,
         AuthTokenType.EMAIL_VERIFICATION,
       );
-      await sendVerificationEmail(user.email, token);
+      await sendVerificationEmail(user.email, token, callbackUrl);
     } catch (error) {
       console.error("Unable to send verification email", error);
     }

@@ -6,9 +6,10 @@ This is the running source of truth for production-readiness work. Completed box
 
 ## Immediate deployment blockers
 
-- [x] Apply all committed Prisma migrations to the production database, including `20260722100000_add_auth_tokens`.
+- [ ] Apply the `20260722143000_add_guest_draft_id` migration to the production database before deploying the guest-first flow.
+- [x] Apply previously committed Prisma migrations through `20260722100000_add_auth_tokens` to the production database.
 - [x] Resolve or confirm the Prisma baseline for the existing production database before running `prisma migrate deploy` if it still reports `P3005`.
-- [x] Verify `npx prisma migrate status` reports that the production schema is up to date.
+- [ ] After applying the guest-draft migration, verify `npx prisma migrate status` reports that the production schema is up to date.
 - [ ] Configure `RESEND_API_KEY` in Vercel Production and Preview environments as appropriate.
 - [ ] Verify the sending domain in Resend and replace `onboarding@resend.dev` with a production `AUTH_EMAIL_FROM` address.
 - [ ] Send real verification and password-reset emails and confirm delivery, links, expiry, and single-use behavior against the production database.
@@ -92,6 +93,8 @@ This is the running source of truth for production-readiness work. Completed box
 ## Application data and document storage
 
 - [x] Store editable Thido document content and metadata in PostgreSQL.
+- [x] Implement the limited guest-first drafting flow described in `docs/guest-document-flow.md`.
+- [x] Keep guest input local until authentication and require sign-in before AI generation or permanent database storage.
 - [ ] Decide whether Thido will support uploaded source files, exports, images, or attachments.
 - [ ] If binary files are added, provision object storage such as Vercel Blob or S3 and store only object metadata and keys in PostgreSQL.
 - [ ] Define maximum document size and API request-body limits.
@@ -131,6 +134,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Enable Vercel Web Analytics for the production project.
 - [ ] Configure `VERCEL_TOKEN`, `VERCEL_PROJECT_ID`, and `VERCEL_TEAM_ID` when required for the admin analytics view.
 - [ ] Verify `/admin` shows real production analytics and system configuration status.
+- [ ] Add content-free funnel events for guest outline start, authentication checkpoint, successful login return, and document claim.
 - [ ] Add application error tracking, for example Sentry or an equivalent service.
 - [ ] Add structured server logging with request correlation IDs and secret redaction.
 - [ ] Configure alerts for elevated 5xx responses, function timeouts, email failures, database failures, and AI-provider failures.
