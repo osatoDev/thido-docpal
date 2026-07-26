@@ -4,24 +4,18 @@ import { useState } from "react";
 import { AI_MODELS, type AiModelId } from "@/lib/ai/models";
 
 type CommentMode = "PROPOSE" | "AUTO_APPLY";
-type DocumentStartMode = "NEW_DOCUMENT" | "MOST_RECENT";
 
 type Props = {
   initialAiModel: AiModelId;
   initialCommentMode: CommentMode;
-  initialDocumentStartMode: DocumentStartMode;
 };
 
 export function SettingsForm({
   initialAiModel,
   initialCommentMode,
-  initialDocumentStartMode,
 }: Props) {
   const [aiModel, setAiModel] = useState(initialAiModel);
   const [commentMode, setCommentMode] = useState(initialCommentMode);
-  const [documentStartMode, setDocumentStartMode] = useState(
-    initialDocumentStartMode,
-  );
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   async function save(update: Record<string, string>) {
@@ -40,30 +34,6 @@ export function SettingsForm({
 
   return (
     <div className="flex flex-col border-t border-[var(--border-strong)]">
-      <section className="border-b border-[var(--border)] py-7">
-        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
-          <div>
-            <h2 className="font-semibold">When Thido opens</h2>
-            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-              Choose whether the home page starts fresh or returns to your
-              latest editable document.
-            </p>
-          </div>
-          <select
-            value={documentStartMode}
-            onChange={(event) => {
-              const next = event.target.value as DocumentStartMode;
-              setDocumentStartMode(next);
-              void save({ documentStartMode: next });
-            }}
-            className="app-input rounded-md px-3 py-2.5 text-sm outline-none"
-          >
-            <option value="NEW_DOCUMENT">Create a new blank document</option>
-            <option value="MOST_RECENT">Open my most recent document</option>
-          </select>
-        </div>
-      </section>
-
       <section className="border-b border-[var(--border)] py-7">
         <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
           <div>

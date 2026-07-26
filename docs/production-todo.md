@@ -1,6 +1,6 @@
 # Thido production checklist
 
-Last reviewed: 22 July 2026
+Last reviewed: 26 July 2026
 
 This is the running source of truth for production-readiness work. Completed boxes indicate repository evidence or a verified check. External configuration remains unchecked until it is explicitly verified.
 
@@ -97,6 +97,8 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Implement the limited guest-first drafting flow described in `docs/guest-document-flow.md`.
 - [x] Keep complete and partial guest input local and restore it after sign-in initiated through either **Generate** or the page navigation; require authentication before AI generation or permanent database storage.
 - [x] Let users switch between guided initial questions and a freeform prompt; retain tailored follow-ups for guided briefs and generate directly from freeform briefs.
+- [x] Prompt signed-in users to **Start a new document** or **Paste an existing document**; the paste path creates a blank `READY` document without running document generation.
+- [ ] Define and communicate which pasted rich-text structures are preserved; treat importing Word/Google Docs comments and tracked changes as a separate feature.
 - [ ] Decide whether Thido will support uploaded source files, exports, images, or attachments.
 - [ ] If binary files are added, provision object storage such as Vercel Blob or S3 and store only object metadata and keys in PostgreSQL.
 - [ ] Define maximum document size and API request-body limits.
@@ -109,6 +111,8 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Keep Anthropic calls on the server.
 - [x] Validate structured AI responses with schemas where implemented.
 - [x] Fail gracefully when AI generation is temporarily unavailable.
+- [ ] Give comment-driven revisions bounded surrounding-document context while keeping replacements constrained to the selected anchor.
+- [ ] Ensure pasted content is durably saved before an anchored AI comment can be submitted.
 - [ ] Configure production usage and spending limits for every active model provider.
 - [ ] Add timeouts, retries with backoff, and request correlation IDs for AI calls.
 - [ ] Track model usage, latency, failures, and estimated cost per feature.
@@ -120,11 +124,12 @@ This is the running source of truth for production-readiness work. Completed box
 ## Testing and continuous integration
 
 - [x] Add automated unit tests for authentication input, password hashing, token helpers, rate limiting, and API auth responses.
-- [x] Confirm the current unit suite passes: 11 tests across five files.
+- [x] Confirm the current unit suite passes: 17 tests across seven files.
 - [x] Confirm lint and the production build pass after the authentication upgrade.
 - [ ] Add a normal CI workflow that runs `npm ci`, `npm test`, `npm run lint`, and `npm run build` for pull requests and `main`.
 - [ ] Add database integration tests for issuing and consuming verification and reset tokens transactionally.
 - [ ] Add browser tests for registration, email verification, password reset, Google login, sign-out, stale sessions, and admin authorization.
+- [ ] Add browser tests for pasted rich text, autosave, comment anchoring, AI suggestion accept/reject, concurrent edits, and orphaned comments.
 - [ ] Create a separate test database and ensure tests can never target production credentials.
 - [ ] Add accessibility checks for authentication, editor, settings, and admin pages.
 - [ ] Define a release smoke-test checklist for production deployments.
@@ -158,6 +163,8 @@ This is the running source of truth for production-readiness work. Completed box
 ## Domain, deployment, and environments
 
 - [ ] Confirm the final production domain and attach it to the Vercel project.
+- [x] Add the apex `thido.ai` A record in Route 53 (`216.198.79.1`, `76.76.21.21`) so the bare domain resolves. Note: the first attempt used record name `@.thido.ai`, which Route 53 treats as a literal hostname, not the zone apex — the apex record must be created with an empty record name. Fixed and confirmed via `dig thido.ai A`.
+- [ ] Add `thido.ai` (not only `www.thido.ai`) as a Domain on the Vercel project so it issues a certificate covering the apex. As of this check, the apex serves a certificate whose SAN list only contains `www.thido.ai` (`openssl s_client -connect 76.76.21.21:443 -servername thido.ai`), so browsers will show a certificate error on `https://thido.ai` even though DNS now resolves. Verification/reset emails link to the bare `thido.ai` origin, so emailed links will keep failing until this cert is issued.
 - [ ] Verify DNS, HTTPS certificate issuance, and canonical redirects.
 - [ ] Set `NEXTAUTH_URL` to the final HTTPS origin.
 - [ ] Create a Preview or staging environment with isolated database and email configuration.

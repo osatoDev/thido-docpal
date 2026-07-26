@@ -43,7 +43,6 @@ export default async function SettingsPage() {
       <SettingsForm
         initialAiModel={isAiModelId(settings.aiModel) ? settings.aiModel : DEFAULT_AI_MODEL}
         initialCommentMode={settings.aiCommentMode}
-        initialDocumentStartMode={settings.documentStartMode}
       />
     </main>
   );

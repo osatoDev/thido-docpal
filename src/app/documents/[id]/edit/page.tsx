@@ -4,11 +4,14 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { TiptapEditor } from "@/components/editor/TiptapEditor";
 
-type Props = { params: Promise<{ id: string }> };
+type Props = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ start?: string | string[] }>;
+};
 
-export default async function EditDocumentPage({ params }: Props) {
+export default async function EditDocumentPage({ params, searchParams }: Props) {
   const session = await auth();
-  const { id } = await params;
+  const [{ id }, query] = await Promise.all([params, searchParams]);
   if (!session?.user?.id) {
     redirect(
       `/login?notice=sign-in-required&callbackUrl=${encodeURIComponent(`/documents/${id}/edit`)}`,
@@ -48,6 +51,9 @@ export default async function EditDocumentPage({ params }: Props) {
       initialTitle={document.title}
       initialContent={content}
       initialComments={document.comments}
+      startedFromPaste={
+        (Array.isArray(query.start) ? query.start[0] : query.start) === "paste"
+      }
     />
   );
 }

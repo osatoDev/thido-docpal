@@ -17,6 +17,7 @@ type Props = {
   initialTitle: string;
   initialContent: JSONContent | null;
   initialComments: CommentWithReplies[];
+  startedFromPaste?: boolean;
 };
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -32,6 +33,7 @@ export function TiptapEditor({
   initialTitle,
   initialContent,
   initialComments,
+  startedFromPaste = false,
 }: Props) {
   const [title, setTitle] = useState(initialTitle);
   const [saveState, setSaveState] = useState<SaveState>("idle");
@@ -248,6 +250,16 @@ export function TiptapEditor({
           <p className="text-xs text-[var(--danger)]" role="alert">
             {commentError}
           </p>
+        )}
+
+        {startedFromPaste && !initialContent && (
+          <div className="mx-auto w-full max-w-4xl border-l-2 border-[var(--warm)] pl-4">
+            <p className="text-sm font-medium">Paste your document below.</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+              When it is saved, highlight any passage and choose Comment to
+              ask Thido a question or request a change.
+            </p>
+          </div>
         )}
 
         <div className="app-panel mx-auto flex w-full max-w-4xl flex-1 flex-col overflow-hidden rounded-sm">
