@@ -6,10 +6,11 @@ This is the running source of truth for production-readiness work. Completed box
 
 ## Immediate deployment blockers
 
+- [ ] Apply the `20260726130000_add_document_share_token` migration to the production database before deploying read-only share links.
 - [ ] Apply the `20260722143000_add_guest_draft_id` migration to the production database before deploying the guest-first flow.
 - [x] Apply previously committed Prisma migrations through `20260722100000_add_auth_tokens` to the production database.
 - [x] Resolve or confirm the Prisma baseline for the existing production database before running `prisma migrate deploy` if it still reports `P3005`.
-- [ ] After applying the guest-draft migration, verify `npx prisma migrate status` reports that the production schema is up to date.
+- [ ] After applying pending migrations through `20260726130000_add_document_share_token`, verify `npx prisma migrate status` reports that the production schema is up to date.
 - [ ] Configure `RESEND_API_KEY` in Vercel Production and Preview environments as appropriate.
 - [ ] Verify the sending domain in Resend and replace `onboarding@resend.dev` with a production `AUTH_EMAIL_FROM` address.
 - [ ] Send real verification and password-reset emails and confirm delivery, links, expiry, and single-use behavior against the production database.
@@ -98,6 +99,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Keep complete and partial guest input local and restore it after sign-in initiated through either **Generate** or the page navigation; require authentication before AI generation or permanent database storage.
 - [x] Let users switch between guided initial questions and a freeform prompt; retain tailored follow-ups for guided briefs and generate directly from freeform briefs.
 - [x] Prompt signed-in users to **Start a new document** or **Paste an existing document**; the paste path creates a blank `READY` document without running document generation.
+- [x] Let document owners create, copy, open, and revoke unlisted read-only share links; public views expose only the title and document body.
 - [ ] Define and communicate which pasted rich-text structures are preserved; treat importing Word/Google Docs comments and tracked changes as a separate feature.
 - [ ] Decide whether Thido will support uploaded source files, exports, images, or attachments.
 - [ ] If binary files are added, provision object storage such as Vercel Blob or S3 and store only object metadata and keys in PostgreSQL.
@@ -124,12 +126,13 @@ This is the running source of truth for production-readiness work. Completed box
 ## Testing and continuous integration
 
 - [x] Add automated unit tests for authentication input, password hashing, token helpers, rate limiting, and API auth responses.
-- [x] Confirm the current unit suite passes: 17 tests across seven files.
+- [x] Confirm the current unit suite passes: 19 tests across nine files.
 - [x] Confirm lint and the production build pass after the authentication upgrade.
 - [ ] Add a normal CI workflow that runs `npm ci`, `npm test`, `npm run lint`, and `npm run build` for pull requests and `main`.
 - [ ] Add database integration tests for issuing and consuming verification and reset tokens transactionally.
 - [ ] Add browser tests for registration, email verification, password reset, Google login, sign-out, stale sessions, and admin authorization.
 - [ ] Add browser tests for pasted rich text, autosave, comment anchoring, AI suggestion accept/reject, concurrent edits, and orphaned comments.
+- [ ] Add browser tests for creating, opening anonymously, and revoking read-only document share links.
 - [ ] Create a separate test database and ensure tests can never target production credentials.
 - [ ] Add accessibility checks for authentication, editor, settings, and admin pages.
 - [ ] Define a release smoke-test checklist for production deployments.
@@ -141,6 +144,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Enable Vercel Web Analytics for the production project.
 - [ ] Configure `VERCEL_TOKEN`, `VERCEL_PROJECT_ID`, and `VERCEL_TEAM_ID` when required for the admin analytics view.
 - [ ] Verify `/admin` shows real production analytics and system configuration status.
+- [ ] Verify analytics, request logs, and error tracking record `/share/[token]` as a route pattern rather than storing bearer-token values; exclude or redact shared-document paths where necessary.
 - [ ] Add content-free funnel events for guest outline start, authentication checkpoint, successful login return, and document claim.
 - [ ] Add application error tracking, for example Sentry or an equivalent service.
 - [ ] Add structured server logging with request correlation IDs and secret redaction.
@@ -196,6 +200,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Create and sign in with a fresh Google account.
 - [ ] Confirm a non-admin cannot access `/admin` and an allowlisted admin can.
 - [ ] Create, generate, edit, comment on, and delete a document.
+- [ ] Create a document share link, open it while signed out, revoke it, and confirm the old link no longer works.
 - [ ] Verify AI failures produce understandable recovery states.
 - [ ] Verify analytics events appear without exposing document content or secrets.
 - [ ] Test the application on current mobile and desktop browsers.

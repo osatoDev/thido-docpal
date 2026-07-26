@@ -1,0 +1,25 @@
+"use client";
+
+import type { JSONContent } from "@tiptap/react";
+import { EditorContent, useEditor } from "@tiptap/react";
+
+import { getEditorExtensions } from "@/lib/editorExtensions";
+
+export function PublicDocumentViewer({ content }: { content: JSONContent }) {
+  const editor = useEditor({
+    extensions: getEditorExtensions(),
+    content,
+    editable: false,
+    immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        "aria-label": "Shared document content",
+        role: "document",
+        class:
+          "prose prose-sm sm:prose-base max-w-none focus:outline-none prose-headings:text-[var(--foreground)] prose-p:text-[var(--foreground)] prose-strong:text-[var(--foreground)] prose-blockquote:text-[var(--muted)]",
+      },
+    },
+  });
+
+  return <EditorContent editor={editor} />;
+}

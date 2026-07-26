@@ -28,7 +28,7 @@ export function LegalDocument({
 
       <article className="legal-document mx-auto w-full max-w-3xl py-12 sm:py-16">
         <div className="mb-12 border-b border-[var(--border)] pb-10">
-          <p className="page-kicker mb-4">Effective 22 July 2026</p>
+          <p className="page-kicker mb-4">Effective 26 July 2026</p>
           <h1 className="page-title">{title}</h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--muted)]">
             {description}

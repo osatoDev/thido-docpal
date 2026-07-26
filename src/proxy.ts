@@ -20,6 +20,7 @@ export default auth((req) => {
     pathname === "/terms" ||
     pathname === "/privacy" ||
     pathname === "/documents/new" ||
+    pathname.startsWith("/share/") ||
     pathname.startsWith("/api/") ||
     /\.[^/]+$/.test(pathname);
 

@@ -9,6 +9,7 @@ import { Toolbar } from "./Toolbar";
 import { CommentSidebar } from "@/components/comments/CommentSidebar";
 import { CommentComposer } from "@/components/comments/CommentComposer";
 import { AiModeToggle } from "@/components/settings/AiModeToggle";
+import { ShareDocumentControl } from "@/components/documents/ShareDocumentControl";
 import { Brand } from "@/components/Brand";
 import type { CommentWithReplies } from "@/lib/types";
 
@@ -17,6 +18,7 @@ type Props = {
   initialTitle: string;
   initialContent: JSONContent | null;
   initialComments: CommentWithReplies[];
+  initialShareToken: string | null;
   startedFromPaste?: boolean;
 };
 
@@ -33,6 +35,7 @@ export function TiptapEditor({
   initialTitle,
   initialContent,
   initialComments,
+  initialShareToken,
   startedFromPaste = false,
 }: Props) {
   const [title, setTitle] = useState(initialTitle);
@@ -243,6 +246,10 @@ export function TiptapEditor({
               {saveState === "saved" && "Saved"}
               {saveState === "error" && "Save failed"}
             </span>
+            <ShareDocumentControl
+              documentId={documentId}
+              initialShareToken={initialShareToken}
+            />
           </div>
         </div>
 

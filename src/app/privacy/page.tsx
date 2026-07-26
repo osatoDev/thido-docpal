@@ -47,6 +47,13 @@ export default function PrivacyPage() {
           Thido&apos;s servers until you authenticate and ask us to create the
           document.
         </p>
+        <p>
+          If you enable link sharing, we store a random share-link token. Anyone
+          who receives the link can view the document title and body without an
+          account until you revoke the link. The shared view does not expose
+          your account details, comments, or editing controls. Recipients may
+          still copy or retain content they can view.
+        </p>
 
         <h3>Communications</h3>
         <p>
@@ -69,7 +76,7 @@ export default function PrivacyPage() {
         <h2>3. How and why we use information</h2>
         <ul>
           <li>to create and secure your account and keep you signed in;</li>
-          <li>to save, display, edit, and organise your documents;</li>
+          <li>to save, display, edit, organise, and share your documents;</li>
           <li>to generate drafts, follow-up questions, comments, and revisions;</li>
           <li>to send verification, password-reset, and service messages;</li>
           <li>to understand aggregate product usage and improve reliability;</li>

@@ -51,6 +51,7 @@ export default async function EditDocumentPage({ params, searchParams }: Props) 
       initialTitle={document.title}
       initialContent={content}
       initialComments={document.comments}
+      initialShareToken={document.shareToken}
       startedFromPaste={
         (Array.isArray(query.start) ? query.start[0] : query.start) === "paste"
       }

@@ -74,6 +74,13 @@ export default function TermsPage() {
           sensitive information unless you have assessed whether Thido and its
           service providers are appropriate for that information.
         </p>
+        <p>
+          If you create a public share link, anyone who obtains that link can
+          view the shared document until you revoke it. You are responsible for
+          choosing appropriate content and recipients. Revoking a link prevents
+          future access through Thido but cannot retrieve copies already made by
+          a recipient.
+        </p>
       </section>
 
       <section>
