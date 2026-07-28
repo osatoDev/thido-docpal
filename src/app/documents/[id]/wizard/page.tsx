@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getOwnedDocument } from "@/lib/documentAuth";
+import { getDocumentForUser } from "@/lib/documentAuth";
 import { generateFollowupQuestions } from "@/lib/ai/generateFollowups";
 import { FollowupPromptForm } from "@/components/wizard/FollowupPromptForm";
 import { Brand } from "@/components/Brand";
@@ -17,7 +17,12 @@ export default async function WizardPage({ params }: Props) {
     );
   }
 
-  const document = await getOwnedDocument(id, session.user.id);
+  const document = await getDocumentForUser(
+    id,
+    session.user.id,
+    session.user.email,
+    "FULL",
+  );
   if (!document) {
     notFound();
   }

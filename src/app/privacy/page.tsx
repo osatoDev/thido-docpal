@@ -48,18 +48,28 @@ export default function PrivacyPage() {
           document.
         </p>
         <p>
+          If someone shares a document directly, we store the recipient&apos;s
+          normalised email address, the permission selected by the sharer, who
+          sent the invitation, and invitation timestamps. We use the address to
+          deliver the invitation and to grant access when the recipient signs in
+          with that address. Depending on the selected permission, the recipient
+          may view, comment on, edit, delete, or manage sharing for the document.
+        </p>
+        <p>
           If you enable link sharing, we store a random share-link token. Anyone
-          who receives the link can view the document title and body without an
-          account until you revoke the link. The shared view does not expose
-          your account details, comments, or editing controls. Recipients may
-          still copy or retain content they can view.
+          who receives the link can view the document title, body, and your
+          profile name without an account until you revoke the link. The shared
+          view does not expose your email address, other account details,
+          comments, or editing controls. Recipients may still copy or retain
+          content they can view.
         </p>
 
         <h3>Communications</h3>
         <p>
           We process your email address and the content needed to send account
-          verification and password-reset messages. If you contact us, we may
-          retain your message and related support correspondence.
+          verification, password-reset, and document-invitation messages. If you
+          contact us, we may retain your message and related support
+          correspondence.
         </p>
 
         <h3>Usage and technical data</h3>
@@ -78,7 +88,7 @@ export default function PrivacyPage() {
           <li>to create and secure your account and keep you signed in;</li>
           <li>to save, display, edit, organise, and share your documents;</li>
           <li>to generate drafts, follow-up questions, comments, and revisions;</li>
-          <li>to send verification, password-reset, and service messages;</li>
+          <li>to send verification, password-reset, invitation, and service messages;</li>
           <li>to understand aggregate product usage and improve reliability;</li>
           <li>to prevent fraud, misuse, and security incidents; and</li>
           <li>to meet legal obligations and enforce our Terms.</li>
@@ -165,7 +175,7 @@ export default function PrivacyPage() {
                   </a>
                 </td>
                 <td>Transactional email delivery</td>
-                <td>Email address and verification or reset email content</td>
+                <td>Email address and verification, reset, or invitation email content</td>
               </tr>
               <tr>
                 <td>

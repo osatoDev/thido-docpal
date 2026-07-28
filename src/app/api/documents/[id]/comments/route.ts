@@ -2,7 +2,10 @@ import { after, NextResponse } from "next/server";
 import type { JSONContent } from "@tiptap/react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getOwnedDocument } from "@/lib/documentAuth";
+import {
+  documentAccessWhere,
+  getDocumentForUser,
+} from "@/lib/documentAuth";
 import { anthropic } from "@/lib/ai/client";
 import { getUserAiModel } from "@/lib/ai/userModel";
 import { commentResponseSchema } from "@/lib/ai/schemas";
@@ -21,14 +24,25 @@ export async function GET(_request: Request, { params }: Params) {
 
   const { id: documentId } = await params;
   const document = await prisma.document.findFirst({
-    where: { id: documentId, ownerId: session.user.id },
+    where: {
+      id: documentId,
+      AND: documentAccessWhere(
+        session.user.id,
+        session.user.email,
+        "VIEW",
+      ),
+    },
     select: {
       content: true,
       comments: {
         where: { parentId: null },
         orderBy: { createdAt: "desc" },
         include: {
-          replies: { orderBy: { createdAt: "asc" } },
+          author: { select: { name: true } },
+          replies: {
+            orderBy: { createdAt: "asc" },
+            include: { author: { select: { name: true } } },
+          },
           suggestion: true,
         },
       },
@@ -52,7 +66,12 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const { id: documentId } = await params;
-  const document = await getOwnedDocument(documentId, session.user.id);
+  const document = await getDocumentForUser(
+    documentId,
+    session.user.id,
+    session.user.email,
+    "COMMENT",
+  );
   if (!document) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -80,9 +99,16 @@ export async function POST(request: Request, { params }: Params) {
       quotedText,
       body: commentBody,
     },
+    include: { author: { select: { name: true } } },
   });
 
   after(async () => {
+    const editAccess = await getDocumentForUser(
+      documentId,
+      session.user.id,
+      session.user.email,
+      "EDIT",
+    );
     await generateAiResponse({
       commentId: comment.id,
       documentId,
@@ -90,6 +116,7 @@ export async function POST(request: Request, { params }: Params) {
       anchorMarkId,
       quotedText,
       commentBody,
+      allowAutoApply: !!editAccess,
     });
   });
 
@@ -103,6 +130,7 @@ async function generateAiResponse({
   anchorMarkId,
   quotedText,
   commentBody,
+  allowAutoApply,
 }: {
   commentId: string;
   documentId: string;
@@ -110,6 +138,7 @@ async function generateAiResponse({
   anchorMarkId: string;
   quotedText: string;
   commentBody: string;
+  allowAutoApply: boolean;
 }) {
 
   try {
@@ -149,7 +178,10 @@ async function generateAiResponse({
       const settings = await prisma.userSettings.findUnique({
         where: { userId },
       });
-      const mode = settings?.aiCommentMode ?? "PROPOSE";
+      const mode =
+        allowAutoApply && settings?.aiCommentMode === "AUTO_APPLY"
+          ? "AUTO_APPLY"
+          : "PROPOSE";
 
       await prisma.comment.create({
         data: {

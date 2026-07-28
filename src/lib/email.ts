@@ -43,12 +43,14 @@ async function sendEmail({
   text,
   html,
   previewUrl,
+  idempotencyKey,
 }: {
   to: string;
   subject: string;
   text: string;
   html: string;
   previewUrl: string;
+  idempotencyKey?: string;
 }) {
   const resend = getResend();
 
@@ -57,19 +59,66 @@ async function sendEmail({
       throw new Error("RESEND_API_KEY is not configured.");
     }
 
-    console.info(`[auth email preview] ${subject}: ${previewUrl}`);
+    console.info(`[email preview] ${subject}: ${previewUrl}`);
     return;
   }
 
-  const { error } = await resend.emails.send({
-    from: process.env.AUTH_EMAIL_FROM ?? "Thido <onboarding@resend.dev>",
-    to,
-    subject,
-    text,
-    html,
-  });
+  const { error } = await resend.emails.send(
+    {
+      from: process.env.AUTH_EMAIL_FROM ?? "Thido <onboarding@resend.dev>",
+      to,
+      subject,
+      text,
+      html,
+    },
+    idempotencyKey ? { headers: { "Idempotency-Key": idempotencyKey } } : undefined,
+  );
 
   if (error) throw new Error(`Email delivery failed: ${error.message}`);
+}
+
+const permissionDescriptions = {
+  VIEW: "view the document",
+  COMMENT: "view and comment on the document",
+  EDIT: "edit and comment on the document",
+  FULL: "edit, delete, and manage sharing for the document",
+} as const;
+
+export async function sendDocumentInvitationEmail({
+  email,
+  inviterName,
+  documentTitle,
+  documentId,
+  permission,
+  idempotencyKey,
+}: {
+  email: string;
+  inviterName: string;
+  documentTitle: string;
+  documentId: string;
+  permission: keyof typeof permissionDescriptions;
+  idempotencyKey: string;
+}) {
+  const url = appUrl(`/documents/${encodeURIComponent(documentId)}/edit`);
+  const description = permissionDescriptions[permission];
+  const safeInviterName = escapeHtml(inviterName);
+  const safeDocumentTitle = escapeHtml(documentTitle);
+
+  await sendEmail({
+    to: email,
+    subject: `${inviterName} shared “${documentTitle}” with you`,
+    text:
+      `${inviterName} invited you to ${description}: “${documentTitle}”.\n\n` +
+      `Open the document: ${url}\n\nSign in to Thido with ${email} to use this access.`,
+    html: emailShell(
+      `${inviterName} shared a document with you`,
+      `${safeInviterName} invited you to ${escapeHtml(description)}: <strong>${safeDocumentTitle}</strong>. Sign in with this email address to continue.`,
+      "Open document",
+      url,
+    ),
+    previewUrl: url,
+    idempotencyKey,
+  });
 }
 
 function emailShell(title: string, body: string, action: string, url: string) {

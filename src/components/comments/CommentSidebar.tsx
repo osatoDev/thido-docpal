@@ -9,12 +9,14 @@ export function CommentSidebar({
   onDelete,
   onDocumentContentUpdated,
   pendingCommentIds,
+  canManageComments,
 }: {
   comments: CommentWithReplies[];
   onChange: (updated: CommentWithReplies) => void;
   onDelete: (id: string) => void;
   onDocumentContentUpdated: (content: unknown) => void;
   pendingCommentIds: Set<string>;
+  canManageComments: boolean;
 }) {
   return (
     <aside className="flex h-full w-full shrink-0 flex-col gap-4 overflow-y-auto border-l border-[var(--border)] bg-[var(--background)] p-5 lg:w-80">
@@ -40,6 +42,7 @@ export function CommentSidebar({
             onDelete={onDelete}
             onDocumentContentUpdated={onDocumentContentUpdated}
             isPending={pendingCommentIds.has(comment.id)}
+            canManage={canManageComments}
           />
         ))
       )}

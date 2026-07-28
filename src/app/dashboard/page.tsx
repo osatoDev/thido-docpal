@@ -5,6 +5,12 @@ import { isAdminEmail } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { Brand } from "@/components/Brand";
 import { DeleteDocumentDialog } from "@/components/documents/DeleteDocumentDialog";
+import {
+  documentAccessWhere,
+  effectiveDocumentPermission,
+  getDocumentForUser,
+  normalizeCollaboratorEmail,
+} from "@/lib/documentAuth";
 
 async function deleteDocument(formData: FormData) {
   "use server";
@@ -14,9 +20,15 @@ async function deleteDocument(formData: FormData) {
   const id = formData.get("id");
   if (typeof id !== "string") return;
 
-  await prisma.document.deleteMany({
-    where: { id, ownerId: session.user.id },
-  });
+  const document = await getDocumentForUser(
+    id,
+    session.user.id,
+    session.user.email,
+    "FULL",
+  );
+  if (document) {
+    await prisma.document.delete({ where: { id: document.id } });
+  }
 }
 
 export default async function DashboardPage() {
@@ -26,8 +38,17 @@ export default async function DashboardPage() {
   }
 
   const documents = await prisma.document.findMany({
-    where: { ownerId: session.user.id },
+    where: documentAccessWhere(session.user.id, session.user.email, "VIEW"),
     orderBy: { updatedAt: "desc" },
+    include: {
+      owner: { select: { name: true } },
+      collaborators: {
+        where: {
+          email: normalizeCollaboratorEmail(session.user.email ?? ""),
+        },
+        select: { permission: true },
+      },
+    },
   });
 
   return (
@@ -103,33 +124,55 @@ export default async function DashboardPage() {
               <span className="text-right">Action</span>
             </div>
             <ul className="flex flex-col divide-y divide-[var(--border)]">
-              {documents.map((doc) => (
-                <li
-                  key={doc.id}
-                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-5 sm:grid-cols-[minmax(0,1fr)_7rem_7rem]"
-                >
-                  <Link
-                    href={
-                      doc.status === "READY"
-                        ? `/documents/${doc.id}/edit`
-                        : `/documents/${doc.id}/wizard`
-                    }
-                    className="text-[0.95rem] font-medium underline-offset-4 hover:underline"
+              {documents.map((doc) => {
+                const permission = effectiveDocumentPermission({
+                  ownerId: doc.ownerId,
+                  userId: session.user.id,
+                  collaboratorPermission: doc.collaborators[0]?.permission,
+                });
+                const isOwner = doc.ownerId === session.user.id;
+
+                return (
+                  <li
+                    key={doc.id}
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-5 sm:grid-cols-[minmax(0,1fr)_7rem_7rem]"
                   >
-                    {doc.title}
-                  </Link>
-                  <span className="hidden text-xs capitalize text-[var(--muted)] sm:block">
-                    {doc.status.toLowerCase()}
-                  </span>
-                  <div className="text-right">
-                    <DeleteDocumentDialog
-                      documentId={doc.id}
-                      documentTitle={doc.title}
-                      deleteAction={deleteDocument}
-                    />
-                  </div>
-                </li>
-              ))}
+                    <div className="min-w-0">
+                      <Link
+                        href={
+                          doc.status === "READY"
+                            ? `/documents/${doc.id}/edit`
+                            : `/documents/${doc.id}/wizard`
+                        }
+                        className="text-[0.95rem] font-medium underline-offset-4 hover:underline"
+                      >
+                        {doc.title}
+                      </Link>
+                      {!isOwner && (
+                        <p className="mt-1 truncate text-xs text-[var(--muted)]">
+                          Shared by {doc.owner.name || "the document owner"}
+                        </p>
+                      )}
+                    </div>
+                    <span className="hidden text-xs capitalize text-[var(--muted)] sm:block">
+                      {doc.status.toLowerCase()}
+                    </span>
+                    <div className="text-right">
+                      {permission === "FULL" ? (
+                        <DeleteDocumentDialog
+                          documentId={doc.id}
+                          documentTitle={doc.title}
+                          deleteAction={deleteDocument}
+                        />
+                      ) : (
+                        <span className="text-xs capitalize text-[var(--muted)]">
+                          {permission.toLowerCase()}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

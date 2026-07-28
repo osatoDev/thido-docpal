@@ -81,6 +81,15 @@ export default function TermsPage() {
           future access through Thido but cannot retrieve copies already made by
           a recipient.
         </p>
+        <p>
+          You may also invite a person by email and choose their access level.
+          View access permits reading, comment access permits feedback, edit
+          access permits changes to document content, and full access also
+          permits deletion and management of sharing. You are responsible for
+          choosing the intended recipient and permission. A full-access
+          collaborator can permanently delete the document, although inviting
+          them does not transfer ownership.
+        </p>
       </section>
 
       <section>

@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import type { JSONContent } from "@tiptap/react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getOwnedDocument } from "@/lib/documentAuth";
+import { documentAccessWhere, getDocumentForUser } from "@/lib/documentAuth";
 import { collectCommentMarkIds } from "@/lib/documentMarks";
 import { unauthorizedResponse } from "@/lib/apiResponses";
+import { isCommentMarkOnlyChange } from "@/lib/publicDocument";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -16,14 +17,21 @@ export async function GET(_request: Request, { params }: Params) {
 
   const { id } = await params;
   const document = await prisma.document.findFirst({
-    where: { id, ownerId: session.user.id },
+    where: {
+      id,
+      AND: documentAccessWhere(session.user.id, session.user.email, "VIEW"),
+    },
     include: {
       promptAnswers: { orderBy: { order: "asc" } },
       comments: {
         where: { parentId: null },
         orderBy: { createdAt: "asc" },
         include: {
-          replies: { orderBy: { createdAt: "asc" } },
+          author: { select: { name: true } },
+          replies: {
+            orderBy: { createdAt: "asc" },
+            include: { author: { select: { name: true } } },
+          },
           suggestion: true,
         },
       },
@@ -44,17 +52,55 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   const { id } = await params;
-  const existing = await getOwnedDocument(id, session.user.id);
-  if (!existing) {
+  const editableDocument = await getDocumentForUser(
+    id,
+    session.user.id,
+    session.user.email,
+    "EDIT",
+  );
+  const commentableDocument =
+    editableDocument ??
+    (await getDocumentForUser(
+      id,
+      session.user.id,
+      session.user.email,
+      "COMMENT",
+    ));
+  if (!commentableDocument) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   const body = await request.json().catch(() => ({}));
   const data: { title?: string; content?: object } = {};
-  if (typeof body.title === "string" && body.title.trim()) {
+  if (
+    editableDocument &&
+    typeof body.title === "string" &&
+    body.title.trim()
+  ) {
     data.title = body.title.trim();
   }
   if (body.content !== undefined) {
+    if (!editableDocument) {
+      const currentContent =
+        commentableDocument.content &&
+        typeof commentableDocument.content === "object"
+          ? (commentableDocument.content as JSONContent)
+          : null;
+      const proposedContent =
+        body.content && typeof body.content === "object"
+          ? (body.content as JSONContent)
+          : null;
+      if (
+        !currentContent ||
+        !proposedContent ||
+        !isCommentMarkOnlyChange(currentContent, proposedContent)
+      ) {
+        return NextResponse.json(
+          { error: "Comment access cannot change document text." },
+          { status: 403 },
+        );
+      }
+    }
     data.content = body.content;
   }
 
@@ -106,7 +152,12 @@ export async function DELETE(_request: Request, { params }: Params) {
   }
 
   const { id } = await params;
-  const existing = await getOwnedDocument(id, session.user.id);
+  const existing = await getDocumentForUser(
+    id,
+    session.user.id,
+    session.user.email,
+    "FULL",
+  );
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

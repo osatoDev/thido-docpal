@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { JSONContent } from "@tiptap/react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getOwnedSuggestion } from "@/lib/documentAuth";
+import { getSuggestionForUser } from "@/lib/documentAuth";
 import { replaceCommentMarkText } from "@/lib/documentMarks";
 import { unauthorizedResponse } from "@/lib/apiResponses";
 
@@ -15,7 +15,12 @@ export async function POST(_request: Request, { params }: Params) {
   }
 
   const { id } = await params;
-  const suggestion = await getOwnedSuggestion(id, session.user.id);
+  const suggestion = await getSuggestionForUser(
+    id,
+    session.user.id,
+    session.user.email,
+    "EDIT",
+  );
   if (!suggestion) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

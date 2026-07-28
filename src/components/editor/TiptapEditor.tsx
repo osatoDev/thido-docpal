@@ -9,7 +9,11 @@ import { Toolbar } from "./Toolbar";
 import { CommentSidebar } from "@/components/comments/CommentSidebar";
 import { CommentComposer } from "@/components/comments/CommentComposer";
 import { AiModeToggle } from "@/components/settings/AiModeToggle";
-import { ShareDocumentControl } from "@/components/documents/ShareDocumentControl";
+import {
+  ShareDocumentControl,
+  type CollaboratorPermission,
+  type CollaboratorSummary,
+} from "@/components/documents/ShareDocumentControl";
 import { Brand } from "@/components/Brand";
 import type { CommentWithReplies } from "@/lib/types";
 
@@ -19,6 +23,8 @@ type Props = {
   initialContent: JSONContent | null;
   initialComments: CommentWithReplies[];
   initialShareToken: string | null;
+  initialCollaborators: CollaboratorSummary[];
+  accessPermission: CollaboratorPermission;
   startedFromPaste?: boolean;
 };
 
@@ -36,8 +42,14 @@ export function TiptapEditor({
   initialContent,
   initialComments,
   initialShareToken,
+  initialCollaborators,
+  accessPermission,
   startedFromPaste = false,
 }: Props) {
+  const canComment = accessPermission !== "VIEW";
+  const canEdit =
+    accessPermission === "EDIT" || accessPermission === "FULL";
+  const canManage = accessPermission === "FULL";
   const [title, setTitle] = useState(initialTitle);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [comments, setComments] = useState<CommentWithReplies[]>(initialComments);
@@ -52,6 +64,7 @@ export function TiptapEditor({
   const editor = useEditor({
     extensions: getEditorExtensions(),
     content: initialContent ?? "",
+    editable: canEdit,
     immediatelyRender: false,
     editorProps: {
       attributes: {
@@ -60,7 +73,9 @@ export function TiptapEditor({
       },
     },
     onUpdate: ({ editor }) => {
-      scheduleSave({ content: editor.getJSON() });
+      if (canEdit || canComment) {
+        scheduleSave({ content: editor.getJSON() });
+      }
     },
   });
 
@@ -233,12 +248,16 @@ export function TiptapEditor({
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4">
           <input
             value={title}
+            readOnly={!canEdit}
             onChange={(e) => {
+              if (!canEdit) return;
               setTitle(e.target.value);
               scheduleSave({ title: e.target.value });
             }}
             aria-label="Document title"
-            className="editor-title w-full border-none bg-transparent font-serif text-3xl font-normal tracking-[-0.035em] outline-none sm:text-4xl"
+            className={`editor-title w-full border-none bg-transparent font-serif text-3xl font-normal tracking-[-0.035em] outline-none sm:text-4xl ${
+              canEdit ? "" : "cursor-default"
+            }`}
           />
           <div className="flex shrink-0 items-center gap-3">
             <span className="text-xs text-[var(--muted-soft)]">
@@ -246,10 +265,18 @@ export function TiptapEditor({
               {saveState === "saved" && "Saved"}
               {saveState === "error" && "Save failed"}
             </span>
-            <ShareDocumentControl
-              documentId={documentId}
-              initialShareToken={initialShareToken}
-            />
+            {!canEdit && (
+              <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)]">
+                {canComment ? "Comment access" : "View only"}
+              </span>
+            )}
+            {canManage && (
+              <ShareDocumentControl
+                documentId={documentId}
+                initialShareToken={initialShareToken}
+                initialCollaborators={initialCollaborators}
+              />
+            )}
           </div>
         </div>
 
@@ -270,8 +297,8 @@ export function TiptapEditor({
         )}
 
         <div className="app-panel mx-auto flex w-full max-w-4xl flex-1 flex-col overflow-hidden rounded-sm">
-          <Toolbar editor={editor} />
-          {editor && (
+          {canEdit && <Toolbar editor={editor} />}
+          {editor && canComment && (
             <BubbleMenu editor={editor}>
               <div className="app-panel flex items-center gap-1 rounded-sm p-1">
                 <button
@@ -306,6 +333,7 @@ export function TiptapEditor({
           onDelete={handleCommentDelete}
           onDocumentContentUpdated={handleDocumentContentUpdated}
           pendingCommentIds={pendingCommentIds}
+          canManageComments={canEdit}
         />
       </div>
     </div>

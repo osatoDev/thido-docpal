@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { unauthorizedResponse } from "@/lib/apiResponses";
+import { documentAccessWhere } from "@/lib/documentAuth";
 import { prisma } from "@/lib/prisma";
 import { createShareToken } from "@/lib/shareTokens";
 
@@ -15,7 +16,10 @@ export async function POST(_request: Request, { params }: Params) {
 
   const { id } = await params;
   const existing = await prisma.document.findFirst({
-    where: { id, ownerId: session.user.id },
+    where: {
+      id,
+      AND: documentAccessWhere(session.user.id, session.user.email, "FULL"),
+    },
     select: { shareToken: true },
   });
 
@@ -25,13 +29,20 @@ export async function POST(_request: Request, { params }: Params) {
 
   if (!existing.shareToken) {
     await prisma.document.updateMany({
-      where: { id, ownerId: session.user.id, shareToken: null },
+      where: {
+        id,
+        shareToken: null,
+        AND: documentAccessWhere(session.user.id, session.user.email, "FULL"),
+      },
       data: { shareToken: createShareToken() },
     });
   }
 
   const document = await prisma.document.findFirst({
-    where: { id, ownerId: session.user.id },
+    where: {
+      id,
+      AND: documentAccessWhere(session.user.id, session.user.email, "FULL"),
+    },
     select: { shareToken: true },
   });
 
@@ -53,7 +64,10 @@ export async function DELETE(_request: Request, { params }: Params) {
 
   const { id } = await params;
   const result = await prisma.document.updateMany({
-    where: { id, ownerId: session.user.id },
+    where: {
+      id,
+      AND: documentAccessWhere(session.user.id, session.user.email, "FULL"),
+    },
     data: { shareToken: null },
   });
 

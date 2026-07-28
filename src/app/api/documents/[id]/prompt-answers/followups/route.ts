@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getOwnedDocument } from "@/lib/documentAuth";
+import { getDocumentForUser } from "@/lib/documentAuth";
 import { unauthorizedResponse } from "@/lib/apiResponses";
 
 type Params = { params: Promise<{ id: string }> };
@@ -15,7 +15,12 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const { id } = await params;
-  const document = await getOwnedDocument(id, session.user.id);
+  const document = await getDocumentForUser(
+    id,
+    session.user.id,
+    session.user.email,
+    "FULL",
+  );
   if (!document) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

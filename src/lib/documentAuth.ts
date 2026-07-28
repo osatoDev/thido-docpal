@@ -1,24 +1,119 @@
+import type { DocumentPermission, Prisma } from "@prisma/client";
+
 import { prisma } from "@/lib/prisma";
 
-/** Returns the document only if it exists and is owned by the given user. */
-export async function getOwnedDocument(documentId: string, userId: string) {
+const PERMISSION_RANK: Record<DocumentPermission, number> = {
+  VIEW: 0,
+  COMMENT: 1,
+  EDIT: 2,
+  FULL: 3,
+};
+
+export const DOCUMENT_PERMISSIONS = [
+  "VIEW",
+  "COMMENT",
+  "EDIT",
+  "FULL",
+] as const satisfies readonly DocumentPermission[];
+
+export function normalizeCollaboratorEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+export function hasDocumentPermission(
+  actual: DocumentPermission,
+  required: DocumentPermission,
+) {
+  return PERMISSION_RANK[actual] >= PERMISSION_RANK[required];
+}
+
+function permissionsAtLeast(required: DocumentPermission) {
+  return DOCUMENT_PERMISSIONS.filter((permission) =>
+    hasDocumentPermission(permission, required),
+  );
+}
+
+export function documentAccessWhere(
+  userId: string,
+  email: string | null | undefined,
+  required: DocumentPermission = "VIEW",
+): Prisma.DocumentWhereInput {
+  const normalizedEmail =
+    typeof email === "string" ? normalizeCollaboratorEmail(email) : "";
+
+  return {
+    OR: [
+      { ownerId: userId },
+      ...(normalizedEmail
+        ? [
+            {
+              collaborators: {
+                some: {
+                  email: normalizedEmail,
+                  permission: { in: permissionsAtLeast(required) },
+                },
+              },
+            } satisfies Prisma.DocumentWhereInput,
+          ]
+        : []),
+    ],
+  };
+}
+
+export async function getDocumentForUser(
+  documentId: string,
+  userId: string,
+  email: string | null | undefined,
+  required: DocumentPermission = "VIEW",
+) {
   return prisma.document.findFirst({
-    where: { id: documentId, ownerId: userId },
+    where: {
+      id: documentId,
+      AND: documentAccessWhere(userId, email, required),
+    },
   });
 }
 
-/** Returns the comment only if its parent document is owned by the given user. */
-export async function getOwnedComment(commentId: string, userId: string) {
+export async function getCommentForUser(
+  commentId: string,
+  userId: string,
+  email: string | null | undefined,
+  required: DocumentPermission,
+) {
   return prisma.comment.findFirst({
-    where: { id: commentId, document: { ownerId: userId } },
+    where: {
+      id: commentId,
+      document: documentAccessWhere(userId, email, required),
+    },
     include: { suggestion: true },
   });
 }
 
-/** Returns the suggestion only if its parent document is owned by the given user. */
-export async function getOwnedSuggestion(suggestionId: string, userId: string) {
+export async function getSuggestionForUser(
+  suggestionId: string,
+  userId: string,
+  email: string | null | undefined,
+  required: DocumentPermission,
+) {
   return prisma.suggestion.findFirst({
-    where: { id: suggestionId, comment: { document: { ownerId: userId } } },
+    where: {
+      id: suggestionId,
+      comment: {
+        document: documentAccessWhere(userId, email, required),
+      },
+    },
     include: { comment: true },
   });
+}
+
+export function effectiveDocumentPermission({
+  ownerId,
+  userId,
+  collaboratorPermission,
+}: {
+  ownerId: string;
+  userId: string;
+  collaboratorPermission?: DocumentPermission | null;
+}): DocumentPermission {
+  return ownerId === userId ? "FULL" : (collaboratorPermission ?? "VIEW");
 }

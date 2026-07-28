@@ -50,20 +50,21 @@ model VerificationToken {
 // ---------- App models ----------
 
 model User {
-  id            String        @id @default(cuid())
-  name          String?
-  email         String?       @unique
-  emailVerified DateTime?
-  image         String?
-  passwordHash  String?       @db.Text
-  sessionVersion Int          @default(0)
-  createdAt     DateTime      @default(now())
-  accounts      Account[]
-  sessions      Session[]
-  documents     Document[]
-  comments      Comment[]
-  settings      UserSettings?
-  authTokens    AuthToken[]
+  id                  String                 @id @default(cuid())
+  name                String?
+  email               String?                @unique
+  emailVerified       DateTime?
+  image               String?
+  passwordHash        String?                @db.Text
+  sessionVersion      Int                    @default(0)
+  createdAt           DateTime               @default(now())
+  accounts            Account[]
+  sessions            Session[]
+  documents           Document[]
+  comments            Comment[]
+  settings            UserSettings?
+  authTokens          AuthToken[]
+  collaboratorInvites DocumentCollaborator[] @relation("CollaboratorInviter")
 }
 
 enum AuthTokenType {
@@ -111,21 +112,45 @@ enum DocumentStatus {
   READY
 }
 
+enum DocumentPermission {
+  VIEW
+  COMMENT
+  EDIT
+  FULL
+}
+
 model Document {
-  id            String         @id @default(cuid())
-  guestDraftId  String?        @unique
-  shareToken    String?        @unique
-  title         String         @default("Untitled Document")
+  id            String                 @id @default(cuid())
+  guestDraftId  String?                @unique
+  shareToken    String?                @unique
+  title         String                 @default("Untitled Document")
   ownerId       String
-  owner         User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  status        DocumentStatus @default(DRAFTING)
+  owner         User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  status        DocumentStatus         @default(DRAFTING)
   content       Json?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
   promptAnswers PromptAnswer[]
   comments      Comment[]
+  collaborators DocumentCollaborator[]
 
   @@index([ownerId])
+}
+
+model DocumentCollaborator {
+  id          String             @id @default(cuid())
+  documentId  String
+  document    Document           @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  email       String
+  permission  DocumentPermission @default(VIEW)
+  invitedById String?
+  invitedBy   User?              @relation("CollaboratorInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@unique([documentId, email])
+  @@index([email])
+  @@index([invitedById])
 }
 
 enum PromptStage {
@@ -163,12 +188,12 @@ enum CommentStatus {
 }
 
 model Comment {
-  id         String        @id @default(cuid())
+  id         String     @id @default(cuid())
   documentId String
-  document   Document      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  document   Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
   authorId   String?
-  author     User?         @relation(fields: [authorId], references: [id])
-  authorType AuthorType    @default(USER)
+  author     User?      @relation(fields: [authorId], references: [id])
+  authorType AuthorType @default(USER)
 
   parentId String?
   parent   Comment?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)

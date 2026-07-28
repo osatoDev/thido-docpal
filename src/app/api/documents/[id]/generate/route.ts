@@ -2,7 +2,7 @@ import { after } from "next/server";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getOwnedDocument } from "@/lib/documentAuth";
+import { getDocumentForUser } from "@/lib/documentAuth";
 import { anthropic } from "@/lib/ai/client";
 import { supportsAdaptiveThinking } from "@/lib/ai/models";
 import { getUserAiModel } from "@/lib/ai/userModel";
@@ -26,7 +26,12 @@ export async function POST(_request: Request, { params }: Params) {
   }
 
   const { id } = await params;
-  const document = await getOwnedDocument(id, session.user.id);
+  const document = await getDocumentForUser(
+    id,
+    session.user.id,
+    session.user.email,
+    "FULL",
+  );
   if (!document) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

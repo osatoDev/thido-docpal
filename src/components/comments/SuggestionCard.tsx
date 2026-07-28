@@ -13,9 +13,11 @@ const STATUS_LABEL: Record<SuggestionWithStatus["status"], string> = {
 export function SuggestionCard({
   suggestion,
   onResolved,
+  canManage,
 }: {
   suggestion: SuggestionWithStatus;
   onResolved: (updated: SuggestionWithStatus, documentContent?: unknown) => void;
+  canManage: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +47,7 @@ export function SuggestionCard({
       <p className="text-[var(--muted)] line-through">{suggestion.originalText}</p>
       <p>{suggestion.proposedText}</p>
       {error && <p className="mt-1 text-[var(--danger)]">{error}</p>}
-      {suggestion.status === "PENDING" && (
+      {suggestion.status === "PENDING" && canManage && (
         <div className="mt-2 flex gap-2">
           <button
             type="button"

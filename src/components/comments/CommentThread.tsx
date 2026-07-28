@@ -10,12 +10,14 @@ export function CommentThread({
   onDelete,
   onDocumentContentUpdated,
   isPending = false,
+  canManage,
 }: {
   comment: CommentWithReplies;
   onChange: (updated: CommentWithReplies) => void;
   onDelete: (id: string) => void;
   onDocumentContentUpdated: (content: unknown) => void;
   isPending?: boolean;
+  canManage: boolean;
 }) {
   const [busy, setBusy] = useState(false);
 
@@ -78,6 +80,9 @@ export function CommentThread({
         )}
       </blockquote>
 
+      <p className="text-xs font-medium text-[var(--muted)]">
+        {comment.author?.name || "Collaborator"}
+      </p>
       <p>{comment.body}</p>
 
       {isPending && (
@@ -90,6 +95,7 @@ export function CommentThread({
         <SuggestionCard
           suggestion={comment.suggestion}
           onResolved={handleSuggestionResolved}
+          canManage={canManage}
         />
       )}
 
@@ -98,7 +104,9 @@ export function CommentThread({
           {comment.replies.map((reply) => (
             <div key={reply.id} className="text-xs">
               <span className="font-medium text-[var(--foreground)]">
-                {reply.authorType === "AI" ? "Thido AI" : "You"}
+                {reply.authorType === "AI"
+                  ? "Thido AI"
+                  : reply.author?.name || "Collaborator"}
               </span>
               <p className="text-[var(--muted)]">{reply.body}</p>
             </div>
@@ -106,24 +114,26 @@ export function CommentThread({
         </div>
       )}
 
-      <div className="flex items-center gap-3 text-xs text-[var(--muted-soft)]">
-        <button
-          type="button"
-          disabled={busy}
-          onClick={toggleResolved}
-          className="hover:text-[var(--foreground)]"
-        >
-          {comment.status === "OPEN" ? "Resolve" : "Reopen"}
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={handleDelete}
-          className="hover:text-[var(--danger)]"
-        >
-          Delete
-        </button>
-      </div>
+      {canManage && (
+        <div className="flex items-center gap-3 text-xs text-[var(--muted-soft)]">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={toggleResolved}
+            className="hover:text-[var(--foreground)]"
+          >
+            {comment.status === "OPEN" ? "Resolve" : "Reopen"}
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={handleDelete}
+            className="hover:text-[var(--danger)]"
+          >
+            Delete
+          </button>
+        </div>
+      )}
     </div>
   );
 }

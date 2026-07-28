@@ -5,7 +5,12 @@ import type {
 
 export type SuggestionWithStatus = PrismaSuggestion;
 
+type CommentWithAuthor = PrismaComment & {
+  author: { name: string | null } | null;
+};
+
 export type CommentWithReplies = PrismaComment & {
-  replies: PrismaComment[];
+  author: { name: string | null } | null;
+  replies: CommentWithAuthor[];
   suggestion: SuggestionWithStatus | null;
 };

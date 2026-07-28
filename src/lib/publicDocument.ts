@@ -1,5 +1,7 @@
 import type { JSONContent } from "@tiptap/react";
 
+import { collectCommentMarkIds } from "@/lib/documentMarks";
+
 /**
  * Removes Thido-private comment anchors before document JSON crosses the
  * public share boundary. Comment bodies live separately in PostgreSQL, but
@@ -9,9 +11,14 @@ export function toPublicDocumentContent(content: JSONContent): JSONContent {
   const publicContent: JSONContent = { ...content };
 
   if (content.marks) {
-    publicContent.marks = content.marks
+    const marks = content.marks
       .filter((mark) => mark.type !== "comment")
       .map((mark) => ({ ...mark }));
+    if (marks.length > 0) {
+      publicContent.marks = marks;
+    } else {
+      delete publicContent.marks;
+    }
   }
 
   if (content.content) {
@@ -19,4 +26,25 @@ export function toPublicDocumentContent(content: JSONContent): JSONContent {
   }
 
   return publicContent;
+}
+
+/**
+ * Comment-only collaborators may add anchors without gaining an indirect way
+ * to edit visible content or remove anchors that are already persisted.
+ */
+export function isCommentMarkOnlyChange(
+  current: JSONContent,
+  proposed: JSONContent,
+) {
+  if (
+    JSON.stringify(toPublicDocumentContent(current)) !==
+    JSON.stringify(toPublicDocumentContent(proposed))
+  ) {
+    return false;
+  }
+
+  const proposedMarkIds = collectCommentMarkIds(proposed);
+  return Array.from(collectCommentMarkIds(current)).every((id) =>
+    proposedMarkIds.has(id),
+  );
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getOwnedDocument } from "@/lib/documentAuth";
+import { getDocumentForUser } from "@/lib/documentAuth";
 import { generateFollowupQuestions } from "@/lib/ai/generateFollowups";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { unauthorizedResponse } from "@/lib/apiResponses";
@@ -21,7 +21,12 @@ export async function POST(_request: Request, { params }: Params) {
   }
 
   const { id } = await params;
-  const document = await getOwnedDocument(id, session.user.id);
+  const document = await getDocumentForUser(
+    id,
+    session.user.id,
+    session.user.email,
+    "FULL",
+  );
   if (!document) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getOwnedComment } from "@/lib/documentAuth";
+import { getCommentForUser } from "@/lib/documentAuth";
 import { unauthorizedResponse } from "@/lib/apiResponses";
 
 type Params = { params: Promise<{ id: string }> };
@@ -13,7 +13,12 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   const { id } = await params;
-  const existing = await getOwnedComment(id, session.user.id);
+  const existing = await getCommentForUser(
+    id,
+    session.user.id,
+    session.user.email,
+    "EDIT",
+  );
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -41,7 +46,12 @@ export async function DELETE(_request: Request, { params }: Params) {
   }
 
   const { id } = await params;
-  const existing = await getOwnedComment(id, session.user.id);
+  const existing = await getCommentForUser(
+    id,
+    session.user.id,
+    session.user.email,
+    "EDIT",
+  );
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
