@@ -8,6 +8,7 @@ import {
   normalizeCollaboratorEmail,
 } from "@/lib/documentAuth";
 import { TiptapEditor } from "@/components/editor/TiptapEditor";
+import { recordDocumentAccess } from "@/lib/documentAccess";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -55,6 +56,8 @@ export default async function EditDocumentPage({ params, searchParams }: Props) 
   if (document.status !== "READY") {
     redirect(`/documents/${id}/wizard`);
   }
+
+  recordDocumentAccess(document.id);
 
   const content =
     document.content && typeof document.content === "object"

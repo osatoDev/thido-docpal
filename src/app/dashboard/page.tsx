@@ -11,6 +11,15 @@ import {
   getDocumentForUser,
   normalizeCollaboratorEmail,
 } from "@/lib/documentAuth";
+import { createBlankDocument } from "@/app/document-actions";
+
+const lastAccessedFormatter = new Intl.DateTimeFormat("en", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 async function deleteDocument(formData: FormData) {
   "use server";
@@ -72,10 +81,18 @@ export default async function DashboardPage() {
           </Link>
           <Link
             href="/documents/new"
-            className="primary-button rounded-md px-4 py-2.5 text-sm font-medium"
+            className="text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)]"
           >
-            New document
+            Draft with AI
           </Link>
+          <form action={createBlankDocument}>
+            <button
+              type="submit"
+              className="primary-button rounded-md px-4 py-2.5 text-sm font-medium"
+            >
+              New document
+            </button>
+          </form>
           <form
             action={async () => {
               "use server";
@@ -106,20 +123,31 @@ export default async function DashboardPage() {
           <div className="flex flex-col items-start gap-3 border-y border-[var(--border)] py-10">
             <p className="text-lg font-medium">A clear page, ready when you are.</p>
             <p className="max-w-md text-sm leading-6 text-[var(--muted)]">
-              Answer a few focused questions and Thido will shape them
-              into a first draft you can edit and discuss.
+              Open a blank page and start writing, or ask Thido to prepare a
+              first draft from a brief.
             </p>
-            <Link
-              href="/documents/new"
-              className="text-sm font-semibold text-[var(--accent-strong)] hover:underline"
-            >
-              Create your first document →
-            </Link>
+            <div className="flex flex-wrap items-center gap-4">
+              <form action={createBlankDocument}>
+                <button
+                  type="submit"
+                  className="text-sm font-semibold text-[var(--accent-strong)] hover:underline"
+                >
+                  Create a blank document →
+                </button>
+              </form>
+              <Link
+                href="/documents/new"
+                className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+              >
+                Draft with AI
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="border-t border-[var(--border-strong)]">
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 border-b border-[var(--border)] py-2 text-xs text-[var(--muted)] sm:grid-cols-[minmax(0,1fr)_7rem_7rem]">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 border-b border-[var(--border)] py-2 text-xs text-[var(--muted)] sm:grid-cols-[minmax(0,1fr)_11rem_7rem_7rem]">
               <span>Title</span>
+              <span className="hidden sm:block">Last accessed</span>
               <span className="hidden sm:block">Status</span>
               <span className="text-right">Action</span>
             </div>
@@ -135,7 +163,7 @@ export default async function DashboardPage() {
                 return (
                   <li
                     key={doc.id}
-                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-5 sm:grid-cols-[minmax(0,1fr)_7rem_7rem]"
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-5 sm:grid-cols-[minmax(0,1fr)_11rem_7rem_7rem]"
                   >
                     <div className="min-w-0">
                       <Link
@@ -153,7 +181,19 @@ export default async function DashboardPage() {
                           Shared by {doc.owner.name || "the document owner"}
                         </p>
                       )}
+                      <p className="mt-1 text-xs text-[var(--muted)] sm:hidden">
+                        Accessed{" "}
+                        <time dateTime={doc.lastAccessedAt.toISOString()}>
+                          {lastAccessedFormatter.format(doc.lastAccessedAt)}
+                        </time>
+                      </p>
                     </div>
+                    <time
+                      dateTime={doc.lastAccessedAt.toISOString()}
+                      className="hidden text-xs text-[var(--muted)] sm:block"
+                    >
+                      {lastAccessedFormatter.format(doc.lastAccessedAt)}
+                    </time>
                     <span className="hidden text-xs capitalize text-[var(--muted)] sm:block">
                       {doc.status.toLowerCase()}
                     </span>

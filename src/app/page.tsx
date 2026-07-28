@@ -1,28 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { Brand } from "@/components/Brand";
-
-async function createDocumentForPaste() {
-  "use server";
-
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/login?notice=sign-in-required");
-  }
-
-  const document = await prisma.document.create({
-    data: {
-      ownerId: session.user.id,
-      title: "Untitled Document",
-      status: "READY",
-    },
-    select: { id: true },
-  });
-
-  redirect(`/documents/${document.id}/edit?start=paste`);
-}
+import {
+  createBlankDocument,
+  createDocumentForPaste,
+} from "@/app/document-actions";
 
 export default async function Home() {
   const session = await auth();
@@ -52,28 +35,49 @@ export default async function Home() {
           <p className="page-kicker mb-3">Welcome to Thido</p>
           <h1 className="page-title">How would you like to begin?</h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--muted)]">
-            Create something new from a brief, or bring in a document you
-            already have and refine it with comments.
+            Start with a blank page, ask AI to prepare a draft, or bring in a
+            document you already have.
           </p>
         </div>
 
-        <div className="mt-10 grid max-w-5xl gap-5 md:grid-cols-2">
+        <div className="mt-10 grid max-w-6xl gap-5 md:grid-cols-3">
+          <form action={createBlankDocument}>
+            <button
+              type="submit"
+              className="app-panel group flex min-h-64 w-full flex-col justify-between rounded-xl border-[var(--accent-strong)] p-7 text-left hover:bg-[var(--surface-raised)] sm:p-8"
+            >
+              <span className="font-mono text-xs text-[var(--accent-strong)]">
+                01 · Default
+              </span>
+              <span className="mt-12">
+                <span className="block font-serif text-2xl font-semibold tracking-[-0.025em]">
+                  Blank document
+                </span>
+                <span className="mt-3 block max-w-md text-sm leading-6 text-[var(--muted)]">
+                  Open an empty document and start writing immediately. AI stays
+                  out of the way until you ask for it.
+                </span>
+                <span className="mt-6 block text-sm font-semibold text-[var(--accent-strong)]">
+                  Start writing →
+                </span>
+              </span>
+            </button>
+          </form>
+
           <Link
             href="/documents/new"
             className="app-panel group flex min-h-64 flex-col justify-between rounded-xl p-7 hover:border-[var(--border-strong)] hover:bg-[var(--surface-raised)] sm:p-8"
           >
-            <span className="font-mono text-xs text-[var(--accent-strong)]">
-              01
-            </span>
+            <span className="font-mono text-xs text-[var(--warm)]">02</span>
             <span className="mt-12">
               <span className="block font-serif text-2xl font-semibold tracking-[-0.025em]">
-                Start a new document
+                Draft with AI
               </span>
               <span className="mt-3 block max-w-md text-sm leading-6 text-[var(--muted)]">
                 Share a few details or write a freeform brief, then let Thido
                 prepare a first draft.
               </span>
-              <span className="mt-6 block text-sm font-semibold text-[var(--accent-strong)]">
+              <span className="mt-6 block text-sm font-semibold text-[var(--warm)]">
                 Start from a brief →
               </span>
             </span>
@@ -84,7 +88,7 @@ export default async function Home() {
               type="submit"
               className="app-panel group flex min-h-64 w-full flex-col justify-between rounded-xl p-7 text-left hover:border-[var(--border-strong)] hover:bg-[var(--surface-raised)] sm:p-8"
             >
-              <span className="font-mono text-xs text-[var(--warm)]">02</span>
+              <span className="font-mono text-xs text-[var(--muted)]">03</span>
               <span className="mt-12">
                 <span className="block font-serif text-2xl font-semibold tracking-[-0.025em]">
                   Paste an existing document

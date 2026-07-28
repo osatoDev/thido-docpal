@@ -120,19 +120,20 @@ enum DocumentPermission {
 }
 
 model Document {
-  id            String                 @id @default(cuid())
-  guestDraftId  String?                @unique
-  shareToken    String?                @unique
-  title         String                 @default("Untitled Document")
-  ownerId       String
-  owner         User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  status        DocumentStatus         @default(DRAFTING)
-  content       Json?
-  createdAt     DateTime               @default(now())
-  updatedAt     DateTime               @updatedAt
-  promptAnswers PromptAnswer[]
-  comments      Comment[]
-  collaborators DocumentCollaborator[]
+  id             String                 @id @default(cuid())
+  guestDraftId   String?                @unique
+  shareToken     String?                @unique
+  title          String                 @default("Untitled Document")
+  ownerId        String
+  owner          User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  status         DocumentStatus         @default(DRAFTING)
+  content        Json?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  lastAccessedAt DateTime               @default(now())
+  promptAnswers  PromptAnswer[]
+  comments       Comment[]
+  collaborators  DocumentCollaborator[]
 
   @@index([ownerId])
 }

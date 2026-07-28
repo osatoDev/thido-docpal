@@ -7,6 +7,7 @@ import { PublicDocumentViewer } from "@/components/documents/PublicDocumentViewe
 import { prisma } from "@/lib/prisma";
 import { toPublicDocumentContent } from "@/lib/publicDocument";
 import { isShareToken } from "@/lib/shareTokens";
+import { recordDocumentAccess } from "@/lib/documentAccess";
 
 export const metadata: Metadata = {
   title: "Shared document — Thido",
@@ -26,6 +27,7 @@ export default async function SharedDocumentPage({
   const document = await prisma.document.findFirst({
     where: { shareToken: token, status: "READY" },
     select: {
+      id: true,
       title: true,
       content: true,
       updatedAt: true,
@@ -36,6 +38,8 @@ export default async function SharedDocumentPage({
   if (!document) {
     notFound();
   }
+
+  recordDocumentAccess(document.id);
 
   const content =
     document.content && typeof document.content === "object"
