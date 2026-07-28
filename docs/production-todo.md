@@ -107,6 +107,9 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] List documents shared directly with the signed-in email address on the dashboard and identify the owner.
 - [x] Show each document's last-accessed timestamp on the dashboard and record successful authenticated or public document opens without delaying the response.
 - [x] Provide an immediate prefetched loading state when dashboard document links navigate to dynamic document routes.
+- [x] Close document-deletion confirmation dialogs after the authenticated deletion action completes.
+- [x] Give dashboard document-link clicks an immediate selected-row state while preserving partial prefetch semantics for access tracking.
+- [x] Use the pointer cursor consistently for enabled buttons and button-role controls across the app.
 - [ ] Define and communicate which pasted rich-text structures are preserved; treat importing Word/Google Docs comments and tracked changes as a separate feature.
 - [ ] Decide whether Thido will support uploaded source files, exports, images, or attachments.
 - [ ] If binary files are added, provision object storage such as Vercel Blob or S3 and store only object metadata and keys in PostgreSQL.

@@ -5,6 +5,7 @@ import { isAdminEmail } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { Brand } from "@/components/Brand";
 import { DeleteDocumentDialog } from "@/components/documents/DeleteDocumentDialog";
+import { DocumentNavigationLink } from "@/components/documents/DocumentNavigationLink";
 import {
   documentAccessWhere,
   effectiveDocumentPermission,
@@ -68,6 +69,7 @@ export default async function DashboardPage() {
           {isAdminEmail(session.user.email) && (
             <Link
               href="/admin"
+              prefetch
               className="text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)]"
             >
               Admin
@@ -75,12 +77,14 @@ export default async function DashboardPage() {
           )}
           <Link
             href="/settings"
+            prefetch
             className="text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)]"
           >
             Settings
           </Link>
           <Link
             href="/documents/new"
+            prefetch
             className="text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)]"
           >
             Draft with AI
@@ -137,6 +141,7 @@ export default async function DashboardPage() {
               </form>
               <Link
                 href="/documents/new"
+                prefetch
                 className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
               >
                 Draft with AI
@@ -163,19 +168,18 @@ export default async function DashboardPage() {
                 return (
                   <li
                     key={doc.id}
-                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-5 sm:grid-cols-[minmax(0,1fr)_11rem_7rem_7rem]"
+                    className="document-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-2 py-5 sm:grid-cols-[minmax(0,1fr)_11rem_7rem_7rem]"
                   >
                     <div className="min-w-0">
-                      <Link
+                      <DocumentNavigationLink
                         href={
                           doc.status === "READY"
                             ? `/documents/${doc.id}/edit`
                             : `/documents/${doc.id}/wizard`
                         }
-                        className="text-[0.95rem] font-medium underline-offset-4 hover:underline"
                       >
                         {doc.title}
-                      </Link>
+                      </DocumentNavigationLink>
                       {!isOwner && (
                         <p className="mt-1 truncate text-xs text-[var(--muted)]">
                           Shared by {doc.owner.name || "the document owner"}

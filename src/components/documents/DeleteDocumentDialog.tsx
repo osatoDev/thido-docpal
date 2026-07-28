@@ -30,6 +30,11 @@ export function DeleteDocumentDialog({
   const titleId = useId();
   const descriptionId = useId();
 
+  async function handleDelete(formData: FormData) {
+    await deleteAction(formData);
+    dialogRef.current?.close();
+  }
+
   return (
     <>
       <button
@@ -63,7 +68,7 @@ export function DeleteDocumentDialog({
           </p>
 
           <form
-            action={deleteAction}
+            action={handleDelete}
             className="mt-7 flex flex-wrap justify-end gap-3"
           >
             <input type="hidden" name="id" value={documentId} />

@@ -81,6 +81,11 @@ select {
   font: inherit;
 }
 
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
 button,
 a,
 input,
@@ -92,6 +97,14 @@ select {
 
 ::selection {
   background: color-mix(in srgb, var(--accent) 48%, transparent);
+}
+
+.document-row {
+  transition: background-color 120ms ease;
+}
+
+.document-row:has([data-navigating="true"]) {
+  background: var(--surface-subtle);
 }
 
 .app-panel {
