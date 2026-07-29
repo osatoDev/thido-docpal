@@ -110,6 +110,10 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Close document-deletion confirmation dialogs after the authenticated deletion action completes.
 - [x] Give dashboard document-link clicks an immediate selected-row state while preserving partial prefetch semantics for access tracking.
 - [x] Use the pointer cursor consistently for enabled buttons and button-role controls across the app.
+- [x] Let dashboard users sort document rows instantly by title and last-accessed time without a server round trip.
+- [x] Use an accessible trash icon for dashboard deletion while keeping the confirmation dialog tied to the selected document title.
+- [x] Bind dashboard deletion to the clicked row's document ID in the server action instead of trusting a hidden form field.
+- [x] Remove the default dashboard `READY` status column and show only non-ready document states inline with the title.
 - [ ] Define and communicate which pasted rich-text structures are preserved; treat importing Word/Google Docs comments and tracked changes as a separate feature.
 - [ ] Decide whether Thido will support uploaded source files, exports, images, or attachments.
 - [ ] If binary files are added, provision object storage such as Vercel Blob or S3 and store only object metadata and keys in PostgreSQL.

@@ -4,8 +4,10 @@ import { auth, signOut } from "@/lib/auth";
 import { isAdminEmail } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { Brand } from "@/components/Brand";
-import { DeleteDocumentDialog } from "@/components/documents/DeleteDocumentDialog";
-import { DocumentNavigationLink } from "@/components/documents/DocumentNavigationLink";
+import {
+  DashboardDocumentTable,
+  type DashboardDocumentRow,
+} from "@/components/documents/DashboardDocumentTable";
 import {
   documentAccessWhere,
   effectiveDocumentPermission,
@@ -14,24 +16,13 @@ import {
 } from "@/lib/documentAuth";
 import { createBlankDocument } from "@/app/document-actions";
 
-const lastAccessedFormatter = new Intl.DateTimeFormat("en", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
-async function deleteDocument(formData: FormData) {
+async function deleteDocument(documentId: string) {
   "use server";
   const session = await auth();
   if (!session?.user?.id) return;
 
-  const id = formData.get("id");
-  if (typeof id !== "string") return;
-
   const document = await getDocumentForUser(
-    id,
+    documentId,
     session.user.id,
     session.user.email,
     "FULL",
@@ -60,6 +51,23 @@ export default async function DashboardPage() {
       },
     },
   });
+  const documentRows: DashboardDocumentRow[] = documents.map((document) => ({
+    id: document.id,
+    title: document.title,
+    href:
+      document.status === "READY"
+        ? `/documents/${document.id}/edit`
+        : `/documents/${document.id}/wizard`,
+    lastAccessedAt: document.lastAccessedAt.toISOString(),
+    ownerName: document.owner.name,
+    isOwner: document.ownerId === session.user.id,
+    permission: effectiveDocumentPermission({
+      ownerId: document.ownerId,
+      userId: session.user.id,
+      collaboratorPermission: document.collaborators[0]?.permission,
+    }),
+    status: document.status,
+  }));
 
   return (
     <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col gap-14 px-5 py-6 sm:px-6 sm:py-10 lg:px-8">
@@ -149,76 +157,10 @@ export default async function DashboardPage() {
             </div>
           </div>
         ) : (
-          <div className="border-t border-[var(--border-strong)]">
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 border-b border-[var(--border)] py-2 text-xs text-[var(--muted)] sm:grid-cols-[minmax(0,1fr)_11rem_7rem_7rem]">
-              <span>Title</span>
-              <span className="hidden sm:block">Last accessed</span>
-              <span className="hidden sm:block">Status</span>
-              <span className="text-right">Action</span>
-            </div>
-            <ul className="flex flex-col divide-y divide-[var(--border)]">
-              {documents.map((doc) => {
-                const permission = effectiveDocumentPermission({
-                  ownerId: doc.ownerId,
-                  userId: session.user.id,
-                  collaboratorPermission: doc.collaborators[0]?.permission,
-                });
-                const isOwner = doc.ownerId === session.user.id;
-
-                return (
-                  <li
-                    key={doc.id}
-                    className="document-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-2 py-5 sm:grid-cols-[minmax(0,1fr)_11rem_7rem_7rem]"
-                  >
-                    <div className="min-w-0">
-                      <DocumentNavigationLink
-                        href={
-                          doc.status === "READY"
-                            ? `/documents/${doc.id}/edit`
-                            : `/documents/${doc.id}/wizard`
-                        }
-                      >
-                        {doc.title}
-                      </DocumentNavigationLink>
-                      {!isOwner && (
-                        <p className="mt-1 truncate text-xs text-[var(--muted)]">
-                          Shared by {doc.owner.name || "the document owner"}
-                        </p>
-                      )}
-                      <p className="mt-1 text-xs text-[var(--muted)] sm:hidden">
-                        Accessed{" "}
-                        <time dateTime={doc.lastAccessedAt.toISOString()}>
-                          {lastAccessedFormatter.format(doc.lastAccessedAt)}
-                        </time>
-                      </p>
-                    </div>
-                    <time
-                      dateTime={doc.lastAccessedAt.toISOString()}
-                      className="hidden text-xs text-[var(--muted)] sm:block"
-                    >
-                      {lastAccessedFormatter.format(doc.lastAccessedAt)}
-                    </time>
-                    <span className="hidden text-xs capitalize text-[var(--muted)] sm:block">
-                      {doc.status.toLowerCase()}
-                    </span>
-                    <div className="text-right">
-                      {permission === "FULL" ? (
-                        <DeleteDocumentDialog
-                          documentId={doc.id}
-                          documentTitle={doc.title}
-                          deleteAction={deleteDocument}
-                        />
-                      ) : (
-                        <span className="text-xs capitalize text-[var(--muted)]">
-                          {permission.toLowerCase()}
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+          <DashboardDocumentTable
+            documents={documentRows}
+            deleteAction={deleteDocument}
+          />
         )}
       </section>
     </main>

@@ -24,14 +24,14 @@ export function DeleteDocumentDialog({
 }: {
   documentId: string;
   documentTitle: string;
-  deleteAction: (formData: FormData) => Promise<void>;
+  deleteAction: (documentId: string) => Promise<void>;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const descriptionId = useId();
 
-  async function handleDelete(formData: FormData) {
-    await deleteAction(formData);
+  async function handleDelete() {
+    await deleteAction(documentId);
     dialogRef.current?.close();
   }
 
@@ -40,9 +40,26 @@ export function DeleteDocumentDialog({
       <button
         type="button"
         onClick={() => dialogRef.current?.showModal()}
-        className="text-xs text-[var(--muted-soft)] hover:text-[var(--danger)]"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--muted-soft)] transition hover:bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] hover:text-[var(--danger)]"
+        aria-label={`Delete ${documentTitle}`}
+        title={`Delete ${documentTitle}`}
       >
-        Delete
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className="h-4 w-4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M3 6h18" />
+          <path d="M8 6V4.75A1.75 1.75 0 0 1 9.75 3h4.5A1.75 1.75 0 0 1 16 4.75V6" />
+          <path d="M6.75 6l.8 11.15A2 2 0 0 0 9.54 19h4.92a2 2 0 0 0 1.99-1.85L17.25 6" />
+          <path d="M10 10.25v5.5" />
+          <path d="M14 10.25v5.5" />
+        </svg>
       </button>
 
       <dialog
@@ -71,7 +88,6 @@ export function DeleteDocumentDialog({
             action={handleDelete}
             className="mt-7 flex flex-wrap justify-end gap-3"
           >
-            <input type="hidden" name="id" value={documentId} />
             <button
               type="button"
               onClick={() => dialogRef.current?.close()}
