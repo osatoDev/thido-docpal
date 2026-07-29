@@ -101,6 +101,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Keep complete and partial guest input local and restore it after sign-in initiated through either **Generate** or the page navigation; require authentication before AI generation or permanent database storage.
 - [x] Let users switch between guided initial questions and a freeform prompt; retain tailored follow-ups for guided briefs and generate directly from freeform briefs.
 - [x] Make a blank `READY` document the default signed-in creation path, with AI-guided drafting and paste-existing flows available as explicit alternatives.
+- [x] Show a clear `BETA` status badge beside the shared Thido wordmark across the application.
 - [x] Let document owners create, copy, open, and revoke unlisted read-only share links; public views expose the title, document body, and owner profile name while keeping email and other account details private.
 - [x] Clearly identify who shared a document on the public read-only view, with a non-identifying owner label for legacy accounts that have no profile name.
 - [x] Let full-access users invite collaborators by email with view, comment, edit, or full access; enforce those permissions on document, comment, suggestion, deletion, public-link, and sharing-management operations.
@@ -131,7 +132,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Ensure document content and its comment anchor are durably saved before an anchored AI comment can be submitted.
 - [ ] Configure production usage and spending limits for every active model provider.
 - [ ] Add timeouts, retries with backoff, and request correlation IDs for AI calls.
-- [ ] Track model usage, latency, failures, and estimated cost per feature.
+- [ ] Track model usage, latency, failures, and estimated cost per feature ([implementation guide](./ai-usage-observability.md)).
 - [x] Define how user documents may be sent to AI providers in the privacy policy.
 - [ ] Publish and maintain a current AI-provider and subprocessor list without making the core Privacy Policy provider-specific.
 - [ ] Review prompt-injection and untrusted-document risks before supporting uploaded source material.
