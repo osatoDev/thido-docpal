@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 
 function DeleteSubmitButton() {
@@ -29,10 +30,12 @@ export function DeleteDocumentDialog({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const descriptionId = useId();
+  const router = useRouter();
 
   async function handleDelete() {
     await deleteAction(documentId);
     dialogRef.current?.close();
+    router.refresh();
   }
 
   return (
