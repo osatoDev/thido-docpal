@@ -127,8 +127,8 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Keep Anthropic calls on the server.
 - [x] Validate structured AI responses with schemas where implemented.
 - [x] Fail gracefully when AI generation is temporarily unavailable.
-- [ ] Give comment-driven revisions bounded surrounding-document context while keeping replacements constrained to the selected anchor.
-- [ ] Ensure pasted content is durably saved before an anchored AI comment can be submitted.
+- [x] Give comment-driven revisions bounded surrounding-document context while keeping replacements constrained to the active comment anchor, with deliberate paragraph-scope expansion for broader rewrite prompts.
+- [x] Ensure document content and its comment anchor are durably saved before an anchored AI comment can be submitted.
 - [ ] Configure production usage and spending limits for every active model provider.
 - [ ] Add timeouts, retries with backoff, and request correlation IDs for AI calls.
 - [ ] Track model usage, latency, failures, and estimated cost per feature.

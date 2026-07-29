@@ -36,6 +36,8 @@ type ActiveComposer = {
   to: number;
 };
 
+const BROADER_SCOPE_PROMPT = /\b(paragraph|section|intro|introduction|conclusion|opening|closing|entire|whole|overall)\b/i;
+
 export function TiptapEditor({
   documentId,
   initialTitle,
@@ -91,6 +93,7 @@ export function TiptapEditor({
     if (debounceRef.current) clearTimeout(debounceRef.current);
     setSaveState("saving");
     debounceRef.current = setTimeout(async () => {
+      debounceRef.current = null;
       try {
         const res = await fetch(`/api/documents/${documentId}`, {
           method: "PATCH",
@@ -129,15 +132,77 @@ export function TiptapEditor({
 
   function submitComment(body: string) {
     if (!activeComposer) return;
-    const composer = activeComposer;
+    const composer = expandCommentScope(activeComposer, body);
     setCommentError(null);
     setActiveComposer(null);
 
     void persistComment(composer, body);
   }
 
+  function expandCommentScope(composer: ActiveComposer, body: string) {
+    if (!editor || !BROADER_SCOPE_PROMPT.test(body)) {
+      return composer;
+    }
+
+    const { doc } = editor.state;
+    const from = Math.min(composer.from, composer.to);
+    const to = Math.max(composer.from, composer.to);
+    const $from = doc.resolve(from);
+    const $to = doc.resolve(to);
+
+    // Keep wider rewrites constrained to the containing text block for now.
+    if (!$from.sameParent($to) || !$from.parent.isTextblock) {
+      return composer;
+    }
+
+    const expandedFrom = $from.start();
+    const expandedTo = $from.end();
+    if (
+      expandedFrom === composer.from &&
+      expandedTo === composer.to
+    ) {
+      return composer;
+    }
+
+    const quotedText = doc.textBetween(expandedFrom, expandedTo, " ");
+
+    editor
+      .chain()
+      .setTextSelection({ from: composer.from, to: composer.to })
+      .unsetComment()
+      .setTextSelection({ from: expandedFrom, to: expandedTo })
+      .setComment(composer.anchorMarkId)
+      .run();
+
+    return {
+      ...composer,
+      from: expandedFrom,
+      to: expandedTo,
+      quotedText,
+    };
+  }
+
   async function persistComment(composer: ActiveComposer, body: string) {
     try {
+      if (!editor) throw new Error("Editor is not ready");
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+
+      // Suggestion approval resolves changes by this mark, so the mark must
+      // be durable before the comment starts background AI generation.
+      setSaveState("saving");
+      const saveResponse = await fetch(`/api/documents/${documentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editor.getJSON() }),
+      });
+      setSaveState(saveResponse.ok ? "saved" : "error");
+      if (!saveResponse.ok) {
+        throw new Error("Could not save the comment highlight");
+      }
+
       const res = await fetch(`/api/documents/${documentId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -162,6 +227,7 @@ export function TiptapEditor({
       void pollForAiResponse(savedComment.id);
     } catch {
       if (!mountedRef.current) return;
+      setSaveState("error");
       setCommentError("The comment could not be saved. You can keep editing and try again.");
     }
   }

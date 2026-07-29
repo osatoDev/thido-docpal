@@ -10,7 +10,10 @@ import { anthropic } from "@/lib/ai/client";
 import { getUserAiModel } from "@/lib/ai/userModel";
 import { commentResponseSchema } from "@/lib/ai/schemas";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { replaceCommentMarkText } from "@/lib/documentMarks";
+import {
+  getCommentPromptContext,
+  replaceCommentMarkText,
+} from "@/lib/documentMarks";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { unauthorizedResponse } from "@/lib/apiResponses";
 
@@ -146,6 +149,18 @@ async function generateAiResponse({
       throw new Error("Rate limited — skipping AI response for this comment");
     }
 
+    const latestDocument = await prisma.document.findUnique({
+      where: { id: documentId },
+      select: { content: true },
+    });
+    const promptContext =
+      latestDocument?.content &&
+      typeof latestDocument.content === "object"
+        ? getCommentPromptContext(
+            latestDocument.content as JSONContent,
+            anchorMarkId,
+          )
+        : null;
     const model = await getUserAiModel(userId);
     const message = await anthropic.messages.parse({
       model,
@@ -155,20 +170,29 @@ async function generateAiResponse({
       },
       system:
         "You are an editorial assistant embedded in a document editor. A " +
-        "user has highlighted a span of text and left a comment on it — " +
-        "either a question, general feedback, or a request to change the " +
-        "text. Classify which it is, and respond:\n" +
+        "user has commented on an editable target span. The target may be " +
+        "their exact original selection or a deliberately expanded paragraph " +
+        "scope when the request clearly called for a broader rewrite. You " +
+        "may use the surrounding context to interpret meaning, tone, and " +
+        "references, but only the TARGET TEXT is editable.\n" +
+        "Classify the request and respond:\n" +
         "- For a question or feedback: write a short, direct reply " +
         "answering it or acknowledging it. Do not propose replacement " +
         "text.\n" +
         "- For a change request: write a one-sentence reply describing " +
         "the edit you're making, and provide the full replacement text " +
-        "for the highlighted span in proposed_text (matching its style " +
-        "and length unless asked otherwise).",
+        "for the TARGET TEXT in proposed_text (matching its style " +
+        "and length unless asked otherwise). Never rewrite text outside " +
+        "the target span.",
       messages: [
         {
           role: "user",
-          content: `Highlighted text: "${quotedText}"\n\nComment: ${commentBody}`,
+          content:
+            `TARGET TEXT:\n"""${quotedText}"""\n\n` +
+            `COMMENT:\n${commentBody}\n\n` +
+            `CONTAINING BLOCK:\n"""${promptContext?.blockText || quotedText}"""\n\n` +
+            `CONTEXT BEFORE TARGET:\n"""${promptContext?.beforeText || "(none)"}"""\n\n` +
+            `CONTEXT AFTER TARGET:\n"""${promptContext?.afterText || "(none)"}"""`,
         },
       ],
     });

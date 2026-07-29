@@ -29,8 +29,14 @@ export function SuggestionCard({
       const res = await fetch(`/api/suggestions/${suggestion.id}/${action}`, {
         method: "POST",
       });
-      if (!res.ok) throw new Error("Could not update the suggestion");
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(
+          typeof data?.error === "string"
+            ? data.error
+            : "Could not update the suggestion",
+        );
+      }
       onResolved(data.suggestion, data.document?.content);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -46,7 +52,11 @@ export function SuggestionCard({
       </p>
       <p className="text-[var(--muted)] line-through">{suggestion.originalText}</p>
       <p>{suggestion.proposedText}</p>
-      {error && <p className="mt-1 text-[var(--danger)]">{error}</p>}
+      {error && (
+        <p className="mt-1 text-[var(--danger)]" role="alert">
+          {error}
+        </p>
+      )}
       {suggestion.status === "PENDING" && canManage && (
         <div className="mt-2 flex gap-2">
           <button
