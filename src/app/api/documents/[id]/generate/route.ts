@@ -6,6 +6,10 @@ import { getDocumentForUser } from "@/lib/documentAuth";
 import { anthropic } from "@/lib/ai/client";
 import { supportsAdaptiveThinking } from "@/lib/ai/models";
 import { getUserAiModel } from "@/lib/ai/userModel";
+import {
+  startAiGeneration,
+  type TrackedAnthropicMessage,
+} from "@/lib/ai/telemetry";
 import { markdownToTiptapJSON } from "@/lib/markdownToTiptap";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { unauthorizedResponse } from "@/lib/apiResponses";
@@ -47,11 +51,6 @@ export async function POST(_request: Request, { params }: Params) {
     );
   }
 
-  await prisma.document.update({
-    where: { id },
-    data: { status: "GENERATING" },
-  });
-
   const qaText = promptAnswers
     .map(
       (a) =>
@@ -60,59 +59,87 @@ export async function POST(_request: Request, { params }: Params) {
     .join("\n\n");
 
   const model = await getUserAiModel(session.user.id);
-
-  const claudeStream = anthropic.messages.stream({
+  const telemetry = await startAiGeneration({
+    feature: "DOCUMENT_GENERATE",
     model,
-    max_tokens: 16000,
-    ...(supportsAdaptiveThinking(model)
-      ? { thinking: { type: "adaptive" as const } }
-      : {}),
-    system:
-      "You write complete, well-structured documents from a user's brief " +
-      "and any planning answers. Infer sensible choices wherever the user " +
-      "left an answer blank, without calling attention to the missing input. " +
-      "Respond with only the document " +
-      "itself, formatted as Markdown (headings, paragraphs, and lists as " +
-      "appropriate) — no preamble, no meta-commentary about the document, " +
-      "and no closing remarks.",
-    messages: [{ role: "user", content: qaText }],
+    userId: session.user.id,
+    documentId: id,
   });
 
-  let fullText = "";
-  const encoder = new TextEncoder();
-  const readable = new ReadableStream<Uint8Array>({
-    start(controller) {
-      claudeStream.on("text", (delta) => {
-        fullText += delta;
-        controller.enqueue(encoder.encode(delta));
-      });
-      claudeStream.on("error", (err) => {
-        controller.error(err);
-      });
-      claudeStream.on("end", () => {
-        controller.close();
-      });
-    },
-  });
+  try {
+    await prisma.document.update({
+      where: { id },
+      data: { status: "GENERATING" },
+    });
 
-  after(async () => {
-    try {
-      await claudeStream.finalMessage();
-      const content = await markdownToTiptapJSON(fullText);
-      await prisma.document.update({
-        where: { id },
-        data: { content, status: "READY" },
-      });
-    } catch (error) {
-      console.error("Document generation failed", error);
-      await prisma.document.update({
-        where: { id },
-        data: { status: "DRAFTING" },
-      });
-    }
-  });
+    const claudeStream = anthropic.messages.stream({
+      model,
+      max_tokens: 16000,
+      ...(supportsAdaptiveThinking(model)
+        ? { thinking: { type: "adaptive" as const } }
+        : {}),
+      system:
+        "You write complete, well-structured documents from a user's brief " +
+        "and any planning answers. Infer sensible choices wherever the user " +
+        "left an answer blank, without calling attention to the missing input. " +
+        "Respond with only the document " +
+        "itself, formatted as Markdown (headings, paragraphs, and lists as " +
+        "appropriate) — no preamble, no meta-commentary about the document, " +
+        "and no closing remarks.",
+      messages: [{ role: "user", content: qaText }],
+    });
 
-  return new Response(readable, {
-    headers: { "Content-Type": "text/plain; charset=utf-8" },
-  });
+    let fullText = "";
+    let trackedMessage: TrackedAnthropicMessage | undefined;
+    const encoder = new TextEncoder();
+    const readable = new ReadableStream<Uint8Array>({
+      start(controller) {
+        claudeStream.on("text", (delta) => {
+          telemetry.markFirstToken();
+          fullText += delta;
+          controller.enqueue(encoder.encode(delta));
+        });
+        claudeStream.on("error", (err) => {
+          controller.error(err);
+        });
+        claudeStream.on("end", () => {
+          controller.close();
+        });
+      },
+    });
+
+    after(async () => {
+      try {
+        const message = await claudeStream.finalMessage();
+        trackedMessage = message;
+        const content = await markdownToTiptapJSON(fullText);
+        await prisma.document.update({
+          where: { id },
+          data: { content, status: "READY" },
+        });
+        await telemetry.succeed(message);
+      } catch (error) {
+        await telemetry.fail(error, trackedMessage);
+        console.error("Document generation failed", error);
+        await prisma.document.update({
+          where: { id },
+          data: { status: "DRAFTING" },
+        });
+      }
+    });
+
+    return new Response(readable, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "X-AI-Generation-Id": telemetry.id,
+      },
+    });
+  } catch (error) {
+    await telemetry.fail(error);
+    await prisma.document.update({
+      where: { id },
+      data: { status: "DRAFTING" },
+    });
+    throw error;
+  }
 }

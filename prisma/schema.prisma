@@ -64,6 +64,7 @@ model User {
   comments            Comment[]
   settings            UserSettings?
   authTokens          AuthToken[]
+  aiGenerations       AiGeneration[]
   collaboratorInvites DocumentCollaborator[] @relation("CollaboratorInviter")
 }
 
@@ -134,6 +135,7 @@ model Document {
   promptAnswers  PromptAnswer[]
   comments       Comment[]
   collaborators  DocumentCollaborator[]
+  aiGenerations  AiGeneration[]
 
   @@index([ownerId])
 }
@@ -209,7 +211,8 @@ model Comment {
   status CommentStatus  @default(OPEN)
   body   String         @db.Text
 
-  suggestion Suggestion?
+  suggestion    Suggestion?
+  aiGenerations AiGeneration[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -241,4 +244,65 @@ model Suggestion {
   resolvedAt DateTime?
 
   @@index([documentId])
+}
+
+enum AiFeature {
+  DOCUMENT_FOLLOWUPS
+  DOCUMENT_GENERATE
+  COMMENT_RESPOND
+}
+
+enum AiGenerationStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+model AiGeneration {
+  id       String             @id @default(cuid())
+  feature  AiFeature
+  status   AiGenerationStatus @default(PENDING)
+  provider String             @default("anthropic")
+  model    String
+
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  documentId String?
+  document   Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  commentId  String?
+  comment    Comment?  @relation(fields: [commentId], references: [id], onDelete: SetNull)
+
+  providerRequestId String?
+  environment       String?
+  stopReason        String?
+  serviceTier       String?
+  inferenceGeo      String?
+
+  startedAt    DateTime  @default(now())
+  completedAt  DateTime?
+  latencyMs    Int?
+  firstTokenMs Int?
+
+  inputTokens           Int?
+  outputTokens          Int?
+  reasoningTokens       Int?
+  cacheCreationTokens   Int?
+  cacheCreation5mTokens Int?
+  cacheCreation1hTokens Int?
+  cacheReadTokens       Int?
+
+  estimatedCostMicroUsd BigInt?
+  priceVersion          String?
+
+  errorCode    String?
+  errorMessage String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([feature, startedAt])
+  @@index([status, startedAt])
+  @@index([userId, startedAt])
+  @@index([documentId])
+  @@index([commentId])
+  @@index([providerRequestId])
 }

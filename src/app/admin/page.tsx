@@ -4,6 +4,7 @@ import { Brand } from "@/components/Brand";
 import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { getVercelAnalyticsSummary } from "@/lib/vercelAnalytics";
+import { getAiOperationsSummary } from "@/lib/ai/adminMetrics";
 
 export const metadata: Metadata = {
   title: "Admin — Thido",
@@ -16,11 +17,43 @@ function formatDate(date: Date) {
   }).format(date);
 }
 
+function formatPercent(value: number | null) {
+  return value === null
+    ? "—"
+    : new Intl.NumberFormat("en", {
+        style: "percent",
+        maximumFractionDigits: 1,
+      }).format(value);
+}
+
+function formatDuration(milliseconds: number | null) {
+  if (milliseconds === null) return "—";
+  return milliseconds < 1_000
+    ? `${milliseconds} ms`
+    : `${(milliseconds / 1_000).toFixed(1)} s`;
+}
+
+function formatCost(microUsd: bigint) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  }).format(Number(microUsd) / 1_000_000);
+}
+
 export default async function AdminPage() {
   const session = await requireAdmin();
 
-  const [users, documents, comments, pendingSuggestions, recentDocuments, analytics] =
-    await Promise.all([
+  const [
+    users,
+    documents,
+    comments,
+    pendingSuggestions,
+    recentDocuments,
+    analytics,
+    aiOperations,
+  ] = await Promise.all([
       prisma.user.count(),
       prisma.document.count(),
       prisma.comment.count(),
@@ -37,7 +70,8 @@ export default async function AdminPage() {
         },
       }),
       getVercelAnalyticsSummary(),
-    ]);
+      getAiOperationsSummary(),
+  ]);
 
   const metrics = [
     { label: "Users", value: users },
@@ -101,6 +135,156 @@ export default async function AdminPage() {
             </p>
           </article>
         ))}
+      </section>
+
+      <section className="app-panel overflow-hidden rounded-2xl" aria-labelledby="ai-operations-heading">
+        <div className="border-b border-[var(--border)] p-5 sm:p-7">
+          <p className="page-kicker">AI operations</p>
+          <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 id="ai-operations-heading" className="font-serif text-2xl">
+                Last seven days
+              </h2>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                Durable Anthropic usage, feature outcomes, latency, and
+                list-price estimates.
+              </p>
+            </div>
+            <p className="font-mono text-xs text-[var(--muted)]">
+              Since {formatDate(aiOperations.since)}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-px bg-[var(--border)] sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            {
+              label: "Tracked calls",
+              value: aiOperations.totalCalls.toLocaleString(),
+            },
+            {
+              label: "Success rate",
+              value: formatPercent(aiOperations.successRate),
+            },
+            {
+              label: "Tokens",
+              value: aiOperations.totalTokens.toLocaleString(),
+            },
+            {
+              label: "Estimated cost",
+              value: formatCost(aiOperations.estimatedCostMicroUsd),
+            },
+          ].map((metric) => (
+            <div key={metric.label} className="bg-[var(--surface)] p-5 sm:px-7">
+              <p className="text-xs font-medium text-[var(--muted)]">
+                {metric.label}
+              </p>
+              <p className="mt-2 font-mono text-2xl tracking-[-0.04em]">
+                {metric.value}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {aiOperations.unpricedCalls > 0 && (
+          <p className="border-t border-[var(--border)] px-5 py-3 text-xs text-[var(--warm)] sm:px-7">
+            {aiOperations.unpricedCalls} completed{" "}
+            {aiOperations.unpricedCalls === 1 ? "call has" : "calls have"} no
+            matching price version and is excluded from estimated cost.
+          </p>
+        )}
+
+        <div className="overflow-x-auto border-t border-[var(--border)]">
+          <table className="w-full min-w-[72rem] text-left text-sm">
+            <thead className="bg-[var(--surface-subtle)] text-[var(--muted)]">
+              <tr>
+                <th className="px-5 py-3 font-medium sm:px-7">Feature</th>
+                <th className="px-5 py-3 font-medium">Calls</th>
+                <th className="px-5 py-3 font-medium">Success</th>
+                <th className="px-5 py-3 font-medium">p50 / p95</th>
+                <th className="px-5 py-3 font-medium">First token</th>
+                <th className="px-5 py-3 font-medium">Tokens</th>
+                <th className="px-5 py-3 font-medium">Est. cost</th>
+                <th className="px-5 py-3 font-medium sm:px-7">Top failure</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border)]">
+              {aiOperations.features.map((feature) => (
+                <tr key={feature.feature}>
+                  <td className="px-5 py-4 font-medium sm:px-7">
+                    {feature.label}
+                  </td>
+                  <td className="px-5 py-4 font-mono text-xs">
+                    {feature.calls}
+                    {feature.pending > 0 && (
+                      <span className="ml-1 text-[var(--warm)]">
+                        ({feature.pending} pending)
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-5 py-4 font-mono text-xs">
+                    {formatPercent(feature.successRate)}
+                  </td>
+                  <td className="px-5 py-4 font-mono text-xs text-[var(--muted)]">
+                    {formatDuration(feature.p50LatencyMs)} /{" "}
+                    {formatDuration(feature.p95LatencyMs)}
+                  </td>
+                  <td className="px-5 py-4 font-mono text-xs text-[var(--muted)]">
+                    {formatDuration(feature.p50FirstTokenMs)}
+                  </td>
+                  <td className="px-5 py-4 font-mono text-xs">
+                    {feature.totalTokens.toLocaleString()}
+                  </td>
+                  <td className="px-5 py-4 font-mono text-xs">
+                    {formatCost(feature.estimatedCostMicroUsd)}
+                  </td>
+                  <td className="px-5 py-4 font-mono text-xs text-[var(--muted)] sm:px-7">
+                    {feature.topFailure ?? "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {aiOperations.recentFailures.length > 0 && (
+          <div className="border-t border-[var(--border)] p-5 sm:p-7">
+            <h3 className="text-sm font-semibold">Recent AI failures</h3>
+            <ul className="mt-3 divide-y divide-[var(--border)]">
+              {aiOperations.recentFailures.map((failure) => (
+                <li key={failure.id} className="grid gap-1 py-3 first:pt-0 sm:grid-cols-[12rem_1fr_auto] sm:gap-4">
+                  <div>
+                    <p className="text-sm font-medium">
+                      {failure.featureLabel}
+                    </p>
+                    <time
+                      dateTime={failure.startedAt.toISOString()}
+                      className="font-mono text-[0.65rem] text-[var(--muted)]"
+                    >
+                      {formatDate(failure.startedAt)}
+                    </time>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-mono text-xs text-[var(--danger)]">
+                      {failure.errorCode}
+                    </p>
+                    {failure.errorMessage && (
+                      <p className="mt-1 truncate text-xs text-[var(--muted)]">
+                        {failure.errorMessage}
+                      </p>
+                    )}
+                  </div>
+                  <div className="font-mono text-[0.65rem] text-[var(--muted-soft)] sm:text-right">
+                    <p>{failure.model}</p>
+                    {failure.providerRequestId && (
+                      <p className="mt-1">{failure.providerRequestId}</p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </section>
 
       <section className="border-y border-[var(--border)] py-6">

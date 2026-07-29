@@ -9,6 +9,10 @@ import {
 import { anthropic } from "@/lib/ai/client";
 import { getUserAiModel } from "@/lib/ai/userModel";
 import { commentResponseSchema } from "@/lib/ai/schemas";
+import {
+  startAiGeneration,
+  type TrackedAnthropicMessage,
+} from "@/lib/ai/telemetry";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import {
   getCommentPromptContext,
@@ -143,6 +147,10 @@ async function generateAiResponse({
   commentBody: string;
   allowAutoApply: boolean;
 }) {
+  let telemetry:
+    | Awaited<ReturnType<typeof startAiGeneration>>
+    | undefined;
+  let trackedMessage: TrackedAnthropicMessage | undefined;
 
   try {
     if (!checkRateLimit(`ai:${userId}`, 15, 60_000)) {
@@ -162,6 +170,13 @@ async function generateAiResponse({
           )
         : null;
     const model = await getUserAiModel(userId);
+    telemetry = await startAiGeneration({
+      feature: "COMMENT_RESPOND",
+      model,
+      userId,
+      documentId,
+      commentId,
+    });
     const message = await anthropic.messages.parse({
       model,
       max_tokens: 1024,
@@ -196,8 +211,12 @@ async function generateAiResponse({
         },
       ],
     });
+    trackedMessage = message;
 
     const parsed = message.parsed_output;
+    if (!parsed) {
+      throw new Error("AI comment response did not match the expected schema");
+    }
     if (parsed) {
       const settings = await prisma.userSettings.findUnique({
         where: { userId },
@@ -261,7 +280,9 @@ async function generateAiResponse({
         }
       }
     }
+    await telemetry.succeed(message);
   } catch (error) {
+    await telemetry?.fail(error, trackedMessage);
     // The user's comment is already saved; the background AI response is
     // best-effort and must never block further editor interaction.
     console.error("AI comment response failed", error);

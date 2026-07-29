@@ -1,18 +1,19 @@
 # Thido production checklist
 
-Last reviewed: 28 July 2026
+Last reviewed: 29 July 2026
 
 This is the running source of truth for production-readiness work. Completed boxes indicate repository evidence or a verified check. External configuration remains unchecked until it is explicitly verified.
 
 ## Immediate deployment blockers
 
+- [ ] Apply the `20260729120000_add_ai_generation_observability` migration to the production database before deploying AI usage tracking and admin AI operations metrics.
 - [ ] Apply the `20260728120000_add_document_last_accessed_at` migration to the production database before deploying dashboard access timestamps.
 - [ ] Apply the `20260728100000_add_document_collaborators` migration to the production database before deploying email invitations and collaborator permissions.
 - [ ] Apply the `20260726130000_add_document_share_token` migration to the production database before deploying read-only share links.
 - [ ] Apply the `20260722143000_add_guest_draft_id` migration to the production database before deploying the guest-first flow.
 - [x] Apply previously committed Prisma migrations through `20260722100000_add_auth_tokens` to the production database.
 - [x] Resolve or confirm the Prisma baseline for the existing production database before running `prisma migrate deploy` if it still reports `P3005`.
-- [ ] After applying pending migrations through `20260728120000_add_document_last_accessed_at`, verify `npx prisma migrate status` reports that the production schema is up to date.
+- [ ] After applying pending migrations through `20260729120000_add_ai_generation_observability`, verify `npx prisma migrate status` reports that the production schema is up to date.
 - [ ] Configure `RESEND_API_KEY` in Vercel Production and Preview environments as appropriate.
 - [ ] Verify the sending domain in Resend and replace `onboarding@resend.dev` with a production `AUTH_EMAIL_FROM` address.
 - [ ] Send real verification and password-reset emails and confirm delivery, links, expiry, and single-use behavior against the production database.
@@ -132,7 +133,8 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Ensure document content and its comment anchor are durably saved before an anchored AI comment can be submitted.
 - [ ] Configure production usage and spending limits for every active model provider.
 - [ ] Add timeouts, retries with backoff, and request correlation IDs for AI calls.
-- [ ] Track model usage, latency, failures, and estimated cost per feature ([implementation guide](./ai-usage-observability.md)).
+- [x] Implement durable model usage, latency, first-token timing, feature failures, structured logs, versioned cost estimates, and seven-day admin metrics for every current AI feature ([implementation guide](./ai-usage-observability.md)).
+- [ ] After applying the AI observability migration, run each AI feature in production and reconcile its stored usage and estimated cost against the Anthropic Console.
 - [x] Define how user documents may be sent to AI providers in the privacy policy.
 - [ ] Publish and maintain a current AI-provider and subprocessor list without making the core Privacy Policy provider-specific.
 - [ ] Review prompt-injection and untrusted-document risks before supporting uploaded source material.

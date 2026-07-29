@@ -1,5 +1,22 @@
 # Tracking AI usage, latency, failures, and cost in Thido
 
+## Implementation status
+
+The repository implementation is complete:
+
+- `AiGeneration` persists every current AI feature’s outcome and usage;
+- `src/lib/ai/telemetry.ts` owns lifecycle tracking and structured logs;
+- `src/lib/ai/pricing.ts` owns effective-dated list-price estimates;
+- all three Anthropic call sites report success and failure;
+- `/admin` shows seven-day totals, per-feature latency and cost, and recent
+  failures;
+- unit tests cover pricing boundaries, cached-token costs, lifecycle tracking,
+  and admin aggregation.
+
+Production verification remains pending until migration
+`20260729120000_add_ai_generation_observability` is applied and each feature is
+exercised against the deployed application.
+
 ## Recommended approach
 
 Create one database record for every call to an AI provider, and route every
@@ -154,15 +171,17 @@ They should supply only the feature and relevant resource IDs.
 - Capture `firstTokenMs` when the first `text` event arrives.
 - Await `claudeStream.finalMessage()` exactly once.
 - Use the final message’s `usage`, `_request_id`, and `stop_reason`.
-- Mark the generation successful only after the final message is received.
+- Mark the generation successful only after the final message is received,
+  converted, and durably saved for the user.
 - If Markdown conversion or document persistence fails after a successful model
-  response, keep the provider call as `SUCCEEDED` and record the application
-  failure separately. The tokens were still consumed.
+  response, mark the feature `FAILED` but retain the final provider usage and
+  estimated cost. The tokens were still consumed.
 
-This distinction matters: provider success and feature success are not always
-the same. If that distinction becomes useful in the dashboard, add
-`outcomeStatus` or `applicationErrorCode` rather than marking a billed provider
-call as failed.
+Here, `status` deliberately represents the user-facing feature outcome. The
+presence of final usage and a provider request ID on a failed row distinguishes
+a downstream application failure from a provider call that never completed.
+If separate provider and application outcomes become necessary, add a dedicated
+`providerStatus` rather than changing the meaning of historical `status` values.
 
 ## Usage fields
 
@@ -338,4 +357,3 @@ real calls.
 - unknown-model behavior (record usage, leave cost null, emit an alert);
 - no prompt or document content in structured logs;
 - admin aggregation across features, models, and dates.
-
