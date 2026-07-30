@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { EditorContent, useEditor, type JSONContent } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
@@ -15,13 +15,15 @@ import {
   type CollaboratorSummary,
 } from "@/components/documents/ShareDocumentControl";
 import { Brand } from "@/components/Brand";
-import type { CommentWithReplies } from "@/lib/types";
+import type { CommentAiProgress, CommentWithReplies } from "@/lib/types";
+import { isDocumentWideCommentRequest } from "@/lib/commentProcessing";
 
 type Props = {
   documentId: string;
   initialTitle: string;
   initialContent: JSONContent | null;
   initialComments: CommentWithReplies[];
+  initialCommentProgress: Record<string, CommentAiProgress>;
   initialShareToken: string | null;
   initialCollaborators: CollaboratorSummary[];
   accessPermission: CollaboratorPermission;
@@ -43,6 +45,7 @@ export function TiptapEditor({
   initialTitle,
   initialContent,
   initialComments,
+  initialCommentProgress,
   initialShareToken,
   initialCollaborators,
   accessPermission,
@@ -56,9 +59,17 @@ export function TiptapEditor({
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [comments, setComments] = useState<CommentWithReplies[]>(initialComments);
   const [activeComposer, setActiveComposer] = useState<ActiveComposer | null>(null);
-  const [pendingCommentIds, setPendingCommentIds] = useState<Set<string>>(
-    () => new Set(),
-  );
+  const [pendingCommentIds, setPendingCommentIds] = useState<Set<string>>(() => {
+    return new Set(
+      Object.entries(initialCommentProgress).flatMap(([commentId, progress]) =>
+        progress.status === "PENDING" ? [commentId] : [],
+      ),
+    );
+  });
+  const [foregroundCommentCount, setForegroundCommentCount] = useState(0);
+  const [commentProgress, setCommentProgress] = useState<
+    Record<string, CommentAiProgress>
+  >(initialCommentProgress);
   const [commentError, setCommentError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
@@ -80,6 +91,7 @@ export function TiptapEditor({
       }
     },
   });
+  const editorRef = useRef(editor);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -88,6 +100,10 @@ export function TiptapEditor({
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
 
   function scheduleSave(next: { title?: string; content?: JSONContent }) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -183,6 +199,11 @@ export function TiptapEditor({
   }
 
   async function persistComment(composer: ActiveComposer, body: string) {
+    const waitForAi = isDocumentWideCommentRequest(body);
+    if (waitForAi) {
+      setForegroundCommentCount((count) => count + 1);
+    }
+
     try {
       if (!editor) throw new Error("Editor is not ready");
       if (debounceRef.current) {
@@ -216,23 +237,41 @@ export function TiptapEditor({
       const data = await res.json();
       const savedComment: CommentWithReplies = {
         ...data.comment,
-        replies: [],
-        suggestion: null,
+        replies: data.comment.replies ?? [],
+        suggestion: data.comment.suggestion ?? null,
       };
 
       if (!mountedRef.current) return;
       setComments((prev) => [savedComment, ...prev]);
-      setPendingCommentIds((prev) => new Set(prev).add(savedComment.id));
 
-      void pollForAiResponse(savedComment.id);
+      if (data.aiProcessing === "background") {
+        setPendingCommentIds((prev) => new Set(prev).add(savedComment.id));
+        setCommentProgress((previous) => ({
+          ...previous,
+          [savedComment.id]: { status: "QUEUED", startedAt: null },
+        }));
+        void pollForAiResponse(savedComment.id);
+      } else if (data.aiProcessing === "failed") {
+        setCommentError(
+          "The comment was saved, but Thido could not finish responding. You can keep editing and try again.",
+        );
+      }
+
+      if (data.documentContent && editor) {
+        editor.commands.setContent(data.documentContent);
+      }
     } catch {
       if (!mountedRef.current) return;
       setSaveState("error");
       setCommentError("The comment could not be saved. You can keep editing and try again.");
+    } finally {
+      if (waitForAi && mountedRef.current) {
+        setForegroundCommentCount((count) => Math.max(0, count - 1));
+      }
     }
   }
 
-  async function pollForAiResponse(commentId: string) {
+  const pollForAiResponse = useCallback(async (commentId: string) => {
     for (let attempt = 0; attempt < 120; attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, 1250));
       if (!mountedRef.current) return;
@@ -245,8 +284,26 @@ export function TiptapEditor({
         const data = await res.json();
         const refreshed = data.comments as CommentWithReplies[];
         const target = refreshed.find((comment) => comment.id === commentId);
+        const progress = data.aiProgress?.[commentId] as
+          | CommentAiProgress
+          | undefined;
 
         setComments(refreshed);
+        if (progress) {
+          setCommentProgress((previous) => ({
+            ...previous,
+            [commentId]: progress,
+          }));
+        }
+
+        if (progress?.status === "FAILED") {
+          setPendingCommentIds((prev) => {
+            const next = new Set(prev);
+            next.delete(commentId);
+            return next;
+          });
+          return;
+        }
 
         const finished =
           !!target && (target.replies.length > 0 || !!target.suggestion);
@@ -256,13 +313,18 @@ export function TiptapEditor({
             next.delete(commentId);
             return next;
           });
+          setCommentProgress((previous) => {
+            const next = { ...previous };
+            delete next[commentId];
+            return next;
+          });
 
           if (
             target.suggestion?.status === "AUTO_APPLIED" &&
             data.documentContent &&
-            editor
+            editorRef.current
           ) {
-            editor.commands.setContent(data.documentContent);
+            editorRef.current.commands.setContent(data.documentContent);
           }
           return;
         }
@@ -274,7 +336,17 @@ export function TiptapEditor({
 
     // Keep the accurate processing state if the response is unusually slow.
     // A later page load will include the completed server-side response.
-  }
+  }, [documentId]);
+
+  useEffect(() => {
+    for (const [commentId, progress] of Object.entries(
+      initialCommentProgress,
+    )) {
+      if (progress.status === "PENDING") {
+        void pollForAiResponse(commentId);
+      }
+    }
+  }, [initialCommentProgress, pollForAiResponse]);
 
   function handleCommentChange(updated: CommentWithReplies) {
     setComments((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
@@ -282,6 +354,16 @@ export function TiptapEditor({
 
   function handleCommentDelete(id: string) {
     setComments((prev) => prev.filter((c) => c.id !== id));
+    setPendingCommentIds((previous) => {
+      const next = new Set(previous);
+      next.delete(id);
+      return next;
+    });
+    setCommentProgress((previous) => {
+      const next = { ...previous };
+      delete next[id];
+      return next;
+    });
   }
 
   function handleDocumentContentUpdated(content: unknown) {
@@ -292,7 +374,7 @@ export function TiptapEditor({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-      <div className="flex w-full min-w-0 flex-1 flex-col gap-6 px-4 py-5 sm:px-7 sm:py-6 lg:px-10">
+      <div className="flex w-full min-w-0 flex-1 flex-col gap-6 px-3 py-5 sm:px-5 sm:py-6 lg:px-6">
         <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-center sm:justify-between">
           <Brand />
           <div className="flex flex-wrap items-center gap-3">
@@ -311,7 +393,7 @@ export function TiptapEditor({
             <AiModeToggle />
           </div>
         </header>
-        <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
           <input
             value={title}
             readOnly={!canEdit}
@@ -353,7 +435,7 @@ export function TiptapEditor({
         )}
 
         {startedFromPaste && !initialContent && (
-          <div className="mx-auto w-full max-w-4xl border-l-2 border-[var(--warm)] pl-4">
+          <div className="mx-auto w-full max-w-6xl border-l-2 border-[var(--warm)] pl-4">
             <p className="text-sm font-medium">Paste your document below.</p>
             <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
               When it is saved, highlight any passage and choose Comment to
@@ -362,7 +444,7 @@ export function TiptapEditor({
           </div>
         )}
 
-        <div className="app-panel mx-auto flex w-full max-w-4xl flex-1 flex-col overflow-hidden rounded-sm">
+        <div className="app-panel mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-hidden rounded-sm">
           {canEdit && <Toolbar editor={editor} />}
           {editor && canComment && (
             <BubbleMenu editor={editor}>
@@ -377,7 +459,7 @@ export function TiptapEditor({
               </div>
             </BubbleMenu>
           )}
-          <div className="flex-1 overflow-y-auto px-6 py-8 sm:px-12 sm:py-12">
+          <div className="flex-1 overflow-y-auto px-4 py-7 sm:px-7 sm:py-10 lg:px-8">
             <EditorContent editor={editor} />
           </div>
         </div>
@@ -399,6 +481,8 @@ export function TiptapEditor({
           onDelete={handleCommentDelete}
           onDocumentContentUpdated={handleDocumentContentUpdated}
           pendingCommentIds={pendingCommentIds}
+          commentProgress={commentProgress}
+          foregroundCommentCount={foregroundCommentCount}
           canManageComments={canEdit}
         />
       </div>

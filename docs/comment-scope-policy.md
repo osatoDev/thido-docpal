@@ -46,3 +46,14 @@ A larger span should be explicit, not inferred loosely. Good triggers are:
 - the requested improvement depends on restructuring multiple adjacent sentences
 
 Even then, the UI should make that scope visible, for example by showing `Apply to paragraph` or `Apply to section`, rather than silently expanding from a sentence to a larger block.
+
+## Processing behavior
+
+Explicit whole-document wording such as “entire document,” “whole draft,” or
+“across the document” is processed in the foreground. Thido keeps a visible
+working state and returns the completed AI response with the newly created
+comment instead of creating the comment and polling for a background result.
+
+Selection- and paragraph-scoped comments retain the faster background response
+flow. This scheduling distinction does not change the current anchored edit
+boundary: a first-class document target remains a separate product capability.

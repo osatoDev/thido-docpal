@@ -44,6 +44,18 @@ export default async function EditDocumentPage({ params, searchParams }: Props) 
             include: { author: { select: { name: true } } },
           },
           suggestion: true,
+          aiGenerations: {
+            where: {
+              feature: "COMMENT_RESPOND",
+              status: { in: ["PENDING", "FAILED"] },
+            },
+            orderBy: { startedAt: "desc" },
+            take: 1,
+            select: {
+              status: true,
+              startedAt: true,
+            },
+          },
         },
       },
     },
@@ -72,13 +84,34 @@ export default async function EditDocumentPage({ params, searchParams }: Props) 
     userId: session.user.id,
     collaboratorPermission,
   });
+  const initialCommentProgress = Object.fromEntries(
+    document.comments.flatMap(({ id: commentId, aiGenerations }) => {
+      const progress = aiGenerations[0];
+      return progress
+        ? [
+            [
+              commentId,
+              {
+                status: progress.status,
+                startedAt: progress.startedAt.toISOString(),
+              },
+            ],
+          ]
+        : [];
+    }),
+  );
+  const comments = document.comments.map(({ aiGenerations, ...comment }) => {
+    void aiGenerations;
+    return comment;
+  });
 
   return (
     <TiptapEditor
       documentId={document.id}
       initialTitle={document.title}
       initialContent={content}
-      initialComments={document.comments}
+      initialComments={comments}
+      initialCommentProgress={initialCommentProgress}
       initialShareToken={document.shareToken}
       initialCollaborators={
         accessPermission === "FULL" ? document.collaborators : []

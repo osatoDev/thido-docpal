@@ -1,6 +1,6 @@
 # Thido production checklist
 
-Last reviewed: 29 July 2026
+Last reviewed: 30 July 2026
 
 This is the running source of truth for production-readiness work. Completed boxes indicate repository evidence or a verified check. External configuration remains unchecked until it is explicitly verified.
 
@@ -112,6 +112,10 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Close document-deletion confirmation dialogs after the authenticated deletion action completes.
 - [x] Give dashboard document-link clicks an immediate selected-row state while preserving partial prefetch semantics for access tracking.
 - [x] Use the pointer cursor consistently for enabled buttons and button-role controls across the app.
+- [x] Reduce the document editor's stacked side gutters and widen its responsive canvas while retaining modest content padding.
+- [x] Keep explicit whole-document AI comment requests in the foreground with a visible working state while ordinary anchored comments continue in the background.
+- [x] Let users expand a background comment response to see its real queued, processing, or failed state while it refreshes automatically.
+- [x] Move resolved comment threads into a collapsible archive and retain the ability to reopen or delete them.
 - [x] Let dashboard users sort document rows instantly by title and last-accessed time without a server round trip.
 - [x] Use an accessible trash icon for dashboard deletion while keeping the confirmation dialog tied to the selected document title.
 - [x] Bind dashboard deletion to the clicked row's document ID in the server action instead of trusting a hidden form field.

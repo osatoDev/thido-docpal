@@ -18,6 +18,7 @@ import {
   getCommentPromptContext,
   replaceCommentMarkText,
 } from "@/lib/documentMarks";
+import { isDocumentWideCommentRequest } from "@/lib/commentProcessing";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { unauthorizedResponse } from "@/lib/apiResponses";
 
@@ -51,6 +52,18 @@ export async function GET(_request: Request, { params }: Params) {
             include: { author: { select: { name: true } } },
           },
           suggestion: true,
+          aiGenerations: {
+            where: {
+              feature: "COMMENT_RESPOND",
+              status: { in: ["PENDING", "FAILED"] },
+            },
+            orderBy: { startedAt: "desc" },
+            take: 1,
+            select: {
+              status: true,
+              startedAt: true,
+            },
+          },
         },
       },
     },
@@ -60,8 +73,30 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  const aiProgress = Object.fromEntries(
+    document.comments.flatMap(({ id, aiGenerations }) => {
+      const progress = aiGenerations[0];
+      return progress
+        ? [
+            [
+              id,
+              {
+                status: progress.status,
+                startedAt: progress.startedAt.toISOString(),
+              },
+            ],
+          ]
+        : [];
+    }),
+  );
+  const comments = document.comments.map(({ aiGenerations, ...comment }) => {
+    void aiGenerations;
+    return comment;
+  });
+
   return NextResponse.json({
-    comments: document.comments,
+    comments,
+    aiProgress,
     documentContent: document.content,
   });
 }
@@ -71,12 +106,14 @@ export async function POST(request: Request, { params }: Params) {
   if (!session?.user?.id) {
     return unauthorizedResponse();
   }
+  const userId = session.user.id;
+  const userEmail = session.user.email;
 
   const { id: documentId } = await params;
   const document = await getDocumentForUser(
     documentId,
-    session.user.id,
-    session.user.email,
+    userId,
+    userEmail,
     "COMMENT",
   );
   if (!document) {
@@ -95,12 +132,11 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
 
-  // Create the user's comment immediately — this is what makes the thread
-  // feel instant even before the AI portion of the response comes back.
+  const waitForAi = isDocumentWideCommentRequest(commentBody);
   const comment = await prisma.comment.create({
     data: {
       documentId,
-      authorId: session.user.id,
+      authorId: userId,
       authorType: "USER",
       anchorMarkId,
       quotedText,
@@ -109,25 +145,69 @@ export async function POST(request: Request, { params }: Params) {
     include: { author: { select: { name: true } } },
   });
 
-  after(async () => {
-    const editAccess = await getDocumentForUser(
-      documentId,
-      session.user.id,
-      session.user.email,
-      "EDIT",
-    );
-    await generateAiResponse({
-      commentId: comment.id,
-      documentId,
-      userId: session.user.id,
-      anchorMarkId,
-      quotedText,
-      commentBody,
-      allowAutoApply: !!editAccess,
-    });
-  });
+  async function respondToComment() {
+    try {
+      const editAccess = await getDocumentForUser(
+        documentId,
+        userId,
+        userEmail,
+        "EDIT",
+      );
+      return await generateAiResponse({
+        commentId: comment.id,
+        documentId,
+        userId,
+        anchorMarkId,
+        quotedText,
+        commentBody,
+        allowAutoApply: !!editAccess,
+      });
+    } catch (error) {
+      console.error("Could not prepare the AI comment response", error);
+      return false;
+    }
+  }
 
-  return NextResponse.json({ comment }, { status: 201 });
+  if (!waitForAi) {
+    after(async () => {
+      await respondToComment();
+    });
+    return NextResponse.json(
+      { comment, aiProcessing: "background" },
+      { status: 201 },
+    );
+  }
+
+  const aiCompleted = await respondToComment();
+  const completedComment = await prisma.comment.findUnique({
+    where: { id: comment.id },
+    include: {
+      author: { select: { name: true } },
+      replies: {
+        orderBy: { createdAt: "asc" },
+        include: { author: { select: { name: true } } },
+      },
+      suggestion: true,
+    },
+  });
+  const documentContent =
+    completedComment?.suggestion?.status === "AUTO_APPLIED"
+      ? (
+          await prisma.document.findUnique({
+            where: { id: documentId },
+            select: { content: true },
+          })
+        )?.content
+      : null;
+
+  return NextResponse.json(
+    {
+      comment: completedComment ?? comment,
+      aiProcessing: aiCompleted ? "completed" : "failed",
+      documentContent,
+    },
+    { status: 201 },
+  );
 }
 
 async function generateAiResponse({
@@ -153,10 +233,6 @@ async function generateAiResponse({
   let trackedMessage: TrackedAnthropicMessage | undefined;
 
   try {
-    if (!checkRateLimit(`ai:${userId}`, 15, 60_000)) {
-      throw new Error("Rate limited — skipping AI response for this comment");
-    }
-
     const latestDocument = await prisma.document.findUnique({
       where: { id: documentId },
       select: { content: true },
@@ -177,6 +253,9 @@ async function generateAiResponse({
       documentId,
       commentId,
     });
+    if (!checkRateLimit(`ai:${userId}`, 15, 60_000)) {
+      throw new Error("Rate limited — skipping AI response for this comment");
+    }
     const message = await anthropic.messages.parse({
       model,
       max_tokens: 1024,
@@ -281,11 +360,11 @@ async function generateAiResponse({
       }
     }
     await telemetry.succeed(message);
+    return true;
   } catch (error) {
     await telemetry?.fail(error, trackedMessage);
-    // The user's comment is already saved; the background AI response is
-    // best-effort and must never block further editor interaction.
     console.error("AI comment response failed", error);
+    return false;
   }
 }
 

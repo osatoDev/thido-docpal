@@ -1,8 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import type { CommentWithReplies, SuggestionWithStatus } from "@/lib/types";
+import type {
+  CommentAiProgress,
+  CommentWithReplies,
+  SuggestionWithStatus,
+} from "@/lib/types";
 import { SuggestionCard } from "./SuggestionCard";
+import { CommentResponseProgress } from "./CommentResponseProgress";
 
 export function CommentThread({
   comment,
@@ -10,6 +15,7 @@ export function CommentThread({
   onDelete,
   onDocumentContentUpdated,
   isPending = false,
+  aiProgress,
   canManage,
 }: {
   comment: CommentWithReplies;
@@ -17,6 +23,7 @@ export function CommentThread({
   onDelete: (id: string) => void;
   onDocumentContentUpdated: (content: unknown) => void;
   isPending?: boolean;
+  aiProgress?: CommentAiProgress;
   canManage: boolean;
 }) {
   const [busy, setBusy] = useState(false);
@@ -85,11 +92,12 @@ export function CommentThread({
       </p>
       <p>{comment.body}</p>
 
-      {isPending && (
-        <p className="flex items-center gap-2 text-xs text-[var(--muted)]" role="status">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--accent-strong)]" />
-          Saved — Thido is responding in the background
-        </p>
+      {(isPending || aiProgress?.status === "FAILED") && (
+        <CommentResponseProgress
+          progress={
+            aiProgress ?? { status: "QUEUED", startedAt: null }
+          }
+        />
       )}
       {comment.suggestion && (
         <SuggestionCard
