@@ -12,6 +12,7 @@ export function CommentSidebar({
   pendingCommentIds,
   commentProgress,
   foregroundCommentCount,
+  documentAiLocked,
   onStartDocumentComment,
   documentComposerOpen,
   canCreateComments,
@@ -24,6 +25,7 @@ export function CommentSidebar({
   pendingCommentIds: Set<string>;
   commentProgress: Record<string, CommentAiProgress>;
   foregroundCommentCount: number;
+  documentAiLocked: boolean;
   onStartDocumentComment: () => void;
   documentComposerOpen: boolean;
   canCreateComments: boolean;
@@ -76,15 +78,15 @@ export function CommentSidebar({
         </div>
       )}
 
-      {foregroundCommentCount > 0 && (
+      {documentAiLocked && (
         <div
           className="flex items-start gap-2 rounded-sm border border-[var(--border)] bg-[var(--surface)] p-3 text-xs text-[var(--muted)]"
           role="status"
         >
           <span className="mt-1 h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[var(--accent-strong)]" />
           <span>
-            Thido is working on a document-wide comment. It will appear when
-            the response is complete.
+            Thido is working across the whole document. Editing and new
+            comments will return when this response is complete.
           </span>
         </div>
       )}

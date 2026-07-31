@@ -6,6 +6,8 @@ This is the running source of truth for production-readiness work. Completed box
 
 ## Immediate deployment blockers
 
+- [ ] Accept the Stripe Marketplace terms in Vercel, install the Stripe integration on `thido-docpal`, and connect isolated sandbox resources to Production, Preview, and Development before implementing billing against provisioned credentials.
+- [ ] Apply the `20260731140000_add_comment_ai_job_state` migration to the production database before deploying whole-document AI locking.
 - [ ] Apply the `20260731120000_add_document_placeholder_state` migration to the production database before deploying placeholder document handling.
 - [ ] Apply the `20260731100000_add_document_comment_scope` migration to the production database before deploying first-class whole-document comments.
 - [ ] Apply the `20260729120000_add_ai_generation_observability` migration to the production database before deploying AI usage tracking and admin AI operations metrics.
@@ -15,7 +17,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Apply the `20260722143000_add_guest_draft_id` migration to the production database before deploying the guest-first flow.
 - [x] Apply previously committed Prisma migrations through `20260722100000_add_auth_tokens` to the production database.
 - [x] Resolve or confirm the Prisma baseline for the existing production database before running `prisma migrate deploy` if it still reports `P3005`.
-- [ ] After applying pending migrations through `20260731120000_add_document_placeholder_state`, verify `npx prisma migrate status` reports that the production schema is up to date.
+- [ ] After applying pending migrations through `20260731140000_add_comment_ai_job_state`, verify `npx prisma migrate status` reports that the production schema is up to date.
 - [ ] Configure `RESEND_API_KEY` in Vercel Production and Preview environments as appropriate.
 - [ ] Verify the sending domain in Resend and replace `onboarding@resend.dev` with a production `AUTH_EMAIL_FROM` address.
 - [ ] Send real verification and password-reset emails and confirm delivery, links, expiry, and single-use behavior against the production database.
@@ -120,6 +122,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Reduce the document editor's stacked side gutters and widen its responsive canvas while retaining modest content padding.
 - [x] Keep explicit whole-document AI comment requests in the foreground with a visible working state while ordinary anchored comments continue in the background.
 - [x] Provide a visible whole-document comment composer with explicit scope, full-document AI revisions, reviewable suggestions, and concurrency-safe auto-apply behavior.
+- [x] Lock document editing and new comments while a whole-document AI action is active, reject competing work across tabs, and expire abandoned locks after ten minutes.
 - [x] Let users expand a background comment response to see its real queued, processing, or failed state while it refreshes automatically.
 - [x] Move resolved comment threads into a collapsible archive and retain the ability to reopen or delete them.
 - [x] Let dashboard users sort document rows instantly by title and last-accessed time without a server round trip.
@@ -134,6 +137,14 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Define retention rules for documents, comments, deleted accounts, auth tokens, and operational logs.
 - [ ] Define a cleanup window for abandoned document placeholders that are no longer reusable.
 - [ ] Verify cascade deletion behavior against the intended retention policy.
+
+## Beta access and billing
+
+- [ ] Enforce a race-safe limit of 100 free beta accounts across password registration and Google sign-in, with existing authorized accounts handled deliberately.
+- [ ] Define what happens to registration after the beta reaches 100 accounts: waitlist, invite-only access, or closed registration.
+- [ ] Define paid plan pricing, currency, billing interval, entitlements, and launch timing before activating Stripe Checkout.
+- [ ] Implement Stripe subscription Checkout, signed webhook processing, idempotent subscription-state persistence, and Customer Portal access using the Vercel Marketplace integration.
+- [ ] Test Stripe sandbox checkout, renewal, failed payment, cancellation, webhook retries, and portal management without requiring free beta users to enter payment details.
 
 ## AI reliability and safety
 
@@ -154,13 +165,13 @@ This is the running source of truth for production-readiness work. Completed box
 ## Testing and continuous integration
 
 - [x] Add automated unit tests for authentication input, password hashing, token helpers, rate limiting, and API auth responses.
-- [x] Confirm the current unit suite passes: 54 tests across seventeen files.
+- [x] Confirm the current unit suite passes: 57 tests across eighteen files.
 - [x] Confirm lint and the production build pass after the authentication upgrade.
 - [ ] Add a normal CI workflow that runs `npm ci`, `npm test`, `npm run lint`, and `npm run build` for pull requests and `main`.
 - [ ] Add database integration tests for issuing and consuming verification and reset tokens transactionally.
 - [ ] Add browser tests for registration, email verification, password reset, Google login, sign-out, stale sessions, and admin authorization.
 - [ ] Add browser tests for pasted rich text, autosave, comment anchoring, AI suggestion accept/reject, concurrent edits, and orphaned comments.
-- [ ] Add browser tests for creating, proposing, accepting, rejecting, and auto-applying whole-document comments.
+- [ ] Add browser tests for creating, proposing, accepting, rejecting, and auto-applying whole-document comments, including cross-tab edit and comment locking.
 - [ ] Add browser tests for creating, opening anonymously, and revoking read-only document share links, plus inviting by email and enforcing every collaborator permission level.
 - [ ] Create a separate test database and ensure tests can never target production credentials.
 - [ ] Add accessibility checks for authentication, editor, settings, and admin pages.

@@ -197,6 +197,13 @@ enum CommentScope {
   DOCUMENT
 }
 
+enum CommentAiStatus {
+  NOT_REQUESTED
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
 model Comment {
   id         String     @id @default(cuid())
   documentId String
@@ -221,6 +228,10 @@ model Comment {
   status CommentStatus  @default(OPEN)
   body   String         @db.Text
 
+  aiStatus      CommentAiStatus @default(NOT_REQUESTED)
+  aiStartedAt   DateTime?
+  aiCompletedAt DateTime?
+
   suggestion    Suggestion?
   aiGenerations AiGeneration[]
 
@@ -228,6 +239,7 @@ model Comment {
   updatedAt DateTime @updatedAt
 
   @@index([documentId])
+  @@index([documentId, scope, aiStatus])
   @@index([anchorMarkId])
   @@index([parentId])
 }

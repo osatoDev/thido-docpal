@@ -7,6 +7,12 @@ import { shouldPromotePlaceholder } from "@/lib/documentPersistence";
 import { collectCommentMarkIds } from "@/lib/documentMarks";
 import { unauthorizedResponse } from "@/lib/apiResponses";
 import { isCommentMarkOnlyChange } from "@/lib/publicDocument";
+import {
+  DOCUMENT_AI_LOCK_MESSAGE,
+  expireStaleCommentAiJobs,
+  hasActiveCommentAiJob,
+  lockDocumentForCommentAi,
+} from "@/lib/documentAiJobs";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -118,10 +124,35 @@ export async function PATCH(request: Request, { params }: Params) {
     data.isPlaceholder = false;
   }
 
-  const document = await prisma.document.update({
-    where: { id },
-    data,
+  const updateResult = await prisma.$transaction(async (transaction) => {
+    const documentExists = await lockDocumentForCommentAi(transaction, id);
+    if (!documentExists) return { kind: "missing" as const };
+
+    await expireStaleCommentAiJobs(transaction, id);
+    if (
+      await hasActiveCommentAiJob(transaction, id, {
+        documentWideOnly: true,
+      })
+    ) {
+      return { kind: "locked" as const };
+    }
+
+    const document = await transaction.document.update({
+      where: { id },
+      data,
+    });
+    return { kind: "updated" as const, document };
   });
+  if (updateResult.kind === "missing") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (updateResult.kind === "locked") {
+    return NextResponse.json(
+      { error: DOCUMENT_AI_LOCK_MESSAGE, documentAiLocked: true },
+      { status: 409 },
+    );
+  }
+  const document = updateResult.document;
 
   if (body.content !== undefined) {
     await reconcileOrphanedComments(id, body.content as JSONContent);
@@ -178,7 +209,31 @@ export async function DELETE(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  await prisma.document.delete({ where: { id } });
+  const deleteResult = await prisma.$transaction(async (transaction) => {
+    const documentExists = await lockDocumentForCommentAi(transaction, id);
+    if (!documentExists) return "missing" as const;
+
+    await expireStaleCommentAiJobs(transaction, id);
+    if (
+      await hasActiveCommentAiJob(transaction, id, {
+        documentWideOnly: true,
+      })
+    ) {
+      return "locked" as const;
+    }
+
+    await transaction.document.delete({ where: { id } });
+    return "deleted" as const;
+  });
+  if (deleteResult === "missing") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (deleteResult === "locked") {
+    return NextResponse.json(
+      { error: DOCUMENT_AI_LOCK_MESSAGE },
+      { status: 409 },
+    );
+  }
 
   return NextResponse.json({ ok: true });
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { JSONContent } from "@tiptap/react";
+import type { Suggestion } from "@prisma/client";
 import { generateHTML } from "@tiptap/html/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -8,6 +9,12 @@ import { replaceCommentMarkText, replaceUniqueText } from "@/lib/documentMarks";
 import { markdownToTiptapJSON } from "@/lib/markdownToTiptap";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { unauthorizedResponse } from "@/lib/apiResponses";
+import {
+  DOCUMENT_AI_LOCK_MESSAGE,
+  expireStaleCommentAiJobs,
+  hasActiveCommentAiJob,
+  lockDocumentForCommentAi,
+} from "@/lib/documentAiJobs";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -89,9 +96,27 @@ export async function POST(_request: Request, { params }: Params) {
       );
     }
 
-    let result;
+    let result:
+      | { kind: "resolved"; suggestion: Suggestion | null }
+      | { kind: "locked" }
+      | { kind: "retry" };
     try {
       result = await prisma.$transaction(async (transaction) => {
+        const documentExists = await lockDocumentForCommentAi(
+          transaction,
+          suggestion.documentId,
+        );
+        if (!documentExists) return { kind: "retry" as const };
+
+        await expireStaleCommentAiJobs(transaction, suggestion.documentId);
+        if (
+          await hasActiveCommentAiJob(transaction, suggestion.documentId, {
+            documentWideOnly: true,
+          })
+        ) {
+          return { kind: "locked" as const };
+        }
+
         const documentUpdate = await transaction.document.updateMany({
           where: {
             id: suggestion.documentId,
@@ -99,7 +124,7 @@ export async function POST(_request: Request, { params }: Params) {
           },
           data: { content: updatedContent },
         });
-        if (documentUpdate.count !== 1) return null;
+        if (documentUpdate.count !== 1) return { kind: "retry" as const };
 
         const suggestionUpdate = await transaction.suggestion.updateMany({
           where: { id, status: "PENDING" },
@@ -114,7 +139,10 @@ export async function POST(_request: Request, { params }: Params) {
           data: { status: "RESOLVED" },
         });
 
-        return transaction.suggestion.findUnique({ where: { id } });
+        return {
+          kind: "resolved" as const,
+          suggestion: await transaction.suggestion.findUnique({ where: { id } }),
+        };
       });
     } catch (error) {
       if (error instanceof SuggestionResolutionConflict) {
@@ -126,9 +154,15 @@ export async function POST(_request: Request, { params }: Params) {
       throw error;
     }
 
-    if (result) {
+    if (result.kind === "locked") {
+      return NextResponse.json(
+        { error: DOCUMENT_AI_LOCK_MESSAGE },
+        { status: 409 },
+      );
+    }
+    if (result.kind === "resolved") {
       return NextResponse.json({
-        suggestion: result,
+        suggestion: result.suggestion,
         document: { content: updatedContent },
       });
     }

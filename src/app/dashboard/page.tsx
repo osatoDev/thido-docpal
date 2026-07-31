@@ -15,6 +15,11 @@ import {
   normalizeCollaboratorEmail,
 } from "@/lib/documentAuth";
 import { createBlankDocument } from "@/app/document-actions";
+import {
+  expireStaleCommentAiJobs,
+  hasActiveCommentAiJob,
+  lockDocumentForCommentAi,
+} from "@/lib/documentAiJobs";
 
 async function deleteDocument(documentId: string) {
   "use server";
@@ -28,7 +33,23 @@ async function deleteDocument(documentId: string) {
     "FULL",
   );
   if (document) {
-    await prisma.document.delete({ where: { id: document.id } });
+    await prisma.$transaction(async (transaction) => {
+      const documentExists = await lockDocumentForCommentAi(
+        transaction,
+        document.id,
+      );
+      if (!documentExists) return;
+
+      await expireStaleCommentAiJobs(transaction, document.id);
+      if (
+        await hasActiveCommentAiJob(transaction, document.id, {
+          documentWideOnly: true,
+        })
+      ) {
+        return;
+      }
+      await transaction.document.delete({ where: { id: document.id } });
+    });
   }
 }
 

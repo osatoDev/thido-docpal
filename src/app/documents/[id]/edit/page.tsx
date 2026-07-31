@@ -9,6 +9,8 @@ import {
 } from "@/lib/documentAuth";
 import { TiptapEditor } from "@/components/editor/TiptapEditor";
 import { recordDocumentAccess } from "@/lib/documentAccess";
+import { isCommentAiJobActive } from "@/lib/documentAiJobs";
+import type { CommentAiProgress } from "@/lib/types";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -44,18 +46,6 @@ export default async function EditDocumentPage({ params, searchParams }: Props) 
             include: { author: { select: { name: true } } },
           },
           suggestion: true,
-          aiGenerations: {
-            where: {
-              feature: "COMMENT_RESPOND",
-              status: { in: ["PENDING", "FAILED"] },
-            },
-            orderBy: { startedAt: "desc" },
-            take: 1,
-            select: {
-              status: true,
-              startedAt: true,
-            },
-          },
         },
       },
     },
@@ -84,34 +74,36 @@ export default async function EditDocumentPage({ params, searchParams }: Props) 
     userId: session.user.id,
     collaboratorPermission,
   });
-  const initialCommentProgress = Object.fromEntries(
-    document.comments.flatMap(({ id: commentId, aiGenerations }) => {
-      const progress = aiGenerations[0];
-      return progress
-        ? [
-            [
-              commentId,
-              {
-                status: progress.status,
-                startedAt: progress.startedAt.toISOString(),
-              },
-            ],
-          ]
-        : [];
-    }),
+  const initialCommentProgress: Record<string, CommentAiProgress> =
+    Object.fromEntries(
+      document.comments.flatMap((comment) => {
+        const isActive = isCommentAiJobActive(comment);
+        return isActive || comment.aiStatus === "FAILED"
+          ? [
+              [
+                comment.id,
+                {
+                  status: isActive ? "PENDING" : "FAILED",
+                  startedAt: comment.aiStartedAt?.toISOString() ?? null,
+                },
+              ],
+            ]
+          : [];
+      }),
+    );
+  const initialDocumentAiLocked = document.comments.some(
+    (comment) =>
+      comment.scope === "DOCUMENT" && isCommentAiJobActive(comment),
   );
-  const comments = document.comments.map(({ aiGenerations, ...comment }) => {
-    void aiGenerations;
-    return comment;
-  });
 
   return (
     <TiptapEditor
       documentId={document.id}
       initialTitle={document.title}
       initialContent={content}
-      initialComments={comments}
+      initialComments={document.comments}
       initialCommentProgress={initialCommentProgress}
+      initialDocumentAiLocked={initialDocumentAiLocked}
       initialShareToken={document.shareToken}
       initialCollaborators={
         accessPermission === "FULL" ? document.collaborators : []

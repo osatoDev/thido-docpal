@@ -24,6 +24,7 @@ type Props = {
   initialContent: JSONContent | null;
   initialComments: CommentWithReplies[];
   initialCommentProgress: Record<string, CommentAiProgress>;
+  initialDocumentAiLocked: boolean;
   initialShareToken: string | null;
   initialCollaborators: CollaboratorSummary[];
   accessPermission: CollaboratorPermission;
@@ -51,6 +52,7 @@ export function TiptapEditor({
   initialContent,
   initialComments,
   initialCommentProgress,
+  initialDocumentAiLocked,
   initialShareToken,
   initialCollaborators,
   accessPermission,
@@ -75,14 +77,27 @@ export function TiptapEditor({
   const [commentProgress, setCommentProgress] = useState<
     Record<string, CommentAiProgress>
   >(initialCommentProgress);
+  const [documentAiLocked, setDocumentAiLocked] = useState(
+    initialDocumentAiLocked,
+  );
   const [commentError, setCommentError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
+  const documentAiLockedRef = useRef(initialDocumentAiLocked);
+  const canEditNow = canEdit && !documentAiLocked;
+  const canCommentNow = canComment && !documentAiLocked;
+  const updateDocumentAiLock = useCallback((locked: boolean) => {
+    documentAiLockedRef.current = locked;
+    setDocumentAiLocked(locked);
+    if (locked) {
+      setActiveComposer(null);
+    }
+  }, []);
 
   const editor = useEditor({
     extensions: getEditorExtensions(),
     content: initialContent ?? "",
-    editable: canEdit,
+    editable: canEditNow,
     immediatelyRender: false,
     editorProps: {
       attributes: {
@@ -91,7 +106,7 @@ export function TiptapEditor({
       },
     },
     onUpdate: ({ editor }) => {
-      if (canEdit || canComment) {
+      if (!documentAiLockedRef.current && (canEdit || canComment)) {
         scheduleSave({ content: editor.getJSON() });
       }
     },
@@ -110,7 +125,12 @@ export function TiptapEditor({
     editorRef.current = editor;
   }, [editor]);
 
+  useEffect(() => {
+    editor?.setEditable(canEditNow);
+  }, [canEditNow, editor]);
+
   function scheduleSave(next: { title?: string; content?: JSONContent }) {
+    if (documentAiLockedRef.current) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     setSaveState("saving");
     debounceRef.current = setTimeout(async () => {
@@ -121,6 +141,18 @@ export function TiptapEditor({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(next),
         });
+        if (res.status === 409) {
+          const errorBody = await res.json().catch(() => null);
+          if (errorBody?.documentAiLocked === true) {
+            updateDocumentAiLock(true);
+            setCommentError(
+              typeof errorBody.error === "string"
+                ? errorBody.error
+                : "Thido is working across the whole document.",
+            );
+            void pollForDocumentUnlock();
+          }
+        }
         setSaveState(res.ok ? "saved" : "error");
       } catch {
         setSaveState("error");
@@ -129,7 +161,7 @@ export function TiptapEditor({
   }
 
   function startComment() {
-    if (!editor) return;
+    if (!editor || documentAiLockedRef.current) return;
     const { from, to } = editor.state.selection;
     if (from === to) return;
 
@@ -161,6 +193,7 @@ export function TiptapEditor({
   }
 
   function startDocumentComment() {
+    if (documentAiLockedRef.current) return;
     if (editor && activeComposer?.scope === "SELECTION") {
       editor
         .chain()
@@ -187,7 +220,7 @@ export function TiptapEditor({
   }
 
   function submitComment(body: string) {
-    if (!activeComposer) return;
+    if (!activeComposer || documentAiLockedRef.current) return;
     let composer: ActiveComposer = activeComposer;
     if (
       activeComposer.scope === "SELECTION" &&
@@ -259,8 +292,10 @@ export function TiptapEditor({
   async function persistComment(composer: ActiveComposer, body: string) {
     const waitForAi =
       composer.scope === "DOCUMENT" || isDocumentWideCommentRequest(body);
+    let existingDocumentLock = false;
     if (waitForAi) {
       setForegroundCommentCount((count) => count + 1);
+      updateDocumentAiLock(true);
     }
 
     try {
@@ -280,10 +315,18 @@ export function TiptapEditor({
       });
       setSaveState(saveResponse.ok ? "saved" : "error");
       if (!saveResponse.ok) {
+        const errorBody = await saveResponse.json().catch(() => null);
+        if (errorBody?.documentAiLocked === true) {
+          existingDocumentLock = true;
+          updateDocumentAiLock(true);
+          void pollForDocumentUnlock();
+        }
         throw new Error(
-          composer.scope === "DOCUMENT"
-            ? "Could not save the document before commenting"
-            : "Could not save the comment highlight",
+          typeof errorBody?.error === "string"
+            ? errorBody.error
+            : composer.scope === "DOCUMENT"
+              ? "Could not save the document before commenting"
+              : "Could not save the comment highlight",
         );
       }
 
@@ -303,7 +346,19 @@ export function TiptapEditor({
           body,
         }),
       });
-      if (!res.ok) throw new Error("Could not create comment");
+      if (!res.ok) {
+        const errorBody = await res.json().catch(() => null);
+        if (errorBody?.documentAiLocked === true) {
+          existingDocumentLock = true;
+          updateDocumentAiLock(true);
+          void pollForDocumentUnlock();
+        }
+        throw new Error(
+          typeof errorBody?.error === "string"
+            ? errorBody.error
+            : "Could not create comment",
+        );
+      }
       const data = await res.json();
       const savedComment: CommentWithReplies = {
         ...data.comment,
@@ -330,19 +385,26 @@ export function TiptapEditor({
       if (data.documentContent && editor) {
         editor.commands.setContent(data.documentContent);
       }
-    } catch {
+    } catch (error) {
       if (!mountedRef.current) return;
       setSaveState("error");
-      setCommentError("The comment could not be saved. You can keep editing and try again.");
+      setCommentError(
+        error instanceof Error
+          ? error.message
+          : "The comment could not be saved. You can keep editing and try again.",
+      );
     } finally {
       if (waitForAi && mountedRef.current) {
         setForegroundCommentCount((count) => Math.max(0, count - 1));
+        if (!existingDocumentLock) {
+          updateDocumentAiLock(false);
+        }
       }
     }
   }
 
   const pollForAiResponse = useCallback(async (commentId: string) => {
-    for (let attempt = 0; attempt < 120; attempt += 1) {
+    for (let attempt = 0; attempt < 480; attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, 1250));
       if (!mountedRef.current) return;
 
@@ -359,6 +421,7 @@ export function TiptapEditor({
           | undefined;
 
         setComments(refreshed);
+        updateDocumentAiLock(data.documentAiLocked === true);
         if (progress) {
           setCommentProgress((previous) => ({
             ...previous,
@@ -406,7 +469,49 @@ export function TiptapEditor({
 
     // Keep the accurate processing state if the response is unusually slow.
     // A later page load will include the completed server-side response.
-  }, [documentId]);
+  }, [documentId, updateDocumentAiLock]);
+
+  const pollForDocumentUnlock = useCallback(async () => {
+    for (let attempt = 0; attempt < 480; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 1250));
+      if (!mountedRef.current) return;
+
+      try {
+        const response = await fetch(
+          `/api/documents/${documentId}/comments`,
+          { cache: "no-store" },
+        );
+        if (!response.ok) continue;
+        const data = await response.json();
+        const locked = data.documentAiLocked === true;
+        const progress =
+          (data.aiProgress as Record<string, CommentAiProgress> | undefined) ??
+          {};
+
+        setComments(data.comments as CommentWithReplies[]);
+        setCommentProgress(progress);
+        setPendingCommentIds(
+          new Set(
+            Object.entries(progress).flatMap(([commentId, item]) =>
+              item.status === "PENDING" ? [commentId] : [],
+            ),
+          ),
+        );
+        updateDocumentAiLock(locked);
+
+        if (!locked) {
+          if (data.documentContent && editorRef.current) {
+            editorRef.current.commands.setContent(data.documentContent, {
+              emitUpdate: false,
+            });
+          }
+          return;
+        }
+      } catch {
+        // The next polling attempt can recover from a transient refresh error.
+      }
+    }
+  }, [documentId, updateDocumentAiLock]);
 
   useEffect(() => {
     for (const [commentId, progress] of Object.entries(
@@ -466,22 +571,28 @@ export function TiptapEditor({
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
           <input
             value={title}
-            readOnly={!canEdit}
+            readOnly={!canEditNow}
             onChange={(e) => {
-              if (!canEdit) return;
+              if (!canEditNow) return;
               setTitle(e.target.value);
               scheduleSave({ title: e.target.value });
             }}
             aria-label="Document title"
             className={`editor-title w-full border-none bg-transparent font-serif text-3xl font-normal tracking-[-0.035em] outline-none sm:text-4xl ${
-              canEdit ? "" : "cursor-default"
+              canEditNow ? "" : "cursor-default"
             }`}
           />
           <div className="flex shrink-0 items-center gap-3">
             <span className="text-xs text-[var(--muted-soft)]">
-              {saveState === "saving" && "Saving…"}
-              {saveState === "saved" && "Saved"}
-              {saveState === "error" && "Save failed"}
+              {documentAiLocked
+                ? "Thido is revising…"
+                : saveState === "saving"
+                  ? "Saving…"
+                  : saveState === "saved"
+                    ? "Saved"
+                    : saveState === "error"
+                      ? "Save failed"
+                      : null}
             </span>
             {!canEdit && (
               <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)]">
@@ -514,9 +625,12 @@ export function TiptapEditor({
           </div>
         )}
 
-        <div className="app-panel mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-hidden rounded-sm">
-          {canEdit && <Toolbar editor={editor} />}
-          {editor && canComment && (
+        <div
+          className="app-panel mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-hidden rounded-sm"
+          aria-busy={documentAiLocked}
+        >
+          {canEditNow && <Toolbar editor={editor} />}
+          {editor && canCommentNow && (
             <BubbleMenu editor={editor}>
               <div className="app-panel flex items-center gap-1 rounded-sm p-1">
                 <button
@@ -536,7 +650,7 @@ export function TiptapEditor({
       </div>
 
       <div className="flex min-h-72 w-full shrink-0 flex-col border-t border-[var(--border)] lg:min-h-0 lg:w-80 lg:border-t-0">
-        {activeComposer && (
+        {activeComposer && !documentAiLocked && (
           <div className="border-b border-[var(--border)] bg-[var(--surface)] p-4">
             <CommentComposer
               key={activeComposer.scope}
@@ -559,10 +673,11 @@ export function TiptapEditor({
           pendingCommentIds={pendingCommentIds}
           commentProgress={commentProgress}
           foregroundCommentCount={foregroundCommentCount}
+          documentAiLocked={documentAiLocked}
           onStartDocumentComment={startDocumentComment}
           documentComposerOpen={activeComposer?.scope === "DOCUMENT"}
-          canCreateComments={canComment && !!editor}
-          canManageComments={canEdit}
+          canCreateComments={canCommentNow && !!editor}
+          canManageComments={canEditNow}
         />
       </div>
     </div>

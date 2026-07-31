@@ -25,6 +25,14 @@ import { markdownToTiptapJSON } from "@/lib/markdownToTiptap";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { unauthorizedResponse } from "@/lib/apiResponses";
 import { getEditorExtensions } from "@/lib/editorExtensions";
+import {
+  COMMENT_AI_BUSY_MESSAGE,
+  DOCUMENT_AI_LOCK_MESSAGE,
+  expireStaleCommentAiJobs,
+  hasActiveCommentAiJob,
+  isCommentAiJobActive,
+  lockDocumentForCommentAi,
+} from "@/lib/documentAiJobs";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -56,18 +64,6 @@ export async function GET(_request: Request, { params }: Params) {
             include: { author: { select: { name: true } } },
           },
           suggestion: true,
-          aiGenerations: {
-            where: {
-              feature: "COMMENT_RESPOND",
-              status: { in: ["PENDING", "FAILED"] },
-            },
-            orderBy: { startedAt: "desc" },
-            take: 1,
-            select: {
-              status: true,
-              startedAt: true,
-            },
-          },
         },
       },
     },
@@ -76,32 +72,34 @@ export async function GET(_request: Request, { params }: Params) {
   if (!document) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  await expireStaleCommentAiJobs(prisma, documentId);
 
   const aiProgress = Object.fromEntries(
-    document.comments.flatMap(({ id, aiGenerations }) => {
-      const progress = aiGenerations[0];
-      return progress
+    document.comments.flatMap((comment) => {
+      const isActive = isCommentAiJobActive(comment);
+      return comment.aiStatus === "PENDING" || comment.aiStatus === "FAILED"
         ? [
             [
-              id,
+              comment.id,
               {
-                status: progress.status,
-                startedAt: progress.startedAt.toISOString(),
+                status: isActive ? "PENDING" : "FAILED",
+                startedAt: comment.aiStartedAt?.toISOString() ?? null,
               },
             ],
           ]
         : [];
     }),
   );
-  const comments = document.comments.map(({ aiGenerations, ...comment }) => {
-    void aiGenerations;
-    return comment;
-  });
+  const documentAiLocked = document.comments.some(
+    (comment) =>
+      comment.scope === "DOCUMENT" && isCommentAiJobActive(comment),
+  );
 
   return NextResponse.json({
-    comments,
+    comments: document.comments,
     aiProgress,
     documentContent: document.content,
+    documentAiLocked,
   });
 }
 
@@ -153,18 +151,69 @@ export async function POST(request: Request, { params }: Params) {
 
   const waitForAi =
     scope === "DOCUMENT" || isDocumentWideCommentRequest(commentBody);
-  const comment = await prisma.comment.create({
-    data: {
+  const aiStartedAt = new Date();
+  const admission = await prisma.$transaction(async (transaction) => {
+    const documentExists = await lockDocumentForCommentAi(
+      transaction,
       documentId,
-      authorId: userId,
-      authorType: "USER",
-      scope,
-      anchorMarkId,
-      quotedText,
-      body: commentBody,
-    },
-    include: { author: { select: { name: true } } },
+    );
+    if (!documentExists) return { kind: "missing" as const };
+
+    await expireStaleCommentAiJobs(transaction, documentId, aiStartedAt);
+    const conflictingJob = await hasActiveCommentAiJob(
+      transaction,
+      documentId,
+      {
+        documentWideOnly: scope !== "DOCUMENT",
+        now: aiStartedAt,
+      },
+    );
+    if (conflictingJob) {
+      const documentAiLocked = await hasActiveCommentAiJob(
+        transaction,
+        documentId,
+        {
+          documentWideOnly: true,
+          now: aiStartedAt,
+        },
+      );
+      return {
+        kind: "locked" as const,
+        documentAiLocked,
+      };
+    }
+
+    const comment = await transaction.comment.create({
+      data: {
+        documentId,
+        authorId: userId,
+        authorType: "USER",
+        scope,
+        anchorMarkId,
+        quotedText,
+        body: commentBody,
+        aiStatus: "PENDING",
+        aiStartedAt,
+      },
+      include: { author: { select: { name: true } } },
+    });
+    return { kind: "created" as const, comment };
   });
+  if (admission.kind === "missing") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (admission.kind === "locked") {
+    return NextResponse.json(
+      {
+        error: admission.documentAiLocked
+          ? DOCUMENT_AI_LOCK_MESSAGE
+          : COMMENT_AI_BUSY_MESSAGE,
+        documentAiLocked: admission.documentAiLocked,
+      },
+      { status: 409 },
+    );
+  }
+  const comment = admission.comment;
 
   async function respondToComment() {
     try {
@@ -185,6 +234,7 @@ export async function POST(request: Request, { params }: Params) {
         allowAutoApply: !!editAccess,
       });
     } catch (error) {
+      await finishCommentAiJob(comment.id, "FAILED");
       console.error("Could not prepare the AI comment response", error);
       return false;
     }
@@ -427,12 +477,27 @@ async function generateAiResponse({
       }
     }
     await telemetry.succeed(message);
+    await finishCommentAiJob(commentId, "SUCCEEDED");
     return true;
   } catch (error) {
     await telemetry?.fail(error, trackedMessage);
+    await finishCommentAiJob(commentId, "FAILED");
     console.error("AI comment response failed", error);
     return false;
   }
+}
+
+async function finishCommentAiJob(
+  commentId: string,
+  status: "SUCCEEDED" | "FAILED",
+) {
+  await prisma.comment.updateMany({
+    where: { id: commentId, aiStatus: "PENDING" },
+    data: {
+      aiStatus: status,
+      aiCompletedAt: new Date(),
+    },
+  });
 }
 
 async function applyDocumentReplacementWithoutClobbering({
