@@ -35,7 +35,7 @@ This is the running source of truth for production-readiness work. Completed box
   - [x] `AUTH_EMAIL_FROM`
   - [x] `ANTHROPIC_API_KEY`
   - [x] `ADMIN_EMAILS` (`osato@thido.ai` in Production, Preview, and Development)
-  - [x] `FEEDBACK_NOTIFICATION_EMAILS` (`osato@thido.ai` in Production, Preview, and Development)
+  - [x] `FEEDBACK_NOTIFICATION_EMAILS` (`osato@thido.ai` and `osatog1@gmail.com` in Production, Preview, and Development)
   - [x] `STRIPE_SECRET_KEY` (sandbox credentials provisioned by the Vercel Marketplace integration)
   - [ ] `STRIPE_PRO_PRICE_ID` (leave absent while paid checkout should remain hidden)
   - [ ] `STRIPE_WEBHOOK_SECRET`
