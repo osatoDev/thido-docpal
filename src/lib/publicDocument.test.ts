@@ -7,7 +7,7 @@ import {
 } from "@/lib/publicDocument";
 
 describe("public document content", () => {
-  it("removes comment anchors without changing visible text or other marks", () => {
+  it("removes comment anchors without changing visible text or other marks.", () => {
     const content: JSONContent = {
       type: "doc",
       content: [
