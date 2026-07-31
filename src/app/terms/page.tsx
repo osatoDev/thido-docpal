@@ -53,9 +53,18 @@ export default function TermsPage() {
           your use.
         </p>
         <p>
-          Unless a paid plan is clearly offered and accepted by you, access to
-          Thido does not create an obligation to pay. Any future fees, renewal
-          terms, and cancellation rights will be shown before purchase.
+          Beta access is free and does not require a payment card. Unless a paid
+          plan is clearly offered and accepted by you, access to Thido does not
+          create an obligation to pay.
+        </p>
+        <p>
+          If you choose a paid subscription, its price, currency, billing
+          interval, included features, taxes, and any trial will be shown before
+          checkout. Subscriptions renew automatically for the displayed interval
+          until cancelled. You can manage or cancel a subscription through the
+          billing portal; cancellation normally takes effect at the end of the
+          current paid period unless the checkout terms or applicable law state
+          otherwise. Mandatory refund and cancellation rights continue to apply.
         </p>
       </section>
 
@@ -143,7 +152,7 @@ export default function TermsPage() {
         <h2>8. Third-party services</h2>
         <p>
           Thido depends on third parties for hosting, databases, authentication,
-          email delivery, analytics, and AI processing. Their services may
+          email delivery, payments, analytics, and AI processing. Their services may
           occasionally be unavailable or change. Our{" "}
           <a href="/privacy">Privacy Policy</a> describes the providers that may
           process personal data when you use Thido.

@@ -47,6 +47,7 @@ export default async function AdminPage() {
 
   const [
     users,
+    betaUsers,
     documents,
     comments,
     pendingSuggestions,
@@ -55,6 +56,7 @@ export default async function AdminPage() {
     aiOperations,
   ] = await Promise.all([
       prisma.user.count(),
+      prisma.user.count({ where: { betaSeat: { not: null } } }),
       prisma.document.count({ where: { isPlaceholder: false } }),
       prisma.comment.count(),
       prisma.suggestion.count({ where: { status: "PENDING" } }),
@@ -76,6 +78,7 @@ export default async function AdminPage() {
 
   const metrics = [
     { label: "Users", value: users },
+    { label: "Free beta seats", value: `${betaUsers} / 100` },
     { label: "Documents", value: documents },
     { label: "Comments", value: comments },
     { label: "Pending suggestions", value: pendingSuggestions },
@@ -86,6 +89,14 @@ export default async function AdminPage() {
     { label: "Authentication", ready: Boolean(process.env.AUTH_SECRET) },
     { label: "Google OAuth", ready: Boolean(process.env.GOOGLE_CLIENT_ID) },
     { label: "Anthropic", ready: Boolean(process.env.ANTHROPIC_API_KEY) },
+    {
+      label: "Stripe payments",
+      ready: Boolean(
+        process.env.STRIPE_SECRET_KEY &&
+          process.env.STRIPE_PRO_PRICE_ID &&
+          process.env.STRIPE_WEBHOOK_SECRET,
+      ),
+    },
     {
       label: "Vercel Analytics API",
       ready: Boolean(process.env.VERCEL_TOKEN && process.env.VERCEL_PROJECT_ID),
@@ -127,7 +138,7 @@ export default async function AdminPage() {
         </p>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Application totals">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5" aria-label="Application totals">
         {metrics.map((metric) => (
           <article key={metric.label} className="app-panel rounded-2xl p-5">
             <p className="text-sm font-medium text-[var(--muted)]">{metric.label}</p>

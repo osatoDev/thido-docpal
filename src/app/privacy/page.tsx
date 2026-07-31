@@ -12,7 +12,7 @@ export default function PrivacyPage() {
     <LegalDocument
       title="Privacy Policy"
       description="This Policy explains what information Thido handles, why we use it, which service providers help us operate the product, and the choices available to you."
-      effectiveDate="30 July 2026"
+      effectiveDate="31 July 2026"
     >
       <section>
         <h2>1. Who is responsible for your data</h2>
@@ -73,6 +73,16 @@ export default function PrivacyPage() {
           correspondence.
         </p>
 
+        <h3>Beta access and billing</h3>
+        <p>
+          We store your beta-place number and the date access was granted. If
+          you choose a paid plan, we store Stripe customer, subscription, price,
+          status, renewal, and cancellation identifiers needed to provide and
+          manage that plan. Payment details are collected by Stripe through its
+          hosted checkout and billing portal; Thido does not store your full
+          payment-card number.
+        </p>
+
         <h3>Usage and technical data</h3>
         <p>
           We receive technical information such as IP-derived location, browser,
@@ -90,6 +100,7 @@ export default function PrivacyPage() {
           <li>to save, display, edit, organise, and share your documents;</li>
           <li>to generate drafts, follow-up questions, comments, and revisions;</li>
           <li>to send verification, password-reset, invitation, and service messages;</li>
+          <li>to provide beta access and administer optional paid plans;</li>
           <li>to understand aggregate product usage and improve reliability;</li>
           <li>to prevent fraud, misuse, and security incidents; and</li>
           <li>to meet legal obligations and enforce our Terms.</li>
@@ -192,6 +203,18 @@ export default function PrivacyPage() {
               </tr>
               <tr>
                 <td>
+                  <a href="https://stripe.com/privacy" rel="noreferrer" target="_blank">
+                    Stripe
+                  </a>
+                </td>
+                <td>Hosted checkout, subscriptions, and billing management</td>
+                <td>
+                  Account and contact details, payment information, transaction
+                  details, and Thido billing identifiers
+                </td>
+              </tr>
+              <tr>
+                <td>
                   <a href="https://policies.google.com/privacy" rel="noreferrer" target="_blank">
                     Google
                   </a>
@@ -263,6 +286,8 @@ export default function PrivacyPage() {
           We generally retain account information and documents while your
           account is active or as needed to provide Thido. Verification links
           expire after 24 hours and password-reset links expire after one hour.
+          Billing and transaction records may be retained for the periods
+          required for accounting, tax, dispute, and legal obligations.
           We may retain limited records longer where reasonably necessary for
           security, dispute resolution, backup integrity, or legal compliance.
         </p>

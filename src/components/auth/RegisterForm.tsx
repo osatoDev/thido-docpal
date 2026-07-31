@@ -15,7 +15,13 @@ function FieldErrors({ errors }: { errors?: string[] }) {
   return <p className="text-xs text-[var(--danger)]">{errors[0]}</p>;
 }
 
-export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
+export function RegisterForm({
+  callbackUrl,
+  remainingSeats,
+}: {
+  callbackUrl: string;
+  remainingSeats: number;
+}) {
   const [state, formAction, pending] = useActionState(
     registerWithPassword,
     initialState,
@@ -83,12 +89,21 @@ export function RegisterForm({ callbackUrl }: { callbackUrl: string }) {
           {state.message}
         </p>
       )}
+      {remainingSeats === 0 && !state.message && (
+        <p role="status" className="text-sm text-[var(--muted)]">
+          The free beta is full. Existing members can still sign in.
+        </p>
+      )}
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || remainingSeats === 0}
         className="primary-button mt-1 rounded-xl px-4 py-3 text-sm font-semibold disabled:cursor-wait disabled:opacity-60"
       >
-        {pending ? "Creating account…" : "Create account"}
+        {pending
+          ? "Creating account…"
+          : remainingSeats === 0
+            ? "Beta full"
+            : "Claim free beta place"}
       </button>
       <p className="text-center text-xs leading-5 text-[var(--muted)]">
         By creating an account, you agree to the{" "}

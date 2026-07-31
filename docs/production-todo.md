@@ -6,7 +6,8 @@ This is the running source of truth for production-readiness work. Completed box
 
 ## Immediate deployment blockers
 
-- [ ] Accept the Stripe Marketplace terms in Vercel, install the Stripe integration on `thido-docpal`, and connect isolated sandbox resources to Production, Preview, and Development before implementing billing against provisioned credentials.
+- [x] Accept the Stripe Marketplace terms in Vercel, install the Stripe integration on `thido-docpal`, and connect the `stripe-cobalt-harbor` sandbox resource to Production, Preview, and Development.
+- [ ] Apply the `20260731160000_add_beta_access_and_billing` migration to the production database before deploying the 100-account gate or billing controls.
 - [ ] Apply the `20260731140000_add_comment_ai_job_state` migration to the production database before deploying whole-document AI locking.
 - [ ] Apply the `20260731120000_add_document_placeholder_state` migration to the production database before deploying placeholder document handling.
 - [ ] Apply the `20260731100000_add_document_comment_scope` migration to the production database before deploying first-class whole-document comments.
@@ -17,7 +18,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Apply the `20260722143000_add_guest_draft_id` migration to the production database before deploying the guest-first flow.
 - [x] Apply previously committed Prisma migrations through `20260722100000_add_auth_tokens` to the production database.
 - [x] Resolve or confirm the Prisma baseline for the existing production database before running `prisma migrate deploy` if it still reports `P3005`.
-- [ ] After applying pending migrations through `20260731140000_add_comment_ai_job_state`, verify `npx prisma migrate status` reports that the production schema is up to date.
+- [ ] After applying pending migrations through `20260731160000_add_beta_access_and_billing`, verify `npx prisma migrate status` reports that the production schema is up to date.
 - [ ] Configure `RESEND_API_KEY` in Vercel Production and Preview environments as appropriate.
 - [ ] Verify the sending domain in Resend and replace `onboarding@resend.dev` with a production `AUTH_EMAIL_FROM` address.
 - [ ] Send real verification and password-reset emails and confirm delivery, links, expiry, and single-use behavior against the production database.
@@ -32,6 +33,9 @@ This is the running source of truth for production-readiness work. Completed box
   - [ ] `AUTH_EMAIL_FROM`
   - [ ] `ANTHROPIC_API_KEY`
   - [ ] `ADMIN_EMAILS`
+  - [x] `STRIPE_SECRET_KEY` (sandbox credentials provisioned by the Vercel Marketplace integration)
+  - [ ] `STRIPE_PRO_PRICE_ID` (leave absent while paid checkout should remain hidden)
+  - [ ] `STRIPE_WEBHOOK_SECRET`
   - [x] `NEXT_PUBLIC_ROLLBAR_THIDO_DOCPAL_CLIENT_TOKEN_1785444690`
   - [x] `ROLLBAR_THIDO_DOCPAL_SERVER_TOKEN_1785444690`
 - [ ] Confirm `ENABLE_TEST_LOGIN` is absent from Production. The code disables it in production, but the environment should also be clean.
@@ -140,10 +144,14 @@ This is the running source of truth for production-readiness work. Completed box
 
 ## Beta access and billing
 
-- [ ] Enforce a race-safe limit of 100 free beta accounts across password registration and Google sign-in, with existing authorized accounts handled deliberately.
+- [x] Enforce a race-safe limit of 100 free beta accounts across password registration and Google sign-in, backfill existing accounts deterministically, show remaining places, and keep existing members able to sign in after the cap is reached.
 - [ ] Define what happens to registration after the beta reaches 100 accounts: waitlist, invite-only access, or closed registration.
 - [ ] Define paid plan pricing, currency, billing interval, entitlements, and launch timing before activating Stripe Checkout.
-- [ ] Implement Stripe subscription Checkout, signed webhook processing, idempotent subscription-state persistence, and Customer Portal access using the Vercel Marketplace integration.
+- [x] Implement authenticated Stripe subscription Checkout, signed webhook processing, idempotent subscription-state persistence, failure reporting, and Customer Portal access using the Vercel Marketplace integration; keep Checkout hidden until a Price is configured.
+- [ ] Claim and activate the currently sandbox-only Stripe account before accepting live payments.
+- [ ] Create the approved recurring Stripe product and Price, then configure `STRIPE_PRO_PRICE_ID` only when paid checkout should become visible.
+- [ ] Deploy `/api/webhooks/stripe`, subscribe it to Checkout completion and subscription lifecycle events, set `STRIPE_WEBHOOK_SECRET`, and configure the Customer Portal.
+- [ ] Define retention and cleanup for processed `StripeWebhookEvent` idempotency records.
 - [ ] Test Stripe sandbox checkout, renewal, failed payment, cancellation, webhook retries, and portal management without requiring free beta users to enter payment details.
 
 ## AI reliability and safety
@@ -165,8 +173,8 @@ This is the running source of truth for production-readiness work. Completed box
 ## Testing and continuous integration
 
 - [x] Add automated unit tests for authentication input, password hashing, token helpers, rate limiting, and API auth responses.
-- [x] Confirm the current unit suite passes: 57 tests across eighteen files.
-- [x] Confirm lint and the production build pass after the authentication upgrade.
+- [x] Confirm the current unit suite passes: 59 tests across nineteen files.
+- [x] Confirm type checking, lint, Prisma validation, and the production build pass after the beta-access and Stripe foundation.
 - [ ] Add a normal CI workflow that runs `npm ci`, `npm test`, `npm run lint`, and `npm run build` for pull requests and `main`.
 - [ ] Add database integration tests for issuing and consuming verification and reset tokens transactionally.
 - [ ] Add browser tests for registration, email verification, password reset, Google login, sign-out, stale sessions, and admin authorization.
@@ -201,6 +209,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Upgrade Next.js from 16.2.10 to a patched 16.2.12 or newer compatible release and verify the current `sharp` and `postcss` advisories are resolved.
 - [ ] Upgrade `next-auth` and `@auth/prisma-adapter` to releases containing the July 2026 Auth.js authorization, token-validation, email-normalization, and OAuth-cookie fixes, then rerun the authentication test matrix.
 - [ ] Add Dependabot or Renovate for dependency update pull requests.
+- [ ] Audit the 15 vulnerabilities currently reported by `npm install` (13 high and 2 critical), identify which are production-reachable, and upgrade affected dependencies without using a blind force-fix.
 - [ ] Add a Content Security Policy and review other security headers.
 - [ ] Confirm secrets are only stored in Vercel/GitHub secret stores and never committed.
 - [ ] Rotate any secret that may have appeared in terminal output, screenshots, chat, or repository history.
@@ -225,6 +234,7 @@ This is the running source of truth for production-readiness work. Completed box
 
 - [x] Publish Terms of Service and a Privacy Policy at `/terms` and `/privacy`.
 - [x] State how documents, prompts, account data, analytics, and AI-provider processing are handled.
+- [x] Disclose Stripe-hosted billing, the billing identifiers Thido stores, and that Thido does not store full card numbers.
 - [x] Enrich the first-time document-start page with a returning-user header action, a dropdown of more than ten document starters that replace the current outline, guest-flow reassurance, and a concise explanation of what happens after submission.
 - [x] Default first-time visitors to light mode while retaining an explicit light or dark preference across visits.
 - [x] Make guided brief and follow-up fields optional, clearly identify that Thido can infer omitted details, and require only one initial piece of direction before generation.
@@ -247,6 +257,8 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Create a document share link, open it while signed out, revoke it, and confirm the old link no longer works.
 - [ ] Invite fresh accounts with view, comment, edit, and full access; confirm delivery and verify each account can perform only its allowed operations.
 - [ ] Verify AI failures produce understandable recovery states.
+- [ ] Verify a free beta registration never requests a card and account 101 is rejected across password and Google registration without affecting existing users.
+- [ ] If paid plans are activated, complete a Stripe sandbox checkout, portal cancellation, failed-payment update, and duplicate-webhook test before switching to live credentials.
 - [ ] Verify analytics events appear without exposing document content or secrets.
 - [ ] Test the application on current mobile and desktop browsers.
 - [ ] Confirm backups, monitoring, alerts, support contact, and rollback ownership before announcing launch.

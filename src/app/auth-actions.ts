@@ -17,6 +17,10 @@ import { checkRateLimit } from "@/lib/rateLimit";
 import { reportServerError } from "@/lib/rollbar/server";
 import { issueAuthToken } from "@/lib/authTokenStore";
 import { sendVerificationEmail } from "@/lib/email";
+import {
+  BetaCapacityReachedError,
+  createBetaUser,
+} from "@/lib/betaAccess";
 
 export type AuthActionState = {
   message?: string;
@@ -30,6 +34,8 @@ export type AuthActionState = {
 const GENERIC_LOGIN_ERROR = "The email or password is incorrect.";
 const GENERIC_REGISTRATION_ERROR =
   "We couldn't create that account. Try signing in or use another email.";
+const BETA_FULL_ERROR =
+  "The first 100 free beta places have been claimed. Existing members can still sign in.";
 
 async function clientAddress(): Promise<string> {
   const requestHeaders = await headers();
@@ -116,17 +122,16 @@ export async function registerWithPassword(
 
     if (existingUser) return { message: GENERIC_REGISTRATION_ERROR };
 
-    user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        passwordHash,
-        settings: { create: {} },
-      },
-      select: { id: true, email: true },
+    user = await createBetaUser({
+      name,
+      email,
+      passwordHash,
+      settings: { create: {} },
     });
-
-  } catch {
+  } catch (error) {
+    if (error instanceof BetaCapacityReachedError) {
+      return { message: BETA_FULL_ERROR };
+    }
     // Includes the unique-index race if two registrations arrive together.
     return { message: GENERIC_REGISTRATION_ERROR };
   }

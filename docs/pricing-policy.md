@@ -56,9 +56,12 @@ To keep billing legible, define it narrowly and document it in-product:
 
 This definition should live next to the quota-enforcement code once built, so the billed unit and the enforced unit cannot drift apart.
 
-## Open questions to resolve before implementation
+## Open questions to resolve before paid launch
 
-- Billing provider: Stripe is the default assumption (subscriptions + metered usage records) but is not yet integrated anywhere in this repo — confirm before building.
+- Stripe is now integrated for hosted subscription Checkout, signed webhooks,
+  subscription-state persistence, and the Customer Portal. A product and Price
+  are intentionally not configured until the commercial decisions below are
+  approved.
 - Annual vs. monthly billing and any discount.
 - Whether unused monthly AI actions roll over or expire.
 - Grandfathering behavior for any existing accounts created before pricing launches.
@@ -67,11 +70,11 @@ This definition should live next to the quota-enforcement code once built, so th
 
 ## Relationship to existing production-readiness work
 
-This proposal does not implement:
+The current implementation does not yet provide:
 
-- Stripe or any billing integration,
 - per-plan quota enforcement (currently only best-effort, non-plan-aware rate limiting exists),
 - the admin visibility needed to see usage-by-plan, or
-- Terms of Service language reflecting paid plans (`src/app/terms/page.tsx` currently only states "unless a paid plan is clearly offered and accepted").
+- an approved production Price and entitlement definition.
 
-Once a pricing structure is approved, add corresponding checklist items to `docs/production-todo.md` under a new "Billing and pricing" section covering Stripe integration, plan-aware quota enforcement, invoicing, and Terms of Service updates.
+The remaining launch decisions and external configuration are tracked in
+`docs/production-todo.md` under "Beta access and billing."

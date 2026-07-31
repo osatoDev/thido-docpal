@@ -2,8 +2,13 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import type { AdapterUser } from "@auth/core/adapters";
 
 import { loginSchema } from "@/lib/authInput";
+import {
+  createBetaUser,
+  hasBetaCapacity,
+} from "@/lib/betaAccess";
 import { verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
@@ -15,8 +20,16 @@ export const isTestLoginEnabled =
   process.env.NODE_ENV !== "production" &&
   process.env.ENABLE_TEST_LOGIN === "true";
 
+const adapter = PrismaAdapter(prisma);
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  adapter: {
+    ...adapter,
+    async createUser(user) {
+      const created = await createBetaUser(user);
+      return created as AdapterUser;
+    },
+  },
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -59,7 +72,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           user?.passwordHash,
         );
 
-        if (!user || !passwordMatches || !user.emailVerified) return null;
+        if (
+          !user ||
+          !passwordMatches ||
+          !user.emailVerified ||
+          user.betaSeat === null
+        ) {
+          return null;
+        }
 
         return {
           id: user.id,
@@ -91,11 +111,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                   ? credentials.name.trim()
                   : email;
 
-              const user = await prisma.user.upsert({
+              const existingUser = await prisma.user.findUnique({
                 where: { email },
-                update: {},
-                create: { email, name },
               });
+              const user =
+                existingUser ?? (await createBetaUser({ email, name }));
+              if (user.betaSeat === null) return null;
 
               await prisma.userSettings.upsert({
                 where: { userId: user.id },
@@ -116,14 +137,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/login",
   },
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider !== "google") return true;
+      if (!user.email) return false;
+
+      const existingUser = await prisma.user.findFirst({
+        where: { email: { equals: user.email, mode: "insensitive" } },
+        select: { betaSeat: true },
+      });
+      return existingUser
+        ? existingUser.betaSeat !== null
+        : hasBetaCapacity();
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
         const authenticatedUser = await prisma.user.findUnique({
           where: { id: user.id },
-          select: { sessionVersion: true },
+          select: { sessionVersion: true, betaSeat: true },
         });
-        if (!authenticatedUser) return null;
+        if (!authenticatedUser || authenticatedUser.betaSeat === null) {
+          return null;
+        }
         token.sessionVersion = authenticatedUser.sessionVersion;
         return token;
       }
@@ -140,11 +175,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       try {
         const existingUser = await prisma.user.findUnique({
           where: { id: userId },
-          select: { id: true, sessionVersion: true },
+          select: { id: true, sessionVersion: true, betaSeat: true },
         });
 
         if (
           !existingUser ||
+          existingUser.betaSeat === null ||
           existingUser.sessionVersion !== token.sessionVersion
         ) {
           return null;

@@ -10,6 +10,7 @@ export default async function LoginPage({
   searchParams: Promise<{
     callbackUrl?: string | string[];
     notice?: string | string[];
+    error?: string | string[];
   }>;
 }) {
   const params = await searchParams;
@@ -17,8 +18,11 @@ export default async function LoginPage({
     Array.isArray(params.callbackUrl) ? params.callbackUrl[0] : params.callbackUrl,
   );
   const notice = Array.isArray(params.notice) ? params.notice[0] : params.notice;
+  const authError = Array.isArray(params.error) ? params.error[0] : params.error;
   const noticeMessage =
-    notice === "draft-ready"
+    authError === "AccessDenied"
+      ? "The first 100 free beta places have been claimed. Existing members can still sign in."
+      : notice === "draft-ready"
       ? "Your document brief is ready. Sign in to generate it and save it to your account."
       : notice === "session-expired"
       ? "Your previous session is no longer valid. Please sign in again."

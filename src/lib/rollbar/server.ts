@@ -36,6 +36,8 @@ export type ServerErrorContext = {
   model?: string;
   generationId?: string;
   providerRequestId?: string | null;
+  eventId?: string;
+  eventType?: string;
   errorCode?: string | null;
   status?: number;
 };

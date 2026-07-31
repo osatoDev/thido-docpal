@@ -10,6 +10,7 @@ edits the document directly, based on your settings.
 - Next.js (App Router) + TypeScript + Tailwind CSS
 - PostgreSQL + Prisma
 - Auth.js v5 (Google OAuth and email/password) + `@auth/prisma-adapter`
+- Stripe hosted Checkout and Customer Portal through the Vercel Marketplace
 - Tiptap (ProseMirror) for the rich text editor, with a custom `CommentMark`
   extension for anchoring comments to text spans
 - `@anthropic-ai/sdk` (Claude, model `claude-opus-4-8`) for the prompt
@@ -45,6 +46,9 @@ Copy `.env.example` to `.env` and fill in:
 | `RESEND_API_KEY` | Resend API key used for verification and password-reset emails |
 | `AUTH_EMAIL_FROM` | Verified Resend sender, for example `Thido <auth@thido.ai>` |
 | `ANTHROPIC_API_KEY` | [Anthropic Console](https://console.anthropic.com/settings/keys) |
+| `STRIPE_SECRET_KEY` | Provisioned by the Stripe integration in the Vercel Marketplace |
+| `STRIPE_PRO_PRICE_ID` | Recurring Stripe Price ID for the paid plan; omit it while paid checkout should remain hidden |
+| `STRIPE_WEBHOOK_SECRET` | Signing secret for the deployed `/api/webhooks/stripe` endpoint |
 
 Without `ANTHROPIC_API_KEY`, everything works except the AI-dependent steps
 (follow-up question generation, document generation, and the AI half of
@@ -78,7 +82,10 @@ Open [http://localhost:3000](http://localhost:3000).
    variables.
 3. Set `AUTH_SECRET`, `NEXTAUTH_URL` (your production URL),
    `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`,
-   `AUTH_EMAIL_FROM`, and `ANTHROPIC_API_KEY`.
+   `AUTH_EMAIL_FROM`, and `ANTHROPIC_API_KEY`. Install Stripe from the Vercel
+   Marketplace for its API keys. Paid checkout remains hidden until
+   `STRIPE_PRO_PRICE_ID` is set; webhook processing additionally requires
+   `STRIPE_WEBHOOK_SECRET`.
 4. Add your production callback URL
    (`https://<your-domain>/api/auth/callback/google`) to the Google OAuth
    client's authorized redirect URIs.
@@ -109,5 +116,15 @@ migrations and configure Resend before using these flows in production.
 
 Authentication documentation is in `docs/authjs.md`, `docs/sign-out.md`,
 `docs/rate-limiting.md`, and `docs/account-linking.md`.
+
+### Beta access and billing
+
+Registration is limited transactionally to 100 free beta accounts across
+password and Google sign-in. Existing accounts receive the first beta places
+when the billing migration is applied, and deleting an account makes its place
+available again. Free beta access never requires a card.
+
+Stripe setup, webhook events, and sandbox verification are documented in
+`docs/billing.md`.
 
 The running production-readiness checklist is in `docs/production-todo.md`.

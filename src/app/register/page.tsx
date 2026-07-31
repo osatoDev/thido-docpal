@@ -3,13 +3,17 @@ import Link from "next/link";
 import { Brand } from "@/components/Brand";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import { safeRedirectPath } from "@/lib/authInput";
+import { remainingBetaSeats } from "@/lib/betaAccess";
 
 export default async function RegisterPage({
   searchParams,
 }: {
   searchParams: Promise<{ callbackUrl?: string | string[] }>;
 }) {
-  const params = await searchParams;
+  const [params, seatsRemaining] = await Promise.all([
+    searchParams,
+    remainingBetaSeats(),
+  ]);
   const callbackUrl = safeRedirectPath(
     Array.isArray(params.callbackUrl) ? params.callbackUrl[0] : params.callbackUrl,
   );
@@ -24,11 +28,14 @@ export default async function RegisterPage({
             Start writing with Thido.
           </h1>
           <p className="max-w-sm text-sm leading-6 text-[var(--muted)]">
-            Use an email and password. You can still sign in with Google from
-            the login page.
+            Join the free beta—no card required. {seatsRemaining} of 100 places
+            remain.
           </p>
         </div>
-        <RegisterForm callbackUrl={callbackUrl} />
+        <RegisterForm
+          callbackUrl={callbackUrl}
+          remainingSeats={seatsRemaining}
+        />
         <p className="text-center text-sm text-[var(--muted)]">
           Already have an account?{" "}
           <Link

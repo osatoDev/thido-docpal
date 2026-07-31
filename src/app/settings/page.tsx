@@ -5,18 +5,43 @@ import { prisma } from "@/lib/prisma";
 import { isAiModelId, DEFAULT_AI_MODEL } from "@/lib/ai/models";
 import { Brand } from "@/components/Brand";
 import { SettingsForm } from "@/components/settings/SettingsForm";
+import { BillingPanel } from "@/components/settings/BillingPanel";
+import { getBillingOffer } from "@/lib/billing";
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ billing?: string | string[] }>;
+}) {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login?notice=sign-in-required&callbackUrl=/settings");
   }
 
-  const settings = await prisma.userSettings.upsert({
-    where: { userId: session.user.id },
-    update: {},
-    create: { userId: session.user.id },
-  });
+  const [settings, user, billingOffer, query] = await Promise.all([
+    prisma.userSettings.upsert({
+      where: { userId: session.user.id },
+      update: {},
+      create: { userId: session.user.id },
+    }),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        betaSeat: true,
+        stripeSubscriptionStatus: true,
+        stripeCurrentPeriodEnd: true,
+        stripeCancelAtPeriodEnd: true,
+      },
+    }),
+    getBillingOffer(),
+    searchParams,
+  ]);
+  if (!user?.betaSeat) {
+    redirect("/login?notice=session-expired");
+  }
+  const billingNotice = Array.isArray(query.billing)
+    ? query.billing[0]
+    : query.billing;
 
   return (
     <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col gap-12 px-5 py-6 sm:px-6 sm:py-10 lg:px-8">
@@ -43,6 +68,14 @@ export default async function SettingsPage() {
       <SettingsForm
         initialAiModel={isAiModelId(settings.aiModel) ? settings.aiModel : DEFAULT_AI_MODEL}
         initialCommentMode={settings.aiCommentMode}
+      />
+      <BillingPanel
+        betaSeat={user.betaSeat}
+        subscriptionStatus={user.stripeSubscriptionStatus}
+        currentPeriodEnd={user.stripeCurrentPeriodEnd}
+        cancelAtPeriodEnd={user.stripeCancelAtPeriodEnd}
+        offer={billingOffer}
+        notice={billingNotice}
       />
     </main>
   );

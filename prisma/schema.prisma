@@ -50,22 +50,37 @@ model VerificationToken {
 // ---------- App models ----------
 
 model User {
-  id                  String                 @id @default(cuid())
-  name                String?
-  email               String?                @unique
-  emailVerified       DateTime?
-  image               String?
-  passwordHash        String?                @db.Text
-  sessionVersion      Int                    @default(0)
-  createdAt           DateTime               @default(now())
-  accounts            Account[]
-  sessions            Session[]
-  documents           Document[]
-  comments            Comment[]
-  settings            UserSettings?
-  authTokens          AuthToken[]
-  aiGenerations       AiGeneration[]
-  collaboratorInvites DocumentCollaborator[] @relation("CollaboratorInviter")
+  id                       String                 @id @default(cuid())
+  name                     String?
+  email                    String?                @unique
+  emailVerified            DateTime?
+  image                    String?
+  passwordHash             String?                @db.Text
+  sessionVersion           Int                    @default(0)
+  betaSeat                 Int?                   @unique
+  betaGrantedAt            DateTime?
+  stripeCustomerId         String?                @unique
+  stripeSubscriptionId     String?                @unique
+  stripePriceId            String?
+  stripeSubscriptionStatus String?
+  stripeCurrentPeriodEnd   DateTime?
+  stripeCancelAtPeriodEnd  Boolean                @default(false)
+  createdAt                DateTime               @default(now())
+  accounts                 Account[]
+  sessions                 Session[]
+  documents                Document[]
+  comments                 Comment[]
+  settings                 UserSettings?
+  authTokens               AuthToken[]
+  aiGenerations            AiGeneration[]
+  collaboratorInvites      DocumentCollaborator[] @relation("CollaboratorInviter")
+}
+
+model StripeWebhookEvent {
+  id          String   @id
+  type        String
+  createdAt   DateTime @default(now())
+  processedAt DateTime
 }
 
 enum AuthTokenType {
