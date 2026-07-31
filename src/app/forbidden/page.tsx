@@ -2,9 +2,18 @@ import Link from "next/link";
 
 import { Brand } from "@/components/Brand";
 import { auth, signOut } from "@/lib/auth";
+import { safeRedirectPath } from "@/lib/authInput";
 
-export default async function ForbiddenPage() {
-  const session = await auth();
+export default async function ForbiddenPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string | string[] }>;
+}) {
+  const [session, query] = await Promise.all([auth(), searchParams]);
+  const from = safeRedirectPath(
+    Array.isArray(query.from) ? query.from[0] : query.from,
+  );
+  const callbackUrl = encodeURIComponent(from);
 
   return (
     <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col justify-center gap-10 px-5 py-12 sm:px-6 lg:px-8">
@@ -31,7 +40,7 @@ export default async function ForbiddenPage() {
                   "use server";
                   await signOut({
                     redirectTo:
-                      "/login?notice=signed-out&callbackUrl=%2Fadmin",
+                      `/login?notice=signed-out&callbackUrl=${callbackUrl}`,
                   });
                 }}
               >
@@ -45,7 +54,7 @@ export default async function ForbiddenPage() {
             </>
           ) : (
             <Link
-              href="/login?notice=sign-in-required&callbackUrl=/admin"
+              href={`/login?notice=sign-in-required&callbackUrl=${callbackUrl}`}
               className="primary-button rounded-md px-4 py-2.5 text-sm font-medium"
             >
               Sign in

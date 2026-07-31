@@ -16,15 +16,17 @@ export function isAdminEmail(email: string | null | undefined) {
   return Boolean(email && adminEmails().has(email.trim().toLowerCase()));
 }
 
-export async function requireAdmin() {
+export async function requireAdmin(callbackUrl = "/admin") {
   const session = await auth();
 
   if (!session?.user?.id) {
-    redirect("/login?notice=sign-in-required&callbackUrl=/admin");
+    redirect(
+      `/login?notice=sign-in-required&callbackUrl=${encodeURIComponent(callbackUrl)}`,
+    );
   }
 
   if (!isAdminEmail(session.user.email)) {
-    redirect("/forbidden?from=/admin");
+    redirect(`/forbidden?from=${encodeURIComponent(callbackUrl)}`);
   }
 
   return session;

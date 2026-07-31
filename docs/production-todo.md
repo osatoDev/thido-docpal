@@ -6,39 +6,42 @@ This is the running source of truth for production-readiness work. Completed box
 
 ## Immediate deployment blockers
 
+- [x] Apply the `20260731180000_add_founder_feedback` migration to the production database before deploying founder conversations or notification links.
 - [x] Accept the Stripe Marketplace terms in Vercel, install the Stripe integration on `thido-docpal`, and connect the `stripe-cobalt-harbor` sandbox resource to Production, Preview, and Development.
-- [ ] Apply the `20260731160000_add_beta_access_and_billing` migration to the production database before deploying the 100-account gate or billing controls.
-- [ ] Apply the `20260731140000_add_comment_ai_job_state` migration to the production database before deploying whole-document AI locking.
-- [ ] Apply the `20260731120000_add_document_placeholder_state` migration to the production database before deploying placeholder document handling.
-- [ ] Apply the `20260731100000_add_document_comment_scope` migration to the production database before deploying first-class whole-document comments.
-- [ ] Apply the `20260729120000_add_ai_generation_observability` migration to the production database before deploying AI usage tracking and admin AI operations metrics.
-- [ ] Apply the `20260728120000_add_document_last_accessed_at` migration to the production database before deploying dashboard access timestamps.
-- [ ] Apply the `20260728100000_add_document_collaborators` migration to the production database before deploying email invitations and collaborator permissions.
-- [ ] Apply the `20260726130000_add_document_share_token` migration to the production database before deploying read-only share links.
-- [ ] Apply the `20260722143000_add_guest_draft_id` migration to the production database before deploying the guest-first flow.
+- [x] Apply the `20260731160000_add_beta_access_and_billing` migration to the production database before deploying the 100-account gate or billing controls.
+- [x] Apply the `20260731140000_add_comment_ai_job_state` migration to the production database before deploying whole-document AI locking.
+- [x] Apply the `20260731120000_add_document_placeholder_state` migration to the production database before deploying placeholder document handling.
+- [x] Apply the `20260731100000_add_document_comment_scope` migration to the production database before deploying first-class whole-document comments.
+- [x] Apply the `20260729120000_add_ai_generation_observability` migration to the production database before deploying AI usage tracking and admin AI operations metrics.
+- [x] Apply the `20260728120000_add_document_last_accessed_at` migration to the production database before deploying dashboard access timestamps.
+- [x] Apply the `20260728100000_add_document_collaborators` migration to the production database before deploying email invitations and collaborator permissions.
+- [x] Apply the `20260726130000_add_document_share_token` migration to the production database before deploying read-only share links.
+- [x] Apply the `20260722143000_add_guest_draft_id` migration to the production database before deploying the guest-first flow.
 - [x] Apply previously committed Prisma migrations through `20260722100000_add_auth_tokens` to the production database.
 - [x] Resolve or confirm the Prisma baseline for the existing production database before running `prisma migrate deploy` if it still reports `P3005`.
-- [ ] After applying pending migrations through `20260731160000_add_beta_access_and_billing`, verify `npx prisma migrate status` reports that the production schema is up to date.
-- [ ] Configure `RESEND_API_KEY` in Vercel Production and Preview environments as appropriate.
+- [x] Verify `npx prisma migrate status` reports all 14 production migrations through `20260731160000_add_beta_access_and_billing` are applied.
+- [x] Verify `npx prisma migrate status` reports all 15 production migrations through `20260731180000_add_founder_feedback` are applied.
+- [x] Configure `RESEND_API_KEY` in Vercel Production and Preview environments.
 - [ ] Verify the sending domain in Resend and replace `onboarding@resend.dev` with a production `AUTH_EMAIL_FROM` address.
 - [ ] Send real verification and password-reset emails and confirm delivery, links, expiry, and single-use behavior against the production database.
 - [ ] Confirm all required Vercel production environment variables are set:
-  - [ ] `DATABASE_URL`
-  - [ ] `DATABASE_URL_UNPOOLED`
-  - [ ] `AUTH_SECRET`
-  - [ ] `NEXTAUTH_URL`
-  - [ ] `GOOGLE_CLIENT_ID`
-  - [ ] `GOOGLE_CLIENT_SECRET`
-  - [ ] `RESEND_API_KEY`
-  - [ ] `AUTH_EMAIL_FROM`
-  - [ ] `ANTHROPIC_API_KEY`
-  - [ ] `ADMIN_EMAILS`
+  - [x] `DATABASE_URL`
+  - [x] `DATABASE_URL_UNPOOLED`
+  - [x] `AUTH_SECRET`
+  - [ ] `NEXTAUTH_URL` (absent from the Vercel Production environment on 31 July 2026)
+  - [x] `GOOGLE_CLIENT_ID`
+  - [x] `GOOGLE_CLIENT_SECRET`
+  - [x] `RESEND_API_KEY`
+  - [x] `AUTH_EMAIL_FROM`
+  - [x] `ANTHROPIC_API_KEY`
+  - [x] `ADMIN_EMAILS` (`osato@thido.ai` in Production, Preview, and Development)
+  - [x] `FEEDBACK_NOTIFICATION_EMAILS` (`osato@thido.ai` in Production, Preview, and Development)
   - [x] `STRIPE_SECRET_KEY` (sandbox credentials provisioned by the Vercel Marketplace integration)
   - [ ] `STRIPE_PRO_PRICE_ID` (leave absent while paid checkout should remain hidden)
   - [ ] `STRIPE_WEBHOOK_SECRET`
   - [x] `NEXT_PUBLIC_ROLLBAR_THIDO_DOCPAL_CLIENT_TOKEN_1785444690`
   - [x] `ROLLBAR_THIDO_DOCPAL_SERVER_TOKEN_1785444690`
-- [ ] Confirm `ENABLE_TEST_LOGIN` is absent from Production. The code disables it in production, but the environment should also be clean.
+- [ ] Remove `ENABLE_TEST_LOGIN` from Production. It was still present in Vercel on 31 July 2026; the code hard-disables it in production, but the environment should also be clean.
 
 ## Database and migrations
 
@@ -145,6 +148,7 @@ This is the running source of truth for production-readiness work. Completed box
 ## Beta access and billing
 
 - [x] Enforce a race-safe limit of 100 free beta accounts across password registration and Google sign-in, backfill existing accounts deterministically, show remaining places, and keep existing members able to sign in after the cap is reached.
+- [x] Deploy the beta-access foundation to Vercel Production and verify the live `/register` page reports 93 of 100 places remaining for the seven seated accounts, with no card required.
 - [ ] Define what happens to registration after the beta reaches 100 accounts: waitlist, invite-only access, or closed registration.
 - [ ] Define paid plan pricing, currency, billing interval, entitlements, and launch timing before activating Stripe Checkout.
 - [x] Implement authenticated Stripe subscription Checkout, signed webhook processing, idempotent subscription-state persistence, failure reporting, and Customer Portal access using the Vercel Marketplace integration; keep Checkout hidden until a Price is configured.
@@ -173,8 +177,8 @@ This is the running source of truth for production-readiness work. Completed box
 ## Testing and continuous integration
 
 - [x] Add automated unit tests for authentication input, password hashing, token helpers, rate limiting, and API auth responses.
-- [x] Confirm the current unit suite passes: 59 tests across nineteen files.
-- [x] Confirm type checking, lint, Prisma validation, and the production build pass after the beta-access and Stripe foundation.
+- [x] Confirm the current unit suite passes: 62 tests across twenty files.
+- [x] Confirm type checking, lint, Prisma validation, and the production build pass after the founder-feedback implementation.
 - [ ] Add a normal CI workflow that runs `npm ci`, `npm test`, `npm run lint`, and `npm run build` for pull requests and `main`.
 - [ ] Add database integration tests for issuing and consuming verification and reset tokens transactionally.
 - [ ] Add browser tests for registration, email verification, password reset, Google login, sign-out, stale sessions, and admin authorization.
@@ -219,9 +223,9 @@ This is the running source of truth for production-readiness work. Completed box
 
 ## Domain, deployment, and environments
 
-- [ ] Confirm the final production domain and attach it to the Vercel project.
+- [x] Confirm `thido.ai` and `www.thido.ai` are attached as aliases to the current Vercel production deployment.
 - [x] Add the apex `thido.ai` A record in Route 53 (`216.198.79.1`, `76.76.21.21`) so the bare domain resolves. Note: the first attempt used record name `@.thido.ai`, which Route 53 treats as a literal hostname, not the zone apex — the apex record must be created with an empty record name. Fixed and confirmed via `dig thido.ai A`.
-- [ ] Add `thido.ai` (not only `www.thido.ai`) as a Domain on the Vercel project so it issues a certificate covering the apex. As of this check, the apex serves a certificate whose SAN list only contains `www.thido.ai` (`openssl s_client -connect 76.76.21.21:443 -servername thido.ai`), so browsers will show a certificate error on `https://thido.ai` even though DNS now resolves. Verification/reset emails link to the bare `thido.ai` origin, so emailed links will keep failing until this cert is issued.
+- [x] Add `thido.ai` (not only `www.thido.ai`) as a Vercel Domain and verify the apex responds successfully over HTTPS.
 - [ ] Verify DNS, HTTPS certificate issuance, and canonical redirects.
 - [ ] Set `NEXTAUTH_URL` to the final HTTPS origin.
 - [ ] Create a Preview or staging environment with isolated database and email configuration.
@@ -243,6 +247,9 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Add the operator's complete legal name, business address, and specific governing law once confirmed.
 - [ ] Create and monitor `legal@thido.ai`, `privacy@thido.ai`, and `support@thido.ai`, or replace them in the policies with verified contact addresses.
 - [ ] Provide a support contact for login, billing, privacy, and data-deletion requests.
+- [x] Add the signed-in **Message founders** experience described in [the founder feedback plan](./founder-feedback.md): a persistent launcher, private threads, an admin inbox, direct email links for founder replies, reply emails to users, safe optional page context, and no automatic document-content capture.
+- [ ] Assign operational ownership for founder messages, alert when two hours remain, measure first-response time, and confirm that overnight and weekend coverage can support the displayed eight-hour response promise.
+- [x] Update the Privacy Policy with feedback-message contents, optional page context, notifications, access, and current retention behavior.
 - [ ] Define the intended launch audience, acceptable-use policy, and abuse-response process.
 - [ ] Review GDPR obligations, including lawful basis, data access, deletion, retention, and subprocessors, for the intended markets.
 - [ ] Add a user-facing status or incident communication channel if reliability expectations require it.
@@ -258,6 +265,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Invite fresh accounts with view, comment, edit, and full access; confirm delivery and verify each account can perform only its allowed operations.
 - [ ] Verify AI failures produce understandable recovery states.
 - [ ] Verify a free beta registration never requests a card and account 101 is rejected across password and Google registration without affecting existing users.
+- [ ] Send a founder message in Production, confirm the configured inbox receives the direct private-thread link, reply from `/admin/feedback`, and confirm the user receives the reply email and sees it in Thido.
 - [ ] If paid plans are activated, complete a Stripe sandbox checkout, portal cancellation, failed-payment update, and duplicate-webhook test before switching to live credentials.
 - [ ] Verify analytics events appear without exposing document content or secrets.
 - [ ] Test the application on current mobile and desktop browsers.

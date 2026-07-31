@@ -73,6 +73,8 @@ model User {
   settings                 UserSettings?
   authTokens               AuthToken[]
   aiGenerations            AiGeneration[]
+  feedbackThread           FeedbackThread?
+  feedbackMessages         FeedbackMessage[]
   collaboratorInvites      DocumentCollaborator[] @relation("CollaboratorInviter")
 }
 
@@ -81,6 +83,57 @@ model StripeWebhookEvent {
   type        String
   createdAt   DateTime @default(now())
   processedAt DateTime
+}
+
+enum FeedbackCategory {
+  PROBLEM
+  IDEA
+  QUESTION
+  OTHER
+}
+
+enum FeedbackThreadStatus {
+  OPEN
+  CLOSED
+}
+
+enum FeedbackAuthorType {
+  USER
+  FOUNDER
+}
+
+model FeedbackThread {
+  id                   String               @id @default(cuid())
+  userId               String               @unique
+  user                 User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category             FeedbackCategory     @default(OTHER)
+  status               FeedbackThreadStatus @default(OPEN)
+  currentPath          String?
+  responseDueAt        DateTime?
+  firstRespondedAt     DateTime?
+  founderNotifiedAt    DateTime?
+  lastUserMessageAt    DateTime?
+  lastFounderMessageAt DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  messages             FeedbackMessage[]
+
+  @@index([status, responseDueAt])
+  @@index([updatedAt])
+}
+
+model FeedbackMessage {
+  id         String             @id @default(cuid())
+  threadId   String
+  thread     FeedbackThread     @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  authorId   String?
+  author     User?              @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorType FeedbackAuthorType
+  body       String             @db.Text
+  createdAt  DateTime           @default(now())
+
+  @@index([threadId, createdAt])
+  @@index([authorId])
 }
 
 enum AuthTokenType {

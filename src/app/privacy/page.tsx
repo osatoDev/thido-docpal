@@ -72,6 +72,13 @@ export default function PrivacyPage() {
           contact us, we may retain your message and related support
           correspondence.
         </p>
+        <p>
+          Signed-in users may send private messages to the Thido founding team.
+          We store the message, its category, replies, response timestamps, and
+          the page path the user chose to include. We do not automatically add
+          document text, comments, prompts, editor selections, or public
+          share-link tokens to founder conversations.
+        </p>
 
         <h3>Beta access and billing</h3>
         <p>
@@ -100,6 +107,7 @@ export default function PrivacyPage() {
           <li>to save, display, edit, organise, and share your documents;</li>
           <li>to generate drafts, follow-up questions, comments, and revisions;</li>
           <li>to send verification, password-reset, invitation, and service messages;</li>
+          <li>to receive, answer, and monitor response times for founder messages;</li>
           <li>to provide beta access and administer optional paid plans;</li>
           <li>to understand aggregate product usage and improve reliability;</li>
           <li>to prevent fraud, misuse, and security incidents; and</li>
@@ -288,6 +296,9 @@ export default function PrivacyPage() {
           expire after 24 hours and password-reset links expire after one hour.
           Billing and transaction records may be retained for the periods
           required for accounting, tax, dispute, and legal obligations.
+          Founder-message threads may be retained with the account so the user
+          and team can refer to the conversation; a specific support retention
+          period will be published before broader production use.
           We may retain limited records longer where reasonably necessary for
           security, dispute resolution, backup integrity, or legal compliance.
         </p>

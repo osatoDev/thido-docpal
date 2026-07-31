@@ -105,6 +105,15 @@ Analytics for the Vercel project, then set the server-only `VERCEL_TOKEN` and
 `VERCEL_PROJECT_ID` variables to show seven-day traffic totals and top routes
 in `/admin`. Team-owned projects also require `VERCEL_TEAM_ID`.
 
+### Founder feedback
+
+Signed-in users can open `/feedback` from the persistent **Message founders**
+launcher. Messages are stored as a private thread and emailed through Resend to
+the comma-separated `FEEDBACK_NOTIFICATION_EMAILS` list. Each recipient must
+also be included in `ADMIN_EMAILS`; the notification links directly to the
+thread in `/admin/feedback`, where a founder can reply. Replies are saved to the
+thread and emailed to the user.
+
 ### Password authentication
 
 People can create an account at `/register` and sign in with email and password

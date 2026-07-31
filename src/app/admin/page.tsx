@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { getVercelAnalyticsSummary } from "@/lib/vercelAnalytics";
 import { getAiOperationsSummary } from "@/lib/ai/adminMetrics";
+import { founderFeedbackRecipients } from "@/lib/feedback";
 
 export const metadata: Metadata = {
   title: "Admin — Thido",
@@ -51,6 +52,7 @@ export default async function AdminPage() {
     documents,
     comments,
     pendingSuggestions,
+    awaitingFounderReplies,
     recentDocuments,
     analytics,
     aiOperations,
@@ -60,6 +62,7 @@ export default async function AdminPage() {
       prisma.document.count({ where: { isPlaceholder: false } }),
       prisma.comment.count(),
       prisma.suggestion.count({ where: { status: "PENDING" } }),
+      prisma.feedbackThread.count({ where: { responseDueAt: { not: null } } }),
       prisma.document.findMany({
         where: { isPlaceholder: false },
         orderBy: { updatedAt: "desc" },
@@ -82,6 +85,7 @@ export default async function AdminPage() {
     { label: "Documents", value: documents },
     { label: "Comments", value: comments },
     { label: "Pending suggestions", value: pendingSuggestions },
+    { label: "Founder replies due", value: awaitingFounderReplies },
   ];
 
   const configuration = [
@@ -89,6 +93,10 @@ export default async function AdminPage() {
     { label: "Authentication", ready: Boolean(process.env.AUTH_SECRET) },
     { label: "Google OAuth", ready: Boolean(process.env.GOOGLE_CLIENT_ID) },
     { label: "Anthropic", ready: Boolean(process.env.ANTHROPIC_API_KEY) },
+    {
+      label: "Founder feedback email",
+      ready: founderFeedbackRecipients().length > 0,
+    },
     {
       label: "Stripe payments",
       ready: Boolean(
@@ -114,6 +122,12 @@ export default async function AdminPage() {
           <Link href="/dashboard" className="hover:text-[var(--foreground)]">
             Documents
           </Link>
+          <Link
+            href="/admin/feedback"
+            className="hover:text-[var(--foreground)]"
+          >
+            Feedback
+          </Link>
           <Link href="/settings" className="hover:text-[var(--foreground)]">
             Settings
           </Link>
@@ -138,7 +152,7 @@ export default async function AdminPage() {
         </p>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5" aria-label="Application totals">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6" aria-label="Application totals">
         {metrics.map((metric) => (
           <article key={metric.label} className="app-panel rounded-2xl p-5">
             <p className="text-sm font-medium text-[var(--muted)]">{metric.label}</p>

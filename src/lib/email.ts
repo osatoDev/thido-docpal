@@ -45,7 +45,7 @@ async function sendEmail({
   previewUrl,
   idempotencyKey,
 }: {
-  to: string;
+  to: string | string[];
   subject: string;
   text: string;
   html: string;
@@ -75,6 +75,77 @@ async function sendEmail({
   );
 
   if (error) throw new Error(`Email delivery failed: ${error.message}`);
+}
+
+export async function sendFounderFeedbackNotification({
+  recipients,
+  threadId,
+  messageId,
+  senderName,
+  senderEmail,
+  category,
+  body,
+  currentPath,
+}: {
+  recipients: string[];
+  threadId: string;
+  messageId: string;
+  senderName: string;
+  senderEmail: string;
+  category: string;
+  body: string;
+  currentPath: string | null;
+}) {
+  if (recipients.length === 0) {
+    throw new Error("Founder feedback notification recipients are not configured.");
+  }
+
+  const url = appUrl(`/admin/feedback/${encodeURIComponent(threadId)}`);
+  const context = currentPath ? `\nPage: ${currentPath}` : "";
+  const safeContext = currentPath
+    ? `<span style="display:block;margin:16px 0 0;color:#646963;font-size:13px">Page: ${escapeHtml(currentPath)}</span>`
+    : "";
+
+  await sendEmail({
+    to: recipients,
+    subject: `${senderName} sent a message in Thido`,
+    text:
+      `${senderName} (${senderEmail}) sent a ${category.toLowerCase()} message:\n\n` +
+      `${body}${context}\n\nOpen the conversation: ${url}`,
+    html: emailShell(
+      `${senderName} sent a message`,
+      `<span style="display:block;white-space:pre-wrap">${escapeHtml(body)}</span>${safeContext}`,
+      "Reply in Thido",
+      url,
+    ),
+    previewUrl: url,
+    idempotencyKey: `founder-feedback-${messageId}`,
+  });
+}
+
+export async function sendFounderReplyEmail({
+  email,
+  messageId,
+  body,
+}: {
+  email: string;
+  messageId: string;
+  body: string;
+}) {
+  const url = appUrl("/feedback");
+  await sendEmail({
+    to: email,
+    subject: "The Thido founding team replied",
+    text: `The Thido founding team replied:\n\n${body}\n\nContinue the conversation: ${url}`,
+    html: emailShell(
+      "The founding team replied",
+      `<span style="display:block;white-space:pre-wrap">${escapeHtml(body)}</span>`,
+      "Continue conversation",
+      url,
+    ),
+    previewUrl: url,
+    idempotencyKey: `founder-reply-${messageId}`,
+  });
 }
 
 const permissionDescriptions = {

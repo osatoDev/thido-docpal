@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { RollbarProvider } from "@/components/observability/RollbarProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { SignedInFeedbackLauncher } from "@/components/feedback/SignedInFeedbackLauncher";
 import { isTheme, THEME_COOKIE_NAME } from "@/lib/theme";
 import "./globals.css";
 
@@ -40,6 +41,7 @@ export default async function RootLayout({
       <body className="flex min-h-full flex-col">
         <RollbarProvider>
           {children}
+          <SignedInFeedbackLauncher />
           <ThemeToggle />
           <Analytics />
         </RollbarProvider>
