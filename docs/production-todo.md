@@ -150,7 +150,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Enforce a race-safe limit of 100 free beta accounts across password registration and Google sign-in, backfill existing accounts deterministically, show remaining places, and keep existing members able to sign in after the cap is reached.
 - [x] Deploy the beta-access foundation to Vercel Production and verify the live `/register` page reports 93 of 100 places remaining for the seven seated accounts, with no card required.
 - [ ] Define what happens to registration after the beta reaches 100 accounts: waitlist, invite-only access, or closed registration.
-- [ ] Define paid plan pricing, currency, billing interval, entitlements, and launch timing before activating Stripe Checkout.
+- [ ] Choose and approve paid-plan pricing, currency, billing interval, entitlements, and launch timing using [the paid-plan pricing suggestions](./paid-plan-pricing.md) before activating Stripe Checkout.
 - [x] Prepare an accurate Stripe registration description for Thido as an AI-assisted document productivity SaaS in [the Stripe business description](./stripe-business-description.md).
 - [x] Implement authenticated Stripe subscription Checkout, signed webhook processing, idempotent subscription-state persistence, failure reporting, and Customer Portal access using the Vercel Marketplace integration; keep Checkout hidden until a Price is configured.
 - [ ] Claim and activate the currently sandbox-only Stripe account before accepting live payments.
