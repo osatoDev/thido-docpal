@@ -14,6 +14,7 @@ import {
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { reportServerError } from "@/lib/rollbar/server";
 import { issueAuthToken } from "@/lib/authTokenStore";
 import { sendVerificationEmail } from "@/lib/email";
 
@@ -142,6 +143,10 @@ export async function registerWithPassword(
   } catch (error) {
     deliveryFailed = true;
     console.error("Unable to send initial verification email", error);
+    await reportServerError(error, {
+      source: "auth-email",
+      operation: "initial-verification",
+    });
   }
 
   const verificationParams = new URLSearchParams({

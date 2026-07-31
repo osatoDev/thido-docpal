@@ -28,6 +28,8 @@ This is the running source of truth for production-readiness work. Completed box
   - [ ] `AUTH_EMAIL_FROM`
   - [ ] `ANTHROPIC_API_KEY`
   - [ ] `ADMIN_EMAILS`
+  - [x] `NEXT_PUBLIC_ROLLBAR_THIDO_DOCPAL_CLIENT_TOKEN_1785444690`
+  - [x] `ROLLBAR_THIDO_DOCPAL_SERVER_TOKEN_1785444690`
 - [ ] Confirm `ENABLE_TEST_LOGIN` is absent from Production. The code disables it in production, but the environment should also be clean.
 
 ## Database and migrations
@@ -147,7 +149,7 @@ This is the running source of truth for production-readiness work. Completed box
 ## Testing and continuous integration
 
 - [x] Add automated unit tests for authentication input, password hashing, token helpers, rate limiting, and API auth responses.
-- [x] Confirm the current unit suite passes: 24 tests across ten files.
+- [x] Confirm the current unit suite passes: 48 tests across sixteen files.
 - [x] Confirm lint and the production build pass after the authentication upgrade.
 - [ ] Add a normal CI workflow that runs `npm ci`, `npm test`, `npm run lint`, and `npm run build` for pull requests and `main`.
 - [ ] Add database integration tests for issuing and consuming verification and reset tokens transactionally.
@@ -162,21 +164,25 @@ This is the running source of truth for production-readiness work. Completed box
 
 - [x] Add Vercel Web Analytics page tracking.
 - [x] Add an admin analytics summary integration.
+- [x] Accept the Rollbar Marketplace terms in Vercel, install `rollbar/error-tracking` on the `thido-docpal` project, connect it to production, preview, and development, and pull the generated client and server tokens.
+- [x] Verify the Rollbar server token and connected project accept a content-free development occurrence.
 - [ ] Enable Vercel Web Analytics for the production project.
 - [ ] Configure `VERCEL_TOKEN`, `VERCEL_PROJECT_ID`, and `VERCEL_TEAM_ID` when required for the admin analytics view.
 - [ ] Verify `/admin` shows real production analytics and system configuration status.
 - [ ] Verify analytics, request logs, and error tracking record `/share/[token]` as a route pattern rather than storing bearer-token values; exclude or redact shared-document paths where necessary.
 - [ ] Add content-free funnel events for guest outline start, authentication checkpoint, successful login return, and document claim.
-- [ ] Add application error tracking, for example Sentry or an equivalent service.
+- [x] Add privacy-conscious Rollbar browser and server error tracking, Next.js error boundaries, framework request-error capture, and explicit reporting for handled AI and email failures.
 - [ ] Add structured server logging with request correlation IDs and secret redaction.
 - [ ] Configure alerts for elevated 5xx responses, function timeouts, email failures, database failures, and AI-provider failures.
+- [ ] Configure production-only Rollbar rules for new errors, reactivated errors, and repeated failures, then verify email delivery with a controlled deployed error.
 - [ ] Write incident-response and rollback instructions.
 - [ ] Verify Vercel deployment rollback and Neon restore procedures.
 
 ## Security and dependency management
 
 - [x] Keep current Next.js and React versions above the critical patched minimums recorded in project guidance.
-- [ ] Review the current `npm audit` findings for inherited `sharp` and `postcss` advisories; do not use the suggested forced downgrade to Next.js 9.
+- [ ] Upgrade Next.js from 16.2.10 to a patched 16.2.12 or newer compatible release and verify the current `sharp` and `postcss` advisories are resolved.
+- [ ] Upgrade `next-auth` and `@auth/prisma-adapter` to releases containing the July 2026 Auth.js authorization, token-validation, email-normalization, and OAuth-cookie fixes, then rerun the authentication test matrix.
 - [ ] Add Dependabot or Renovate for dependency update pull requests.
 - [ ] Add a Content Security Policy and review other security headers.
 - [ ] Confirm secrets are only stored in Vercel/GitHub secret stores and never committed.

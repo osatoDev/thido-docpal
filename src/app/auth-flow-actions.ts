@@ -16,6 +16,7 @@ import {
 } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { reportServerError } from "@/lib/rollbar/server";
 
 export type AuthFlowState = {
   status?: "success" | "error";
@@ -62,6 +63,10 @@ export async function requestPasswordReset(
       await sendPasswordResetEmail(user.email, token);
     } catch (error) {
       console.error("Unable to send password reset email", error);
+      await reportServerError(error, {
+        source: "auth-email",
+        operation: "password-reset",
+      });
     }
   }
 
@@ -102,6 +107,10 @@ export async function requestVerificationEmail(
       await sendVerificationEmail(user.email, token, callbackUrl);
     } catch (error) {
       console.error("Unable to send verification email", error);
+      await reportServerError(error, {
+        source: "auth-email",
+        operation: "verification-reminder",
+      });
     }
   }
 

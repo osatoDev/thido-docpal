@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { RollbarProvider } from "@/components/observability/RollbarProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { isTheme, THEME_COOKIE_NAME } from "@/lib/theme";
 import "./globals.css";
@@ -37,9 +38,11 @@ export default async function RootLayout({
       data-theme={theme}
     >
       <body className="flex min-h-full flex-col">
-        {children}
-        <ThemeToggle />
-        <Analytics />
+        <RollbarProvider>
+          {children}
+          <ThemeToggle />
+          <Analytics />
+        </RollbarProvider>
       </body>
     </html>
   );

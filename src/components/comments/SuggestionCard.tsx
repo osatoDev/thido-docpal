@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { reportClientError } from "@/lib/rollbar/client";
 import type { SuggestionWithStatus } from "@/lib/types";
 
 const STATUS_LABEL: Record<SuggestionWithStatus["status"], string> = {
@@ -25,10 +26,12 @@ export function SuggestionCard({
   async function respond(action: "accept" | "reject") {
     setBusy(true);
     setError(null);
+    let status: number | undefined;
     try {
       const res = await fetch(`/api/suggestions/${suggestion.id}/${action}`, {
         method: "POST",
       });
+      status = res.status;
       const data = await res.json().catch(() => null);
       if (!res.ok) {
         throw new Error(
@@ -39,6 +42,13 @@ export function SuggestionCard({
       }
       onResolved(data.suggestion, data.document?.content);
     } catch (err) {
+      if (status === undefined || status >= 500) {
+        reportClientError(err, {
+          source: "client-action",
+          action: `suggestion-${action}`,
+          status,
+        });
+      }
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setBusy(false);

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Brand } from "@/components/Brand";
 import { VerificationRequestForm } from "@/components/auth/VerificationRequestForm";
 import { verifyEmailToken } from "@/lib/authTokenStore";
+import { reportServerError } from "@/lib/rollbar/server";
 import { emailSchema, safeRedirectPath } from "@/lib/authInput";
 
 export default async function VerifyEmailPage({
@@ -42,6 +43,11 @@ export default async function VerifyEmailPage({
         invalidToken = !verified;
       } catch (error) {
         console.error("Unable to verify email token", error);
+        await reportServerError(error, {
+          source: "auth-token",
+          operation: "verify-email",
+          route: "/verify-email",
+        });
         invalidToken = true;
       }
     }

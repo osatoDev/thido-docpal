@@ -11,6 +11,7 @@ import {
 import { sendDocumentInvitationEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { reportServerError } from "@/lib/rollbar/server";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -158,6 +159,11 @@ export async function POST(request: Request, { params }: Params) {
       });
     }
     console.error("Unable to send document invitation", error);
+    await reportServerError(error, {
+      source: "document-email",
+      operation: "collaborator-invitation",
+      route: "/api/documents/[id]/collaborators",
+    });
     return NextResponse.json(
       { error: "The invitation email could not be sent. Try again." },
       { status: 502 },

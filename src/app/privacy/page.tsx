@@ -12,6 +12,7 @@ export default function PrivacyPage() {
     <LegalDocument
       title="Privacy Policy"
       description="This Policy explains what information Thido handles, why we use it, which service providers help us operate the product, and the choices available to you."
+      effectiveDate="30 July 2026"
     >
       <section>
         <h2>1. Who is responsible for your data</h2>
@@ -179,6 +180,18 @@ export default function PrivacyPage() {
               </tr>
               <tr>
                 <td>
+                  <a href="https://rollbar.com/privacy/" rel="noreferrer" target="_blank">
+                    Rollbar
+                  </a>
+                </td>
+                <td>Application error tracking and incident diagnosis</td>
+                <td>
+                  Error messages, stack traces, route patterns, deployment
+                  identifiers, and technical data
+                </td>
+              </tr>
+              <tr>
+                <td>
                   <a href="https://policies.google.com/privacy" rel="noreferrer" target="_blank">
                     Google
                   </a>
@@ -231,6 +244,16 @@ export default function PrivacyPage() {
             Web Analytics privacy documentation
           </a>
           .
+        </p>
+        <p>
+          We use Rollbar to group application errors and alert us when Thido
+          fails. The integration is configured to exclude document text,
+          prompts, comments, form input, email addresses, authentication
+          secrets, request bodies, and public share-link tokens. Session replay
+          and automatic browser activity recording are disabled. Rollbar may
+          receive an error message, stack trace, sanitised route pattern,
+          deployment identifier, provider request identifier, and other
+          technical context needed to diagnose the failure.
         </p>
       </section>
 

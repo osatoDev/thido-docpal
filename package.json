@@ -16,6 +16,7 @@
     "@anthropic-ai/sdk": "^0.110.0",
     "@auth/prisma-adapter": "^2.11.2",
     "@prisma/client": "^6.19.3",
+    "@rollbar/react": "^1.0.0",
     "@tiptap/core": "^3.27.3",
     "@tiptap/extension-bubble-menu": "^3.27.3",
     "@tiptap/extension-placeholder": "^3.27.3",
@@ -32,6 +33,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "resend": "^6.18.0",
+    "rollbar": "^3.1.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

@@ -2,6 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { estimateAiCost, type AiUsageForPricing } from "@/lib/ai/pricing";
+import { reportServerError } from "@/lib/rollbar/server";
 
 export const AI_FEATURE_LABELS = {
   DOCUMENT_FOLLOWUPS: "Planning follow-ups",
@@ -197,6 +198,12 @@ export async function startAiGeneration(
       model: input.model,
       error: normalizeError(error).message,
     });
+    await reportServerError(error, {
+      source: "ai-telemetry",
+      operation: "create",
+      feature: input.feature,
+      model: input.model,
+    });
     throw error;
   }
 
@@ -258,6 +265,13 @@ export async function startAiGeneration(
         status,
         error: normalizeError(telemetryError).message,
       });
+      await reportServerError(telemetryError, {
+        source: "ai-telemetry",
+        operation: "update",
+        generationId: generation.id,
+        feature: input.feature,
+        model: input.model,
+      });
       return;
     }
 
@@ -283,6 +297,18 @@ export async function startAiGeneration(
         errorCode: completion.errorCode,
       },
     );
+
+    if (status === "FAILED") {
+      await reportServerError(error, {
+        source: "ai-generation",
+        operation: "complete",
+        generationId: generation.id,
+        feature: input.feature,
+        model: input.model,
+        providerRequestId: completion.providerRequestId,
+        errorCode: completion.errorCode,
+      });
+    }
   }
 
   return {

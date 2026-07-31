@@ -1,5 +1,7 @@
 import "server-only";
 
+import { reportServerError } from "@/lib/rollbar/server";
+
 import { z } from "zod";
 
 const API_BASE = "https://api.vercel.com/v1/query/web-analytics/visits/aggregate";
@@ -95,6 +97,11 @@ export async function getVercelAnalyticsSummary(): Promise<VercelAnalyticsSummar
   } catch (error) {
     console.error("[admin] Could not load Vercel Web Analytics", {
       error: error instanceof Error ? error.message : String(error),
+    });
+    await reportServerError(error, {
+      source: "admin-analytics",
+      operation: "load-vercel-web-analytics",
+      route: "/admin",
     });
     return { status: "error" };
   }
