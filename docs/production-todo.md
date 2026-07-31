@@ -155,6 +155,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Implement authenticated Stripe subscription Checkout, signed webhook processing, idempotent subscription-state persistence, failure reporting, and Customer Portal access using the Vercel Marketplace integration; keep Checkout hidden until a Price is configured.
 - [ ] Claim and activate the currently sandbox-only Stripe account before accepting live payments.
 - [ ] Create the approved recurring Stripe product and Price, then configure `STRIPE_PRO_PRICE_ID` only when paid checkout should become visible.
+- [ ] Configure and verify the Stripe statement descriptor using the recommended `THIDO.AI` and shortened `THIDO` values in [the statement descriptor note](./stripe-statement-descriptor.md).
 - [ ] Deploy `/api/webhooks/stripe`, subscribe it to Checkout completion and subscription lifecycle events, set `STRIPE_WEBHOOK_SECRET`, and configure the Customer Portal.
 - [ ] Define retention and cleanup for processed `StripeWebhookEvent` idempotency records.
 - [ ] Test Stripe sandbox checkout, renewal, failed payment, cancellation, webhook retries, and portal management without requiring free beta users to enter payment details.
