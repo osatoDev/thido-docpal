@@ -22,6 +22,7 @@ export function SuggestionCard({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isDocumentWide = suggestion.scope === "DOCUMENT";
 
   async function respond(action: "accept" | "reject") {
     setBusy(true);
@@ -60,8 +61,23 @@ export function SuggestionCard({
       <p className="mb-2 font-medium text-[var(--warm)]">
         {STATUS_LABEL[suggestion.status]}
       </p>
-      <p className="text-[var(--muted)] line-through">{suggestion.originalText}</p>
-      <p>{suggestion.proposedText}</p>
+      {isDocumentWide ? (
+        <details>
+          <summary className="font-medium text-[var(--foreground)]">
+            Review the full-document revision
+          </summary>
+          <div className="mt-2 max-h-72 overflow-y-auto whitespace-pre-wrap rounded-sm bg-[var(--surface)] p-3 leading-5 text-[var(--muted)]">
+            {suggestion.proposedText}
+          </div>
+        </details>
+      ) : (
+        <>
+          <p className="text-[var(--muted)] line-through">
+            {suggestion.originalText}
+          </p>
+          <p>{suggestion.proposedText}</p>
+        </>
+      )}
       {error && (
         <p className="mt-1 text-[var(--danger)]" role="alert">
           {error}

@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import type { JSONContent } from "@tiptap/react";
+import { generateHTML } from "@tiptap/html/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getSuggestionForUser } from "@/lib/documentAuth";
-import {
-  replaceCommentMarkText,
-  replaceUniqueText,
-} from "@/lib/documentMarks";
+import { replaceCommentMarkText, replaceUniqueText } from "@/lib/documentMarks";
+import { markdownToTiptapJSON } from "@/lib/markdownToTiptap";
+import { getEditorExtensions } from "@/lib/editorExtensions";
 import { unauthorizedResponse } from "@/lib/apiResponses";
 
 type Params = { params: Promise<{ id: string }> };
@@ -49,23 +49,41 @@ export async function POST(_request: Request, { params }: Params) {
     }
 
     const content = document.content as JSONContent;
-    const updatedContent =
-      replaceCommentMarkText(
-        content,
-        suggestion.anchorMarkId,
-        suggestion.proposedText,
-      ) ??
-      replaceUniqueText(
-        content,
-        suggestion.originalText,
-        suggestion.proposedText,
+    if (
+      suggestion.scope === "DOCUMENT" &&
+      generateHTML(content, getEditorExtensions()) !== suggestion.originalText
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "The document changed after this revision was prepared. Ask Thido to create a fresh document-wide revision.",
+        },
+        { status: 409 },
       );
+    }
+    const updatedContent =
+      suggestion.scope === "DOCUMENT"
+        ? await markdownToTiptapJSON(suggestion.proposedText)
+        : suggestion.anchorMarkId
+          ? replaceCommentMarkText(
+              content,
+              suggestion.anchorMarkId,
+              suggestion.proposedText,
+            ) ??
+            replaceUniqueText(
+              content,
+              suggestion.originalText,
+              suggestion.proposedText,
+            )
+          : null;
 
     if (!updatedContent) {
       return NextResponse.json(
         {
           error:
-            "The highlighted text has changed or is no longer unique in the document.",
+            suggestion.scope === "DOCUMENT"
+              ? "The document-wide revision could not be prepared."
+              : "The highlighted text has changed or is no longer unique in the document.",
         },
         { status: 409 },
       );

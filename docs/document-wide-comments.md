@@ -1,30 +1,43 @@
 # Document-wide comments
 
-Today, a user cannot create a true whole-document comment in Thido.
+Thido supports two explicit comment targets:
 
-## Why
+- `SELECTION` for feedback tied to highlighted text.
+- `DOCUMENT` for feedback or changes that apply to the entire draft.
 
-The current comment flow is anchored to a text selection:
+## User experience
 
-- The editor only starts a comment when there is a non-empty selection (`from !== to`) in [src/components/editor/TiptapEditor.tsx](/Users/osatohanmwenguobadia/Documents/GitHub/thido-docpal/src/components/editor/TiptapEditor.tsx).
-- The composer always shows quoted selected text, not a general document target, in [src/components/comments/CommentComposer.tsx](/Users/osatohanmwenguobadia/Documents/GitHub/thido-docpal/src/components/comments/CommentComposer.tsx).
-- The comments API rejects requests unless `anchorMarkId`, `quotedText`, and `body` are all present, in [src/app/api/documents/[id]/comments/route.ts](/Users/osatohanmwenguobadia/Documents/GitHub/thido-docpal/src/app/api/documents/[id]/comments/route.ts).
-- The database model requires every comment to carry `anchorMarkId` and `quotedText`, in [prisma/schema.prisma](/Users/osatohanmwenguobadia/Documents/GitHub/thido-docpal/prisma/schema.prisma).
+The comments sidebar contains a visible **Comment on whole document** action. It
+opens a composer that explains the scope and gives a concrete example such as
+“Remove all Markdown from this document.” No text selection is required.
 
-So the current answer is: they cannot do it unless they attach the comment to some selected text.
+Selection comments still begin from the editor’s Comment action. If a user
+starts from selected text but writes an unmistakably document-wide request,
+Thido removes the temporary selection anchor and promotes the request to the
+document scope.
 
-## Best implementation
+Document comments and their threads carry a **Whole document** label so the
+scope stays visible after submission.
 
-If you want whole-document comments, the cleanest product shape is:
+## Editing behavior
 
-1. Add a second comment target type: `SELECTION` and `DOCUMENT`.
-2. Make `anchorMarkId` and `quotedText` nullable for `DOCUMENT` comments.
-3. Add a visible `Add general comment` action in the comment sidebar or editor header.
-4. Render document-level comments in a separate `General comments` section above anchored threads.
-5. Do not run anchor-replacement AI suggestion logic for document-level comments by default, because there is no bounded replacement span.
+Document comments are processed in the foreground. Thido reads the complete
+document and:
 
-## Why this is better than faking it
+- returns a reply without changing the draft for questions or feedback; or
+- creates a full-document revision for change requests.
 
-An inferior workaround would be anchoring a "whole-document" comment to the title or the first paragraph. That would make threading and AI behavior ambiguous, and it would break once that anchored text is rewritten or removed.
+In propose mode, the revision can be reviewed and accepted or rejected. In
+auto-apply mode, Thido applies it only if the document has not changed while
+the model was working. Concurrent edits cause the revision to remain pending
+instead of overwriting newer work.
 
-If you want, the next change should be implementing a first-class `DOCUMENT` comment type rather than trying to simulate it with the current anchored model.
+Document text is converted back into the editor’s structured format when a
+full-document revision is accepted or safely auto-applied.
+
+## Data model
+
+`Comment.scope` and `Suggestion.scope` use `SELECTION` or `DOCUMENT`.
+`anchorMarkId` and `quotedText` are nullable because document comments do not
+pretend to be attached to the title or first paragraph. Existing comments and
+suggestions default to `SELECTION`.

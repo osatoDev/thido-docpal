@@ -129,6 +129,7 @@ async function reconcileOrphanedComments(documentId: string, content: JSONConten
     prisma.comment.updateMany({
       where: {
         documentId,
+        scope: "SELECTION",
         isOrphaned: false,
         anchorMarkId: { notIn: presentIds },
       },
@@ -137,6 +138,7 @@ async function reconcileOrphanedComments(documentId: string, content: JSONConten
     prisma.comment.updateMany({
       where: {
         documentId,
+        scope: "SELECTION",
         isOrphaned: true,
         anchorMarkId: { in: presentIds },
       },

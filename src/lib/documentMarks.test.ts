@@ -3,11 +3,45 @@ import type { JSONContent } from "@tiptap/react";
 import {
   findCommentMarkRange,
   getCommentPromptContext,
+  getDocumentText,
   replaceCommentMarkText,
   replaceUniqueText,
 } from "@/lib/documentMarks";
 
 describe("document comment marks", () => {
+  it("extracts the full readable document for document-wide comments", () => {
+    const content: JSONContent = {
+      type: "doc",
+      content: [
+        {
+          type: "heading",
+          attrs: { level: 1 },
+          content: [{ type: "text", text: "Plan" }],
+        },
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "First " },
+            {
+              type: "text",
+              text: "important",
+              marks: [{ type: "bold" }],
+            },
+            { type: "text", text: " point." },
+          ],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "Second point." }],
+        },
+      ],
+    };
+
+    expect(getDocumentText(content)).toBe(
+      "Plan\n\nFirst important point.\n\nSecond point.",
+    );
+  });
+
   it("finds the full marked range across multiple text nodes", () => {
     const content: JSONContent = {
       type: "doc",

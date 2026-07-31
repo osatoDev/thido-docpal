@@ -190,6 +190,11 @@ enum CommentStatus {
   RESOLVED
 }
 
+enum CommentScope {
+  SELECTION
+  DOCUMENT
+}
+
 model Comment {
   id         String     @id @default(cuid())
   documentId String
@@ -202,9 +207,12 @@ model Comment {
   parent   Comment?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
   replies  Comment[] @relation("CommentThread")
 
-  // Anchoring — matches the Tiptap CommentMark's commentId attribute
-  anchorMarkId String
-  quotedText   String  @db.Text
+  scope CommentScope @default(SELECTION)
+
+  // Selection comments match the Tiptap CommentMark's commentId attribute.
+  // Document comments deliberately have no text anchor.
+  anchorMarkId String?
+  quotedText   String? @db.Text
   isOrphaned   Boolean @default(false)
 
   intent CommentIntent?
@@ -235,7 +243,8 @@ model Suggestion {
   comment    Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   documentId String
 
-  anchorMarkId String
+  scope        CommentScope @default(SELECTION)
+  anchorMarkId String?
   originalText String           @db.Text
   proposedText String           @db.Text
   status       SuggestionStatus @default(PENDING)

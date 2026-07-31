@@ -1,5 +1,6 @@
 import { after, NextResponse } from "next/server";
 import type { JSONContent } from "@tiptap/react";
+import { generateHTML } from "@tiptap/html/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -15,12 +16,15 @@ import {
 } from "@/lib/ai/telemetry";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import {
+  getDocumentText,
   getCommentPromptContext,
   replaceCommentMarkText,
 } from "@/lib/documentMarks";
 import { isDocumentWideCommentRequest } from "@/lib/commentProcessing";
+import { markdownToTiptapJSON } from "@/lib/markdownToTiptap";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { unauthorizedResponse } from "@/lib/apiResponses";
+import { getEditorExtensions } from "@/lib/editorExtensions";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -121,23 +125,40 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const anchorMarkId = typeof body.anchorMarkId === "string" ? body.anchorMarkId : null;
-  const quotedText = typeof body.quotedText === "string" ? body.quotedText : null;
+  const scope = body.scope === "DOCUMENT" ? "DOCUMENT" : "SELECTION";
+  const anchorMarkId =
+    scope === "SELECTION" && typeof body.anchorMarkId === "string"
+      ? body.anchorMarkId
+      : null;
+  const quotedText =
+    scope === "SELECTION" && typeof body.quotedText === "string"
+      ? body.quotedText
+      : null;
   const commentBody = typeof body.body === "string" ? body.body.trim() : "";
 
-  if (!anchorMarkId || !quotedText || !commentBody) {
+  if (
+    !commentBody ||
+    (scope === "SELECTION" && (!anchorMarkId || !quotedText))
+  ) {
     return NextResponse.json(
-      { error: "anchorMarkId, quotedText, and body are required" },
+      {
+        error:
+          scope === "DOCUMENT"
+            ? "body is required"
+            : "anchorMarkId, quotedText, and body are required",
+      },
       { status: 400 },
     );
   }
 
-  const waitForAi = isDocumentWideCommentRequest(commentBody);
+  const waitForAi =
+    scope === "DOCUMENT" || isDocumentWideCommentRequest(commentBody);
   const comment = await prisma.comment.create({
     data: {
       documentId,
       authorId: userId,
       authorType: "USER",
+      scope,
       anchorMarkId,
       quotedText,
       body: commentBody,
@@ -157,6 +178,7 @@ export async function POST(request: Request, { params }: Params) {
         commentId: comment.id,
         documentId,
         userId,
+        scope,
         anchorMarkId,
         quotedText,
         commentBody,
@@ -214,6 +236,7 @@ async function generateAiResponse({
   commentId,
   documentId,
   userId,
+  scope,
   anchorMarkId,
   quotedText,
   commentBody,
@@ -222,8 +245,9 @@ async function generateAiResponse({
   commentId: string;
   documentId: string;
   userId: string;
-  anchorMarkId: string;
-  quotedText: string;
+  scope: "SELECTION" | "DOCUMENT";
+  anchorMarkId: string | null;
+  quotedText: string | null;
   commentBody: string;
   allowAutoApply: boolean;
 }) {
@@ -235,16 +259,29 @@ async function generateAiResponse({
   try {
     const latestDocument = await prisma.document.findUnique({
       where: { id: documentId },
-      select: { content: true },
+      select: { content: true, updatedAt: true },
     });
+    const latestContent =
+      latestDocument?.content && typeof latestDocument.content === "object"
+        ? (latestDocument.content as JSONContent)
+        : null;
+    const documentText = latestContent ? getDocumentText(latestContent) : "";
+    const documentHtml = latestContent
+      ? generateHTML(latestContent, getEditorExtensions())
+      : "";
     const promptContext =
-      latestDocument?.content &&
-      typeof latestDocument.content === "object"
+      scope === "SELECTION" && latestContent && anchorMarkId
         ? getCommentPromptContext(
-            latestDocument.content as JSONContent,
+            latestContent,
             anchorMarkId,
           )
         : null;
+    if (scope === "DOCUMENT" && !documentText) {
+      throw new Error("The document has no text to review");
+    }
+    if (scope === "SELECTION" && (!anchorMarkId || !quotedText)) {
+      throw new Error("The selected comment target is missing");
+    }
     const model = await getUserAiModel(userId);
     telemetry = await startAiGeneration({
       feature: "COMMENT_RESPOND",
@@ -258,35 +295,51 @@ async function generateAiResponse({
     }
     const message = await anthropic.messages.parse({
       model,
-      max_tokens: 1024,
+      max_tokens: scope === "DOCUMENT" ? 16000 : 1024,
       output_config: {
         format: zodOutputFormat(commentResponseSchema),
       },
       system:
-        "You are an editorial assistant embedded in a document editor. A " +
-        "user has commented on an editable target span. The target may be " +
-        "their exact original selection or a deliberately expanded paragraph " +
-        "scope when the request clearly called for a broader rewrite. You " +
-        "may use the surrounding context to interpret meaning, tone, and " +
-        "references, but only the TARGET TEXT is editable.\n" +
-        "Classify the request and respond:\n" +
-        "- For a question or feedback: write a short, direct reply " +
-        "answering it or acknowledging it. Do not propose replacement " +
-        "text.\n" +
-        "- For a change request: write a one-sentence reply describing " +
-        "the edit you're making, and provide the full replacement text " +
-        "for the TARGET TEXT in proposed_text (matching its style " +
-        "and length unless asked otherwise). Never rewrite text outside " +
-        "the target span.",
+        scope === "DOCUMENT"
+          ? "You are an editorial assistant embedded in a document editor. " +
+            "The user deliberately made a comment that applies to the ENTIRE " +
+            "DOCUMENT, so the complete document is editable.\n" +
+            "Classify the request and respond:\n" +
+            "- For a question or feedback: write a short, direct reply and do " +
+            "not provide replacement text.\n" +
+            "- For a change request: write a one-sentence reply describing " +
+            "the edit, and provide the complete revised document in " +
+            "proposed_text. Preserve all content and structure the request " +
+            "does not ask you to change. The document is supplied as HTML so " +
+            "its structure is unambiguous; return the revised document as " +
+            "clean Markdown suitable for conversion back into the editor. " +
+            "Do not reproduce editor-only data attributes."
+          : "You are an editorial assistant embedded in a document editor. A " +
+            "user has commented on an editable target span. The target may be " +
+            "their exact original selection or a deliberately expanded paragraph " +
+            "scope when the request clearly called for a broader rewrite. You " +
+            "may use the surrounding context to interpret meaning, tone, and " +
+            "references, but only the TARGET TEXT is editable.\n" +
+            "Classify the request and respond:\n" +
+            "- For a question or feedback: write a short, direct reply " +
+            "answering it or acknowledging it. Do not propose replacement " +
+            "text.\n" +
+            "- For a change request: write a one-sentence reply describing " +
+            "the edit you're making, and provide the full replacement text " +
+            "for the TARGET TEXT in proposed_text (matching its style " +
+            "and length unless asked otherwise). Never rewrite text outside " +
+            "the target span.",
       messages: [
         {
           role: "user",
           content:
-            `TARGET TEXT:\n"""${quotedText}"""\n\n` +
-            `COMMENT:\n${commentBody}\n\n` +
-            `CONTAINING BLOCK:\n"""${promptContext?.blockText || quotedText}"""\n\n` +
-            `CONTEXT BEFORE TARGET:\n"""${promptContext?.beforeText || "(none)"}"""\n\n` +
-            `CONTEXT AFTER TARGET:\n"""${promptContext?.afterText || "(none)"}"""`,
+            scope === "DOCUMENT"
+              ? `ENTIRE DOCUMENT HTML:\n"""${documentHtml}"""\n\nCOMMENT:\n${commentBody}`
+              : `TARGET TEXT:\n"""${quotedText}"""\n\n` +
+                `COMMENT:\n${commentBody}\n\n` +
+                `CONTAINING BLOCK:\n"""${promptContext?.blockText || quotedText}"""\n\n` +
+                `CONTEXT BEFORE TARGET:\n"""${promptContext?.beforeText || "(none)"}"""\n\n` +
+                `CONTEXT AFTER TARGET:\n"""${promptContext?.afterText || "(none)"}"""`,
         },
       ],
     });
@@ -310,6 +363,7 @@ async function generateAiResponse({
           documentId,
           authorType: "AI",
           parentId: commentId,
+          scope,
           anchorMarkId,
           quotedText,
           body: parsed.reply,
@@ -324,35 +378,48 @@ async function generateAiResponse({
 
       if (parsed.intent === "change_request" && parsed.proposed_text) {
         if (mode === "AUTO_APPLY") {
-          const updatedContent = await applyReplacementWithoutClobbering({
-            documentId,
-            anchorMarkId,
-            proposedText: parsed.proposed_text,
-          });
+          const updatedContent =
+            scope === "DOCUMENT"
+              ? await applyDocumentReplacementWithoutClobbering({
+                  documentId,
+                  expectedUpdatedAt: latestDocument?.updatedAt,
+                  proposedText: parsed.proposed_text,
+                })
+              : await applyReplacementWithoutClobbering({
+                  documentId,
+                  anchorMarkId: anchorMarkId!,
+                  proposedText: parsed.proposed_text,
+                });
 
           await prisma.suggestion.create({
             data: {
               commentId,
               documentId,
+              scope,
               anchorMarkId,
-              originalText: quotedText,
+              originalText:
+                scope === "DOCUMENT" ? documentHtml : quotedText!,
               proposedText: parsed.proposed_text,
               status: updatedContent ? "AUTO_APPLIED" : "PENDING",
               resolvedAt: updatedContent ? new Date() : null,
             },
           });
 
-          await prisma.comment.update({
-            where: { id: commentId },
-            data: { status: "RESOLVED" },
-          });
+          if (updatedContent) {
+            await prisma.comment.update({
+              where: { id: commentId },
+              data: { status: "RESOLVED" },
+            });
+          }
         } else {
           await prisma.suggestion.create({
             data: {
               commentId,
               documentId,
+              scope,
               anchorMarkId,
-              originalText: quotedText,
+              originalText:
+                scope === "DOCUMENT" ? documentHtml : quotedText!,
               proposedText: parsed.proposed_text,
             },
           });
@@ -366,6 +433,24 @@ async function generateAiResponse({
     console.error("AI comment response failed", error);
     return false;
   }
+}
+
+async function applyDocumentReplacementWithoutClobbering({
+  documentId,
+  expectedUpdatedAt,
+  proposedText,
+}: {
+  documentId: string;
+  expectedUpdatedAt?: Date;
+  proposedText: string;
+}): Promise<JSONContent | null> {
+  if (!expectedUpdatedAt) return null;
+  const updatedContent = await markdownToTiptapJSON(proposedText);
+  const update = await prisma.document.updateMany({
+    where: { id: documentId, updatedAt: expectedUpdatedAt },
+    data: { content: updatedContent },
+  });
+  return update.count === 1 ? updatedContent : null;
 }
 
 async function applyReplacementWithoutClobbering({

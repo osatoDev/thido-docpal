@@ -78,14 +78,20 @@ export function CommentThread({
         comment.status === "RESOLVED" ? "opacity-60" : ""
       }`}
     >
-      <blockquote className="border-l-2 border-[var(--border-strong)] pl-2 text-xs italic text-[var(--muted)]">
-        &ldquo;{comment.quotedText}&rdquo;
-        {comment.isOrphaned && (
-          <span className="ml-1 not-italic text-[var(--warm)]">
-            (highlighted text was removed)
-          </span>
-        )}
-      </blockquote>
+      {comment.scope === "DOCUMENT" ? (
+        <p className="w-fit rounded-full bg-[var(--surface-subtle)] px-2.5 py-1 text-xs font-medium text-[var(--muted)]">
+          Whole document
+        </p>
+      ) : (
+        <blockquote className="border-l-2 border-[var(--border-strong)] pl-2 text-xs italic text-[var(--muted)]">
+          &ldquo;{comment.quotedText}&rdquo;
+          {comment.isOrphaned && (
+            <span className="ml-1 not-italic text-[var(--warm)]">
+              (highlighted text was removed)
+            </span>
+          )}
+        </blockquote>
+      )}
 
       <p className="text-xs font-medium text-[var(--muted)]">
         {comment.author?.name || "Collaborator"}

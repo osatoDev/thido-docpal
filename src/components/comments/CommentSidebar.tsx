@@ -12,6 +12,9 @@ export function CommentSidebar({
   pendingCommentIds,
   commentProgress,
   foregroundCommentCount,
+  onStartDocumentComment,
+  documentComposerOpen,
+  canCreateComments,
   canManageComments,
 }: {
   comments: CommentWithReplies[];
@@ -21,6 +24,9 @@ export function CommentSidebar({
   pendingCommentIds: Set<string>;
   commentProgress: Record<string, CommentAiProgress>;
   foregroundCommentCount: number;
+  onStartDocumentComment: () => void;
+  documentComposerOpen: boolean;
+  canCreateComments: boolean;
   canManageComments: boolean;
 }) {
   const { open: openComments, archived: archivedComments } =
@@ -44,6 +50,32 @@ export function CommentSidebar({
         )}
       </div>
 
+      {canCreateComments && !documentComposerOpen && (
+        <div>
+          <button
+            type="button"
+            onClick={onStartDocumentComment}
+            className="secondary-button flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-medium"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              className="h-4 w-4"
+            >
+              <path d="M6.75 3.75h7.5l3 3v13.5H6.75z" />
+              <path d="M14.25 3.75v3h3M9.5 11h5M9.5 14h5" />
+            </svg>
+            Comment on whole document
+          </button>
+          <p className="mt-1.5 text-xs leading-5 text-[var(--muted-soft)]">
+            For feedback or changes that apply across the entire draft.
+          </p>
+        </div>
+      )}
+
       {foregroundCommentCount > 0 && (
         <div
           className="flex items-start gap-2 rounded-sm border border-[var(--border)] bg-[var(--surface)] p-3 text-xs text-[var(--muted)]"
@@ -59,8 +91,11 @@ export function CommentSidebar({
 
       {comments.length === 0 && foregroundCommentCount === 0 ? (
         <p className="text-xs leading-5 text-[var(--muted-soft)]">
-          Select text in the document and click &ldquo;Comment&rdquo; to leave
-          feedback or ask the AI a question.
+          {documentComposerOpen
+            ? "Submit your whole-document comment above."
+            : canCreateComments
+              ? "Select text and choose “Comment” for a specific passage, or use the whole-document action above."
+              : "No comments yet."}
         </p>
       ) : openComments.length === 0 && foregroundCommentCount === 0 ? (
         <p className="text-xs leading-5 text-[var(--muted-soft)]">

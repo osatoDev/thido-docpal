@@ -11,6 +11,7 @@ describe("document-wide comment processing", () => {
     "Keep this terminology consistent across the document",
     "Review the document overall",
     "Apply this document-wide",
+    "Remove all markdown from this document",
   ])("keeps an explicit document-wide request in the foreground: %s", (body) => {
     expect(isDocumentWideCommentRequest(body)).toBe(true);
   });

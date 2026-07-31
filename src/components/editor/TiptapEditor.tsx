@@ -31,12 +31,17 @@ type Props = {
 };
 
 type SaveState = "idle" | "saving" | "saved" | "error";
-type ActiveComposer = {
+type SelectionComposer = {
+  scope: "SELECTION";
   anchorMarkId: string;
   quotedText: string;
   from: number;
   to: number;
 };
+type DocumentComposer = {
+  scope: "DOCUMENT";
+};
+type ActiveComposer = SelectionComposer | DocumentComposer;
 
 const BROADER_SCOPE_PROMPT = /\b(paragraph|section|intro|introduction|conclusion|opening|closing|entire|whole|overall)\b/i;
 
@@ -128,15 +133,50 @@ export function TiptapEditor({
     const { from, to } = editor.state.selection;
     if (from === to) return;
 
+    if (activeComposer?.scope === "SELECTION") {
+      editor
+        .chain()
+        .setTextSelection({
+          from: activeComposer.from,
+          to: activeComposer.to,
+        })
+        .unsetComment()
+        .run();
+    }
     const quotedText = editor.state.doc.textBetween(from, to, " ");
     const anchorMarkId = crypto.randomUUID();
 
-    editor.chain().setComment(anchorMarkId).run();
-    setActiveComposer({ anchorMarkId, quotedText, from, to });
+    editor
+      .chain()
+      .setTextSelection({ from, to })
+      .setComment(anchorMarkId)
+      .run();
+    setActiveComposer({
+      scope: "SELECTION",
+      anchorMarkId,
+      quotedText,
+      from,
+      to,
+    });
+  }
+
+  function startDocumentComment() {
+    if (editor && activeComposer?.scope === "SELECTION") {
+      editor
+        .chain()
+        .setTextSelection({
+          from: activeComposer.from,
+          to: activeComposer.to,
+        })
+        .unsetComment()
+        .run();
+    }
+    setCommentError(null);
+    setActiveComposer({ scope: "DOCUMENT" });
   }
 
   function cancelComment() {
-    if (editor && activeComposer) {
+    if (editor && activeComposer?.scope === "SELECTION") {
       editor
         .chain()
         .setTextSelection({ from: activeComposer.from, to: activeComposer.to })
@@ -148,14 +188,32 @@ export function TiptapEditor({
 
   function submitComment(body: string) {
     if (!activeComposer) return;
-    const composer = expandCommentScope(activeComposer, body);
+    let composer: ActiveComposer = activeComposer;
+    if (
+      activeComposer.scope === "SELECTION" &&
+      isDocumentWideCommentRequest(body)
+    ) {
+      if (editor) {
+        editor
+          .chain()
+          .setTextSelection({
+            from: activeComposer.from,
+            to: activeComposer.to,
+          })
+          .unsetComment()
+          .run();
+      }
+      composer = { scope: "DOCUMENT" };
+    } else if (activeComposer.scope === "SELECTION") {
+      composer = expandCommentScope(activeComposer, body);
+    }
     setCommentError(null);
     setActiveComposer(null);
 
     void persistComment(composer, body);
   }
 
-  function expandCommentScope(composer: ActiveComposer, body: string) {
+  function expandCommentScope(composer: SelectionComposer, body: string) {
     if (!editor || !BROADER_SCOPE_PROMPT.test(body)) {
       return composer;
     }
@@ -199,7 +257,8 @@ export function TiptapEditor({
   }
 
   async function persistComment(composer: ActiveComposer, body: string) {
-    const waitForAi = isDocumentWideCommentRequest(body);
+    const waitForAi =
+      composer.scope === "DOCUMENT" || isDocumentWideCommentRequest(body);
     if (waitForAi) {
       setForegroundCommentCount((count) => count + 1);
     }
@@ -221,15 +280,26 @@ export function TiptapEditor({
       });
       setSaveState(saveResponse.ok ? "saved" : "error");
       if (!saveResponse.ok) {
-        throw new Error("Could not save the comment highlight");
+        throw new Error(
+          composer.scope === "DOCUMENT"
+            ? "Could not save the document before commenting"
+            : "Could not save the comment highlight",
+        );
       }
 
+      const selectionTarget =
+        composer.scope === "SELECTION"
+          ? {
+              anchorMarkId: composer.anchorMarkId,
+              quotedText: composer.quotedText,
+            }
+          : {};
       const res = await fetch(`/api/documents/${documentId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          anchorMarkId: composer.anchorMarkId,
-          quotedText: composer.quotedText,
+          scope: composer.scope,
+          ...selectionTarget,
           body,
         }),
       });
@@ -469,7 +539,13 @@ export function TiptapEditor({
         {activeComposer && (
           <div className="border-b border-[var(--border)] bg-[var(--surface)] p-4">
             <CommentComposer
-              quotedText={activeComposer.quotedText}
+              key={activeComposer.scope}
+              scope={activeComposer.scope}
+              quotedText={
+                activeComposer.scope === "SELECTION"
+                  ? activeComposer.quotedText
+                  : undefined
+              }
               onSubmit={submitComment}
               onCancel={cancelComment}
             />
@@ -483,6 +559,9 @@ export function TiptapEditor({
           pendingCommentIds={pendingCommentIds}
           commentProgress={commentProgress}
           foregroundCommentCount={foregroundCommentCount}
+          onStartDocumentComment={startDocumentComment}
+          documentComposerOpen={activeComposer?.scope === "DOCUMENT"}
+          canCreateComments={canComment && !!editor}
           canManageComments={canEdit}
         />
       </div>

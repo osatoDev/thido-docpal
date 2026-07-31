@@ -27,6 +27,13 @@ export type CommentPromptContext = {
   targetText: string;
 };
 
+/** Returns the readable text of the whole editor document. */
+export function getDocumentText(content: JSONContent) {
+  const schema = getDocSchema();
+  const doc = PMNode.fromJSON(schema, content);
+  return doc.textBetween(0, doc.content.size, "\n\n", " ").trim();
+}
+
 function trimLeading(text: string, maxLength: number) {
   if (text.length <= maxLength) return text;
   return text.slice(text.length - maxLength).trimStart();

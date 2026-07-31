@@ -3,6 +3,7 @@ const DOCUMENT_WIDE_REQUESTS = [
   /\b(?:across|throughout)\s+(?:this|the)?\s*(?:document|draft|piece|text)\b/i,
   /\b(?:document|draft|piece)[-\s]wide\b/i,
   /\b(?:document|draft)\s+overall\b/i,
+  /\b(?:remove|strip|fix|change|replace|standardize|normalise|normalize|convert)\s+all\b.{0,80}\b(?:this|the)\s+(?:document|draft|piece|text)\b/i,
 ] as const;
 
 /**

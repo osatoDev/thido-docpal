@@ -50,10 +50,12 @@ Even then, the UI should make that scope visible, for example by showing `Apply 
 ## Processing behavior
 
 Explicit whole-document wording such as “entire document,” “whole draft,” or
-“across the document” is processed in the foreground. Thido keeps a visible
-working state and returns the completed AI response with the newly created
-comment instead of creating the comment and polling for a background result.
+“across the document” is promoted to the first-class `DOCUMENT` scope and
+processed in the foreground. The same scope is available directly through the
+visible **Comment on whole document** action, without selecting text. Thido
+keeps a visible working state and returns the completed AI response with the
+newly created comment instead of creating the comment and polling for a
+background result.
 
 Selection- and paragraph-scoped comments retain the faster background response
-flow. This scheduling distinction does not change the current anchored edit
-boundary: a first-class document target remains a separate product capability.
+flow. Their anchored edit boundary remains unchanged.
