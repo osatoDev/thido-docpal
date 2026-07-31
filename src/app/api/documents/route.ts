@@ -11,7 +11,12 @@ export async function GET() {
   }
 
   const documents = await prisma.document.findMany({
-    where: documentAccessWhere(session.user.id, session.user.email, "VIEW"),
+    where: {
+      AND: [
+        documentAccessWhere(session.user.id, session.user.email, "VIEW"),
+        { isPlaceholder: false },
+      ],
+    },
     orderBy: { updatedAt: "desc" },
     select: { id: true, title: true, status: true, updatedAt: true },
   });

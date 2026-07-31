@@ -3,6 +3,7 @@ import type { JSONContent } from "@tiptap/react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { documentAccessWhere, getDocumentForUser } from "@/lib/documentAuth";
+import { shouldPromotePlaceholder } from "@/lib/documentPersistence";
 import { collectCommentMarkIds } from "@/lib/documentMarks";
 import { unauthorizedResponse } from "@/lib/apiResponses";
 import { isCommentMarkOnlyChange } from "@/lib/publicDocument";
@@ -71,7 +72,11 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const data: { title?: string; content?: object } = {};
+  const data: {
+    title?: string;
+    content?: object;
+    isPlaceholder?: false;
+  } = {};
   if (
     editableDocument &&
     typeof body.title === "string" &&
@@ -102,6 +107,15 @@ export async function PATCH(request: Request, { params }: Params) {
       }
     }
     data.content = body.content;
+  }
+  if (
+    editableDocument?.isPlaceholder &&
+    shouldPromotePlaceholder({
+      title: data.title,
+      content: data.content,
+    })
+  ) {
+    data.isPlaceholder = false;
   }
 
   const document = await prisma.document.update({

@@ -55,10 +55,11 @@ export default async function AdminPage() {
     aiOperations,
   ] = await Promise.all([
       prisma.user.count(),
-      prisma.document.count(),
+      prisma.document.count({ where: { isPlaceholder: false } }),
       prisma.comment.count(),
       prisma.suggestion.count({ where: { status: "PENDING" } }),
       prisma.document.findMany({
+        where: { isPlaceholder: false },
         orderBy: { updatedAt: "desc" },
         take: 6,
         select: {

@@ -1,11 +1,12 @@
 # Thido production checklist
 
-Last reviewed: 30 July 2026
+Last reviewed: 31 July 2026
 
 This is the running source of truth for production-readiness work. Completed boxes indicate repository evidence or a verified check. External configuration remains unchecked until it is explicitly verified.
 
 ## Immediate deployment blockers
 
+- [ ] Apply the `20260731120000_add_document_placeholder_state` migration to the production database before deploying placeholder document handling.
 - [ ] Apply the `20260731100000_add_document_comment_scope` migration to the production database before deploying first-class whole-document comments.
 - [ ] Apply the `20260729120000_add_ai_generation_observability` migration to the production database before deploying AI usage tracking and admin AI operations metrics.
 - [ ] Apply the `20260728120000_add_document_last_accessed_at` migration to the production database before deploying dashboard access timestamps.
@@ -14,7 +15,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Apply the `20260722143000_add_guest_draft_id` migration to the production database before deploying the guest-first flow.
 - [x] Apply previously committed Prisma migrations through `20260722100000_add_auth_tokens` to the production database.
 - [x] Resolve or confirm the Prisma baseline for the existing production database before running `prisma migrate deploy` if it still reports `P3005`.
-- [ ] After applying pending migrations through `20260731100000_add_document_comment_scope`, verify `npx prisma migrate status` reports that the production schema is up to date.
+- [ ] After applying pending migrations through `20260731120000_add_document_placeholder_state`, verify `npx prisma migrate status` reports that the production schema is up to date.
 - [ ] Configure `RESEND_API_KEY` in Vercel Production and Preview environments as appropriate.
 - [ ] Verify the sending domain in Resend and replace `onboarding@resend.dev` with a production `AUTH_EMAIL_FROM` address.
 - [ ] Send real verification and password-reset emails and confirm delivery, links, expiry, and single-use behavior against the production database.
@@ -105,6 +106,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Keep complete and partial guest input local and restore it after sign-in initiated through either **Generate** or the page navigation; require authentication before AI generation or permanent database storage.
 - [x] Let users switch between guided initial questions and a freeform prompt; retain tailored follow-ups for guided briefs and generate directly from freeform briefs.
 - [x] Make a blank `READY` document the default signed-in creation path, with AI-guided drafting and paste-existing flows available as explicit alternatives.
+- [x] Keep untouched blank editor sessions as hidden, reusable placeholders and count them as documents only after a custom title or meaningful body content is saved.
 - [x] Show a clear `BETA` status badge beside the shared Thido wordmark across the application.
 - [x] Let document owners create, copy, open, and revoke unlisted read-only share links; public views expose the title, document body, and owner profile name while keeping email and other account details private.
 - [x] Clearly identify who shared a document on the public read-only view, with a non-identifying owner label for legacy accounts that have no profile name.
@@ -130,6 +132,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Define maximum document size and API request-body limits.
 - [ ] Add data export and account deletion flows.
 - [ ] Define retention rules for documents, comments, deleted accounts, auth tokens, and operational logs.
+- [ ] Define a cleanup window for abandoned document placeholders that are no longer reusable.
 - [ ] Verify cascade deletion behavior against the intended retention policy.
 
 ## AI reliability and safety
@@ -151,7 +154,7 @@ This is the running source of truth for production-readiness work. Completed box
 ## Testing and continuous integration
 
 - [x] Add automated unit tests for authentication input, password hashing, token helpers, rate limiting, and API auth responses.
-- [x] Confirm the current unit suite passes: 50 tests across sixteen files.
+- [x] Confirm the current unit suite passes: 54 tests across seventeen files.
 - [x] Confirm lint and the production build pass after the authentication upgrade.
 - [ ] Add a normal CI workflow that runs `npm ci`, `npm test`, `npm run lint`, and `npm run build` for pull requests and `main`.
 - [ ] Add database integration tests for issuing and consuming verification and reset tokens transactionally.

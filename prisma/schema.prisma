@@ -128,6 +128,7 @@ model Document {
   ownerId        String
   owner          User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   status         DocumentStatus         @default(DRAFTING)
+  isPlaceholder  Boolean                @default(false)
   content        Json?
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
@@ -138,6 +139,7 @@ model Document {
   aiGenerations  AiGeneration[]
 
   @@index([ownerId])
+  @@index([isPlaceholder, updatedAt])
 }
 
 model DocumentCollaborator {

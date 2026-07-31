@@ -39,7 +39,12 @@ export default async function DashboardPage() {
   }
 
   const documents = await prisma.document.findMany({
-    where: documentAccessWhere(session.user.id, session.user.email, "VIEW"),
+    where: {
+      AND: [
+        documentAccessWhere(session.user.id, session.user.email, "VIEW"),
+        { isPlaceholder: false },
+      ],
+    },
     orderBy: { updatedAt: "desc" },
     include: {
       owner: { select: { name: true } },
