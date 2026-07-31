@@ -106,7 +106,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Add `Retry-After` information to HTTP `429` responses where possible.
 - [ ] Configure Vercel Firewall rules for broad automated abuse and denial-of-service protection.
 - [ ] Add alerts for sustained authentication, email, or AI rate-limit rejections.
-- [ ] Set explicit per-user or per-plan AI quotas and spending alerts for every active model provider.
+- [ ] Set explicit per-user or per-plan AI allowances and spending alerts for every active model provider, using the token-aware internal guardrails in [the paid-plan pricing suggestions](./paid-plan-pricing.md) without exposing surprise raw-token overages to users.
 
 ## Application data and document storage
 

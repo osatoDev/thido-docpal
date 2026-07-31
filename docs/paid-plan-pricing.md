@@ -60,6 +60,55 @@ Do not sell an unlimited AI plan yet. Thido currently lets users select models
 with materially different costs, including Sonnet and Opus, and it has not yet
 implemented per-plan quotas.
 
+### Should the customer price be linked to tokens?
+
+**Internally, yes. Customer-facing, no.**
+
+Token cost should determine whether a plan is sustainable, but Thido should not
+ask ordinary users to buy or count raw input and output tokens. Customers value
+a completed draft, a useful comment response, or an accepted revision. They do
+not know how many tokens a document action will consume, and the same visible
+task can cost more when:
+
+- the document or conversation is longer;
+- a more expensive model such as Opus is selected;
+- the model produces a longer answer;
+- prompt caching does or does not apply; or
+- a provider changes its tokenizer or prices.
+
+Anthropic, for example, currently prices Sonnet and Opus input and output tokens
+at different rates. It also notes that Sonnet 5's tokenizer can produce roughly
+30% more tokens for equivalent text, even when a model's per-token price has not
+changed. A customer should not receive a surprising bill because of an
+implementation detail like that.
+[Claude API pricing](https://platform.claude.com/docs/en/about-claude/pricing)
+
+### Recommended hybrid model
+
+Keep the **€12/month subscription** and include a clearly described monthly AI
+allowance. Measure raw tokens and estimated cost behind the scenes.
+
+A customer-facing allowance can use **AI credits or actions**, with weights that
+roughly reflect cost:
+
+- a short answer or selected-text revision: one standard action;
+- initial document generation or a whole-document revision: several actions;
+- an Opus request: more actions than the Sonnet equivalent.
+
+Those weights should be calibrated from Thido's real telemetry before being
+published. Internally, monitor estimated AI cost per user and per feature, and
+alert when a user's monthly cost approaches the plan's intended cost budget.
+
+When the allowance is exhausted, use a predictable choice such as waiting for
+the next monthly reset, buying a clearly priced add-on, or moving to a higher
+plan. Do not apply surprise token overage charges. Annual subscribers should
+still receive monthly allowance resets so one unusually active month cannot
+consume an entire year's budget.
+
+Provider price changes should trigger an internal margin review, not an
+automatic customer price change. Review pricing at a regular interval and give
+customers clear notice before changing the subscription price or allowance.
+
 Before enabling checkout:
 
 1. Set a monthly AI allowance or internal spend ceiling for Free and Pro.
