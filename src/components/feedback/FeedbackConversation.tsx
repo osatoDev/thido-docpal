@@ -3,10 +3,8 @@
 import { useActionState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
-import {
-  initialFeedbackActionState,
-  sendUserFeedbackMessage,
-} from "@/app/feedback-actions";
+import { sendUserFeedbackMessage } from "@/app/feedback-actions";
+import { initialFeedbackActionState } from "@/lib/feedback-action-state";
 
 export type FeedbackMessageView = {
   id: string;

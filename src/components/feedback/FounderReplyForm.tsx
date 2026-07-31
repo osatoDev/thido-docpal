@@ -3,10 +3,8 @@
 import { useActionState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
-import {
-  initialFeedbackActionState,
-  sendFounderFeedbackReply,
-} from "@/app/feedback-actions";
+import { sendFounderFeedbackReply } from "@/app/feedback-actions";
+import { initialFeedbackActionState } from "@/lib/feedback-action-state";
 
 export function FounderReplyForm({ threadId }: { threadId: string }) {
   const router = useRouter();

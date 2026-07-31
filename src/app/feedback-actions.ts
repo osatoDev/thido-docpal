@@ -11,6 +11,7 @@ import {
   founderReplySchema,
   sanitizeFeedbackPath,
 } from "@/lib/feedback";
+import type { FeedbackActionState } from "@/lib/feedback-action-state";
 import {
   sendFounderFeedbackNotification,
   sendFounderReplyEmail,
@@ -18,16 +19,6 @@ import {
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { reportServerError } from "@/lib/rollbar/server";
-
-export type FeedbackActionState = {
-  status: "idle" | "success" | "error";
-  message?: string;
-  submissionId?: string;
-};
-
-export const initialFeedbackActionState: FeedbackActionState = {
-  status: "idle",
-};
 
 export async function sendUserFeedbackMessage(
   _state: FeedbackActionState,
