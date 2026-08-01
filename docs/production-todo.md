@@ -30,7 +30,7 @@ This is the running source of truth for production-readiness work. Completed box
   - [x] `DATABASE_URL`
   - [x] `DATABASE_URL_UNPOOLED`
   - [x] `AUTH_SECRET`
-  - [ ] `NEXTAUTH_URL` (absent from the Vercel Production environment on 31 July 2026)
+  - [x] `NEXTAUTH_URL` (`https://thido.ai` in Vercel Production)
   - [x] `GOOGLE_CLIENT_ID`
   - [x] `GOOGLE_CLIENT_SECRET`
   - [x] `RESEND_API_KEY`
@@ -240,7 +240,8 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Add the apex `thido.ai` A record in Route 53 (`216.198.79.1`, `76.76.21.21`) so the bare domain resolves. Note: the first attempt used record name `@.thido.ai`, which Route 53 treats as a literal hostname, not the zone apex — the apex record must be created with an empty record name. Fixed and confirmed via `dig thido.ai A`.
 - [x] Add `thido.ai` (not only `www.thido.ai`) as a Vercel Domain and verify the apex responds successfully over HTTPS.
 - [ ] Verify DNS, HTTPS certificate issuance, and canonical redirects.
-- [ ] Set `NEXTAUTH_URL` to the final HTTPS origin.
+- [x] Set `NEXTAUTH_URL` to the final HTTPS origin and verify the live Google authorization request uses the production callback URL.
+- [x] Exclude local `.env` files from Vercel deployment uploads so local URLs and secrets cannot override managed production variables.
 - [ ] Create a Preview or staging environment with isolated database and email configuration.
 - [ ] Ensure Preview deployments never use the production database by default.
 - [ ] Decide whether Neon database branches should be created for Preview deployments.
