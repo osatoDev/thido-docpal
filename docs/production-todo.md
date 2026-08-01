@@ -179,9 +179,10 @@ This is the running source of truth for production-readiness work. Completed box
 ## Testing and continuous integration
 
 - [x] Add automated unit tests for authentication input, password hashing, token helpers, rate limiting, and API auth responses.
-- [x] Confirm the current unit suite passes: 63 tests across twenty-one files.
+- [x] Confirm the current unit suite passes: 64 tests across twenty-one files.
 - [x] Confirm type checking, lint, Prisma validation, and the production build pass after the founder-feedback implementation.
 - [x] Prevent the founder-feedback POST runtime crash by keeping non-function state out of the `"use server"` action module and scanning every server-action module for invalid runtime exports in the unit suite.
+- [x] Fix new-user Google OAuth registration by casting the PostgreSQL advisory-lock result to a Prisma-supported type, verify it against PostgreSQL, and retain a regression assertion for the lock query.
 - [ ] Add a normal CI workflow that runs `npm ci`, `npm test`, `npm run lint`, and `npm run build` for pull requests and `main`.
 - [ ] Add database integration tests for issuing and consuming verification and reset tokens transactionally.
 - [ ] Add browser tests for registration, email verification, password reset, Google login, sign-out, stale sessions, and admin authorization.

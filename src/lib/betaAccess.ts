@@ -1,9 +1,15 @@
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 
 export const BETA_USER_LIMIT = 100;
 const BETA_SEAT_LOCK_ID = 8_114_202_601;
+
+export function betaSeatLockStatement(lockId = BETA_SEAT_LOCK_ID) {
+  return Prisma.sql`
+    SELECT pg_advisory_xact_lock(${lockId})::text AS "lockResult"
+  `;
+}
 
 export class BetaCapacityReachedError extends Error {
   constructor() {
@@ -22,9 +28,9 @@ export function nextBetaSeat(claimedSeats: number[], limit = BETA_USER_LIMIT) {
 
 export async function createBetaUser(data: Prisma.UserCreateInput) {
   return prisma.$transaction(async (transaction) => {
-    await transaction.$queryRaw`
-      SELECT pg_advisory_xact_lock(${BETA_SEAT_LOCK_ID})
-    `;
+    await transaction.$queryRaw<Array<{ lockResult: string }>>(
+      betaSeatLockStatement(),
+    );
     const users = await transaction.user.findMany({
       where: { betaSeat: { not: null } },
       select: { betaSeat: true },
