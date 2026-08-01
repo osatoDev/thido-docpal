@@ -8,6 +8,7 @@ import { getEditorExtensions } from "@/lib/editorExtensions";
 import { Toolbar } from "./Toolbar";
 import { CommentSidebar } from "@/components/comments/CommentSidebar";
 import { CommentComposer } from "@/components/comments/CommentComposer";
+import { RecentThidoChangeNotice } from "@/components/comments/RecentThidoChangeNotice";
 import { AiModeToggle } from "@/components/settings/AiModeToggle";
 import {
   ShareDocumentControl,
@@ -15,7 +16,11 @@ import {
   type CollaboratorSummary,
 } from "@/components/documents/ShareDocumentControl";
 import { Brand } from "@/components/Brand";
-import type { CommentAiProgress, CommentWithReplies } from "@/lib/types";
+import type {
+  CommentAiProgress,
+  CommentWithReplies,
+  SuggestionWithStatus,
+} from "@/lib/types";
 import { isDocumentWideCommentRequest } from "@/lib/commentProcessing";
 
 type Props = {
@@ -81,6 +86,8 @@ export function TiptapEditor({
     initialDocumentAiLocked,
   );
   const [commentError, setCommentError] = useState<string | null>(null);
+  const [recentThidoChange, setRecentThidoChange] =
+    useState<SuggestionWithStatus | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
   const documentAiLockedRef = useRef(initialDocumentAiLocked);
@@ -384,6 +391,9 @@ export function TiptapEditor({
 
       if (data.documentContent && editor) {
         editor.commands.setContent(data.documentContent);
+        if (savedComment.suggestion?.status === "AUTO_APPLIED") {
+          setRecentThidoChange(savedComment.suggestion);
+        }
       }
     } catch (error) {
       if (!mountedRef.current) return;
@@ -458,6 +468,7 @@ export function TiptapEditor({
             editorRef.current
           ) {
             editorRef.current.commands.setContent(data.documentContent);
+            setRecentThidoChange(target.suggestion);
           }
           return;
         }
@@ -541,9 +552,13 @@ export function TiptapEditor({
     });
   }
 
-  function handleDocumentContentUpdated(content: unknown) {
+  function handleDocumentContentUpdated(
+    content: unknown,
+    suggestion: SuggestionWithStatus,
+  ) {
     if (content && editor) {
       editor.commands.setContent(content as JSONContent);
+      setRecentThidoChange(suggestion);
     }
   }
 
@@ -613,6 +628,13 @@ export function TiptapEditor({
           <p className="text-xs text-[var(--danger)]" role="alert">
             {commentError}
           </p>
+        )}
+
+        {recentThidoChange && (
+          <RecentThidoChangeNotice
+            suggestion={recentThidoChange}
+            onDismiss={() => setRecentThidoChange(null)}
+          />
         )}
 
         {startedFromPaste && !initialContent && (

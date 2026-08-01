@@ -27,15 +27,19 @@ export async function PATCH(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   const data: {
-    aiCommentMode?: "PROPOSE" | "AUTO_APPLY";
+    aiCommentMode?: "PROPOSE" | "AUTO" | "AUTO_APPLY";
     aiModel?: string;
     documentStartMode?: "NEW_DOCUMENT" | "MOST_RECENT";
   } = {};
 
   if (body.aiCommentMode !== undefined) {
-    if (body.aiCommentMode !== "PROPOSE" && body.aiCommentMode !== "AUTO_APPLY") {
+    if (
+      body.aiCommentMode !== "PROPOSE" &&
+      body.aiCommentMode !== "AUTO" &&
+      body.aiCommentMode !== "AUTO_APPLY"
+    ) {
       return NextResponse.json(
-        { error: "aiCommentMode must be PROPOSE or AUTO_APPLY" },
+        { error: "aiCommentMode must be PROPOSE, AUTO, or AUTO_APPLY" },
         { status: 400 },
       );
     }

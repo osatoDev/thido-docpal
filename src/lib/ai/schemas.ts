@@ -15,6 +15,7 @@ export type FollowupQuestions = z.infer<typeof followupQuestionsSchema>;
 
 export const commentResponseSchema = z.object({
   intent: z.enum(["question", "change_request", "feedback"]),
+  suggestion_action: z.enum(["apply", "propose"]),
   reply: z.string().min(1),
   proposed_text: z.string().optional(),
 });

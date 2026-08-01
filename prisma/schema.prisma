@@ -156,6 +156,7 @@ model AuthToken {
 
 enum AICommentMode {
   PROPOSE
+  AUTO
   AUTO_APPLY
 }
 
@@ -168,7 +169,7 @@ model UserSettings {
   id                String            @id @default(cuid())
   userId            String            @unique
   user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  aiCommentMode     AICommentMode     @default(PROPOSE)
+  aiCommentMode     AICommentMode     @default(AUTO)
   aiModel           String            @default("claude-sonnet-5")
   documentStartMode DocumentStartMode @default(NEW_DOCUMENT)
   createdAt         DateTime          @default(now())
@@ -325,7 +326,7 @@ model Suggestion {
   comment    Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
   documentId String
 
-  scope        CommentScope @default(SELECTION)
+  scope        CommentScope     @default(SELECTION)
   anchorMarkId String?
   originalText String           @db.Text
   proposedText String           @db.Text

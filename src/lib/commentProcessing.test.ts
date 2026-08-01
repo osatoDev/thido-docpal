@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   isDocumentWideCommentRequest,
   partitionCommentThreads,
+  shouldApplyCommentSuggestion,
 } from "@/lib/commentProcessing";
 
 describe("document-wide comment processing", () => {
@@ -33,5 +34,33 @@ describe("document-wide comment processing", () => {
       open: [open],
       archived: [resolved],
     });
+  });
+
+  it.each([
+    ["AUTO", "apply", true],
+    ["AUTO", "propose", false],
+    ["AUTO_APPLY", "propose", true],
+    ["PROPOSE", "apply", false],
+  ] as const)(
+    "resolves %s mode with an AI %s decision to apply=%s",
+    (mode, suggestionAction, expected) => {
+      expect(
+        shouldApplyCommentSuggestion({
+          mode,
+          suggestionAction,
+          allowAutoApply: true,
+        }),
+      ).toBe(expected);
+    },
+  );
+
+  it("never auto-applies when the user lacks edit access", () => {
+    expect(
+      shouldApplyCommentSuggestion({
+        mode: "AUTO_APPLY",
+        suggestionAction: "apply",
+        allowAutoApply: false,
+      }),
+    ).toBe(false);
   });
 });

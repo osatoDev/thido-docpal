@@ -20,7 +20,10 @@ import {
   getCommentPromptContext,
   replaceCommentMarkText,
 } from "@/lib/documentMarks";
-import { isDocumentWideCommentRequest } from "@/lib/commentProcessing";
+import {
+  isDocumentWideCommentRequest,
+  shouldApplyCommentSuggestion,
+} from "@/lib/commentProcessing";
 import { markdownToTiptapJSON } from "@/lib/markdownToTiptap";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { unauthorizedResponse } from "@/lib/apiResponses";
@@ -355,6 +358,12 @@ async function generateAiResponse({
             "The user deliberately made a comment that applies to the ENTIRE " +
             "DOCUMENT, so the complete document is editable.\n" +
             "Classify the request and respond:\n" +
+            "- Set suggestion_action to apply only when the user clearly " +
+            "instructs you to edit the document now. Set it to propose for " +
+            "questions, feedback, requests for advice, ambiguous prompts, " +
+            "or when the user asks whether an edit should be made. Polite " +
+            "direct edit requests such as ‘Please add…’ or ‘Can you add…’ " +
+            "still count as change requests with apply.\n" +
             "- For a question or feedback: write a short, direct reply and do " +
             "not provide replacement text.\n" +
             "- For a change request: write a one-sentence reply describing " +
@@ -371,6 +380,12 @@ async function generateAiResponse({
             "may use the surrounding context to interpret meaning, tone, and " +
             "references, but only the TARGET TEXT is editable.\n" +
             "Classify the request and respond:\n" +
+            "- Set suggestion_action to apply only when the user clearly " +
+            "instructs you to edit the target now. Set it to propose for " +
+            "questions, feedback, requests for advice, ambiguous prompts, " +
+            "or when the user asks whether an edit should be made. Polite " +
+            "direct edit requests such as ‘Please add…’ or ‘Can you add…’ " +
+            "still count as change requests with apply.\n" +
             "- For a question or feedback: write a short, direct reply " +
             "answering it or acknowledging it. Do not propose replacement " +
             "text.\n" +
@@ -403,10 +418,11 @@ async function generateAiResponse({
       const settings = await prisma.userSettings.findUnique({
         where: { userId },
       });
-      const mode =
-        allowAutoApply && settings?.aiCommentMode === "AUTO_APPLY"
-          ? "AUTO_APPLY"
-          : "PROPOSE";
+      const autoApply = shouldApplyCommentSuggestion({
+        mode: settings?.aiCommentMode ?? "AUTO",
+        suggestionAction: parsed.suggestion_action,
+        allowAutoApply,
+      });
 
       await prisma.comment.create({
         data: {
@@ -427,7 +443,7 @@ async function generateAiResponse({
       });
 
       if (parsed.intent === "change_request" && parsed.proposed_text) {
-        if (mode === "AUTO_APPLY") {
+        if (autoApply) {
           const updatedContent =
             scope === "DOCUMENT"
               ? await applyDocumentReplacementWithoutClobbering({

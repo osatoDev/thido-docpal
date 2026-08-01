@@ -27,13 +27,24 @@ document and:
 - returns a reply without changing the draft for questions or feedback; or
 - creates a full-document revision for change requests.
 
-In propose mode, the revision can be reviewed and accepted or rejected. In
-auto-apply mode, Thido applies it only if the document has not changed while
+Auto is the default edit mode. The structured AI response separately decides
+whether the user's prompt is a clear instruction to edit now or a prompt that
+should remain a proposal. Direct orders such as “Add a conclusion” can be
+applied immediately; questions, feedback, advice requests, and ambiguous
+prompts do not change the document automatically. Users can override this by
+choosing **Always ask for my approval** or **Always apply automatically**.
+
+An automatic revision is applied only if the document has not changed while
 the model was working. Concurrent edits cause the revision to remain pending
 instead of overwriting newer work.
 
 Document text is converted back into the editor’s structured format when a
 full-document revision is accepted or safely auto-applied.
+
+After Thido changes the document, a dismissible notice above the editor shows
+what the text was changed to. The associated suggestion remains in the comment
+thread with explicit before-and-after text, including after the resolved thread
+moves to the archive.
 
 ## Data model
 

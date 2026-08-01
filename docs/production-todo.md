@@ -1,11 +1,12 @@
 # Thido production checklist
 
-Last reviewed: 31 July 2026
+Last reviewed: 1 August 2026
 
 This is the running source of truth for production-readiness work. Completed boxes indicate repository evidence or a verified check. External configuration remains unchecked until it is explicitly verified.
 
 ## Immediate deployment blockers
 
+- [x] Apply the `20260801100000_add_auto_ai_comment_mode` migration to the production database before deploying the default Auto edit mode.
 - [x] Apply the `20260731180000_add_founder_feedback` migration to the production database before deploying founder conversations or notification links.
 - [x] Accept the Stripe Marketplace terms in Vercel, install the Stripe integration on `thido-docpal`, and connect the `stripe-cobalt-harbor` sandbox resource to Production, Preview, and Development.
 - [x] Apply the `20260731160000_add_beta_access_and_billing` migration to the production database before deploying the 100-account gate or billing controls.
@@ -21,6 +22,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Resolve or confirm the Prisma baseline for the existing production database before running `prisma migrate deploy` if it still reports `P3005`.
 - [x] Verify `npx prisma migrate status` reports all 14 production migrations through `20260731160000_add_beta_access_and_billing` are applied.
 - [x] Verify `npx prisma migrate status` reports all 15 production migrations through `20260731180000_add_founder_feedback` are applied.
+- [x] Verify `npx prisma migrate status` reports all 16 production migrations through `20260801100000_add_auto_ai_comment_mode` are applied.
 - [x] Configure `RESEND_API_KEY` in Vercel Production and Preview environments.
 - [ ] Verify the sending domain in Resend and replace `onboarding@resend.dev` with a production `AUTH_EMAIL_FROM` address.
 - [ ] Send real verification and password-reset emails and confirm delivery, links, expiry, and single-use behavior against the production database.
@@ -132,6 +134,8 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Lock document editing and new comments while a whole-document AI action is active, reject competing work across tabs, and expire abandoned locks after ten minutes.
 - [x] Let users expand a background comment response to see its real queued, processing, or failed state while it refreshes automatically.
 - [x] Move resolved comment threads into a collapsible archive and retain the ability to reopen or delete them.
+- [x] Add Auto as the default AI edit mode, use the structured prompt decision to apply clear edit instructions while keeping questions and ambiguous requests as proposals, and retain explicit always-propose and always-apply overrides.
+- [x] Show a dismissible recent Thido-change notice with the resulting text and keep durable changed-from/changed-to details in the comment thread.
 - [x] Let dashboard users sort document rows instantly by title and last-accessed time without a server round trip.
 - [x] Use an accessible trash icon for dashboard deletion while keeping the confirmation dialog tied to the selected document title.
 - [x] Bind dashboard deletion to the clicked row's document ID in the server action instead of trusting a hidden form field.
@@ -164,6 +168,7 @@ This is the running source of truth for production-readiness work. Completed box
 
 - [x] Keep Anthropic calls on the server.
 - [x] Validate structured AI responses with schemas where implemented.
+- [ ] Exercise Auto mode in production with representative direct orders, questions, polite requests, and ambiguous prompts; confirm only clear edit instructions are automatically applied.
 - [x] Fail gracefully when AI generation is temporarily unavailable.
 - [x] Give comment-driven revisions bounded surrounding-document context while keeping replacements constrained to the active comment anchor, with deliberate paragraph-scope expansion for broader rewrite prompts.
 - [x] Ensure document content and its comment anchor are durably saved before an anchored AI comment can be submitted.

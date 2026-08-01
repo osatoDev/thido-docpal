@@ -6,9 +6,9 @@ import type { SuggestionWithStatus } from "@/lib/types";
 
 const STATUS_LABEL: Record<SuggestionWithStatus["status"], string> = {
   PENDING: "Pending suggestion",
-  ACCEPTED: "Accepted",
+  ACCEPTED: "Applied with your approval",
   REJECTED: "Rejected",
-  AUTO_APPLIED: "Auto-applied",
+  AUTO_APPLIED: "Applied by Thido",
 };
 
 export function SuggestionCard({
@@ -64,7 +64,9 @@ export function SuggestionCard({
       {isDocumentWide ? (
         <details>
           <summary className="font-medium text-[var(--foreground)]">
-            Review the full-document revision
+            {suggestion.status === "PENDING"
+              ? "Review the full-document revision"
+              : "See what the document was changed to"}
           </summary>
           <div className="mt-2 max-h-72 overflow-y-auto whitespace-pre-wrap rounded-sm bg-[var(--surface)] p-3 leading-5 text-[var(--muted)]">
             {suggestion.proposedText}
@@ -72,9 +74,11 @@ export function SuggestionCard({
         </details>
       ) : (
         <>
+          <p className="mb-0.5 text-[var(--muted-soft)]">Changed from</p>
           <p className="text-[var(--muted)] line-through">
             {suggestion.originalText}
           </p>
+          <p className="mb-0.5 mt-2 text-[var(--muted-soft)]">Changed to</p>
           <p>{suggestion.proposedText}</p>
         </>
       )}

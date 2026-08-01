@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AI_MODELS, type AiModelId } from "@/lib/ai/models";
 
-type CommentMode = "PROPOSE" | "AUTO_APPLY";
+type CommentMode = "PROPOSE" | "AUTO" | "AUTO_APPLY";
 
 type Props = {
   initialAiModel: AiModelId;
@@ -65,8 +65,8 @@ export function SettingsForm({
           <div>
             <h2 className="font-semibold">AI edit suggestions</h2>
             <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-              Keep final control, or allow suggested changes to be applied
-              immediately.
+              Let Thido infer your intent, always ask for approval, or always
+              apply suggested changes immediately.
             </p>
           </div>
           <select
@@ -78,8 +78,11 @@ export function SettingsForm({
             }}
             className="app-input rounded-md px-3 py-2.5 text-sm outline-none"
           >
-            <option value="PROPOSE">Ask for my approval</option>
-            <option value="AUTO_APPLY">Apply automatically</option>
+            <option value="AUTO">
+              Auto — decide from my prompt (recommended)
+            </option>
+            <option value="PROPOSE">Always ask for my approval</option>
+            <option value="AUTO_APPLY">Always apply automatically</option>
           </select>
         </div>
       </section>

@@ -21,7 +21,10 @@ export function CommentThread({
   comment: CommentWithReplies;
   onChange: (updated: CommentWithReplies) => void;
   onDelete: (id: string) => void;
-  onDocumentContentUpdated: (content: unknown) => void;
+  onDocumentContentUpdated: (
+    content: unknown,
+    suggestion: SuggestionWithStatus,
+  ) => void;
   isPending?: boolean;
   aiProgress?: CommentAiProgress;
   canManage: boolean;
@@ -68,7 +71,7 @@ export function CommentThread({
       status: updated.status === "ACCEPTED" ? "RESOLVED" : comment.status,
     });
     if (documentContent) {
-      onDocumentContentUpdated(documentContent);
+      onDocumentContentUpdated(documentContent, updated);
     }
   }
 

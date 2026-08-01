@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AI_MODELS, type AiModelId } from "@/lib/ai/models";
 
-type Mode = "PROPOSE" | "AUTO_APPLY";
+type Mode = "PROPOSE" | "AUTO" | "AUTO_APPLY";
 
 export function AiModeToggle() {
   const [mode, setMode] = useState<Mode | null>(null);
@@ -18,7 +18,7 @@ export function AiModeToggle() {
         setModel(data.settings.aiModel);
       })
       .catch(() => {
-        setMode("PROPOSE");
+        setMode("AUTO");
         setModel("claude-sonnet-5");
       });
   }, []);
@@ -73,16 +73,17 @@ export function AiModeToggle() {
       </label>
       <label className="flex items-center gap-2">
         <span>Edits</span>
-      <select
-        value={mode}
-        disabled={saving}
-        onChange={(e) => updateMode(e.target.value as Mode)}
-        aria-label="AI suggestion behavior"
-        className="app-input rounded-sm px-2 py-1 text-xs outline-none"
-      >
-        <option value="PROPOSE">Propose for my approval</option>
-        <option value="AUTO_APPLY">Apply automatically</option>
-      </select>
+        <select
+          value={mode}
+          disabled={saving}
+          onChange={(e) => updateMode(e.target.value as Mode)}
+          aria-label="AI suggestion behavior"
+          className="app-input rounded-sm px-2 py-1 text-xs outline-none"
+        >
+          <option value="AUTO">Auto — decide from my prompt</option>
+          <option value="PROPOSE">Always ask for my approval</option>
+          <option value="AUTO_APPLY">Always apply automatically</option>
+        </select>
       </label>
     </div>
   );

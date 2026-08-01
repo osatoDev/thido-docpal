@@ -1,6 +1,10 @@
 "use client";
 
-import type { CommentAiProgress, CommentWithReplies } from "@/lib/types";
+import type {
+  CommentAiProgress,
+  CommentWithReplies,
+  SuggestionWithStatus,
+} from "@/lib/types";
 import { partitionCommentThreads } from "@/lib/commentProcessing";
 import { CommentThread } from "./CommentThread";
 
@@ -21,7 +25,10 @@ export function CommentSidebar({
   comments: CommentWithReplies[];
   onChange: (updated: CommentWithReplies) => void;
   onDelete: (id: string) => void;
-  onDocumentContentUpdated: (content: unknown) => void;
+  onDocumentContentUpdated: (
+    content: unknown,
+    suggestion: SuggestionWithStatus,
+  ) => void;
   pendingCommentIds: Set<string>;
   commentProgress: Record<string, CommentAiProgress>;
   foregroundCommentCount: number;
