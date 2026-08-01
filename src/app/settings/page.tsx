@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAiModelId, DEFAULT_AI_MODEL } from "@/lib/ai/models";
 import { Brand } from "@/components/Brand";
+import { UserMenu } from "@/components/account/UserMenu";
 import { SettingsForm } from "@/components/settings/SettingsForm";
 import { BillingPanel } from "@/components/settings/BillingPanel";
 import { getBillingOffer } from "@/lib/billing";
@@ -54,6 +55,7 @@ export default async function SettingsPage({
           <Link href="/" className="hover:text-[var(--foreground)]">
             Open Thido
           </Link>
+          <UserMenu user={session.user} />
         </nav>
       </header>
 

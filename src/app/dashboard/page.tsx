@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth, signOut } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { isAdminEmail } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { Brand } from "@/components/Brand";
+import { UserMenu } from "@/components/account/UserMenu";
 import {
   DashboardDocumentTable,
   type DashboardDocumentRow,
@@ -110,13 +111,6 @@ export default async function DashboardPage() {
             </Link>
           )}
           <Link
-            href="/settings"
-            prefetch
-            className="text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)]"
-          >
-            Settings
-          </Link>
-          <Link
             href="/documents/new"
             prefetch
             className="text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)]"
@@ -131,19 +125,7 @@ export default async function DashboardPage() {
               New document
             </button>
           </form>
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: "/login?notice=signed-out" });
-            }}
-          >
-            <button
-              type="submit"
-              className="secondary-button rounded-md px-3 py-2.5 text-sm"
-            >
-              Sign out
-            </button>
-          </form>
+          <UserMenu user={session.user} />
         </div>
       </header>
 

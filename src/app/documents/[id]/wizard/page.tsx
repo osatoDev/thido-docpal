@@ -5,6 +5,7 @@ import { getDocumentForUser } from "@/lib/documentAuth";
 import { generateFollowupQuestions } from "@/lib/ai/generateFollowups";
 import { FollowupPromptForm } from "@/components/wizard/FollowupPromptForm";
 import { Brand } from "@/components/Brand";
+import { UserMenu } from "@/components/account/UserMenu";
 import { recordDocumentAccess } from "@/lib/documentAccess";
 
 type Props = { params: Promise<{ id: string }> };
@@ -48,6 +49,9 @@ export default async function WizardPage({ params }: Props) {
     console.error("Failed to generate follow-up questions", error);
     return (
       <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col items-center justify-center gap-3 px-5 py-12 text-center sm:px-6 lg:px-8">
+        <div className="absolute top-6 right-6">
+          <UserMenu user={session.user} />
+        </div>
         <p className="text-sm font-medium">
           We couldn&apos;t generate follow-up questions right now.
         </p>
@@ -67,7 +71,10 @@ export default async function WizardPage({ params }: Props) {
 
   return (
     <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col gap-12 px-5 py-6 sm:px-6 sm:py-10 lg:px-8">
-      <Brand />
+      <header className="flex items-center justify-between border-b border-[var(--border)] pb-6">
+        <Brand />
+        <UserMenu user={session.user} />
+      </header>
       <div>
         <p className="page-kicker mb-3">One more pass</p>
         <h1 className="page-title max-w-2xl">Add the detail that makes it yours.</h1>

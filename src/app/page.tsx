@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { Brand } from "@/components/Brand";
+import { UserMenu } from "@/components/account/UserMenu";
 import {
   createBlankDocument,
   createDocumentForPaste,
@@ -24,9 +25,7 @@ export default async function Home() {
           <Link href="/dashboard" className="hover:text-[var(--foreground)]">
             My documents
           </Link>
-          <Link href="/settings" className="hover:text-[var(--foreground)]">
-            Settings
-          </Link>
+          <UserMenu user={session.user} />
         </nav>
       </header>
 

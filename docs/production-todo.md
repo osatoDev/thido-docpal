@@ -119,6 +119,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Make a blank `READY` document the default signed-in creation path, with AI-guided drafting and paste-existing flows available as explicit alternatives.
 - [x] Keep untouched blank editor sessions as hidden, reusable placeholders and count them as documents only after a custom title or meaningful body content is saved.
 - [x] Show a clear `BETA` status badge beside the shared Thido wordmark across the application.
+- [x] Give signed-in users a consistent top-right profile image or initials menu with direct Settings and Log out actions.
 - [x] Let document owners create, copy, open, and revoke unlisted read-only share links; public views expose the title, document body, and owner profile name while keeping email and other account details private.
 - [x] Clearly identify who shared a document on the public read-only view, with a non-identifying owner label for legacy accounts that have no profile name.
 - [x] Let full-access users invite collaborators by email with view, comment, edit, or full access; enforce those permissions on document, comment, suggestion, deletion, public-link, and sharing-management operations.
@@ -174,6 +175,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Ensure document content and its comment anchor are durably saved before an anchored AI comment can be submitted.
 - [ ] Configure production usage and spending limits for every active model provider.
 - [ ] Add timeouts, retries with backoff, and request correlation IDs for AI calls.
+- [ ] Prevent long selection-level structured comment responses from failing at the 1,024-token ceiling; classify truncation separately, retry with an appropriate budget, and retain provider usage/request metadata when SDK parsing fails.
 - [x] Implement durable model usage, latency, first-token timing, feature failures, structured logs, versioned cost estimates, and seven-day admin metrics for every current AI feature ([implementation guide](./ai-usage-observability.md)).
 - [ ] After applying the AI observability migration, run each AI feature in production and reconcile its stored usage and estimated cost against the Anthropic Console.
 - [x] Define how user documents may be sent to AI providers in the privacy policy.

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Brand } from "@/components/Brand";
+import { UserMenu } from "@/components/account/UserMenu";
 import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { getVercelAnalyticsSummary } from "@/lib/vercelAnalytics";
@@ -128,9 +129,7 @@ export default async function AdminPage() {
           >
             Feedback
           </Link>
-          <Link href="/settings" className="hover:text-[var(--foreground)]">
-            Settings
-          </Link>
+          <UserMenu user={session.user} />
         </nav>
       </header>
 

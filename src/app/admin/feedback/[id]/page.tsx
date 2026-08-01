@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Brand } from "@/components/Brand";
+import { UserMenu } from "@/components/account/UserMenu";
 import { FounderReplyForm } from "@/components/feedback/FounderReplyForm";
 import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
@@ -24,7 +25,7 @@ export default async function FounderConversationPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await requireAdmin(`/admin/feedback/${id}`);
+  const session = await requireAdmin(`/admin/feedback/${id}`);
   const thread = await prisma.feedbackThread.findUnique({
     where: { id },
     select: {
@@ -51,12 +52,15 @@ export default async function FounderConversationPage({
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-5 py-6 sm:px-6 sm:py-10 lg:px-8">
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-6">
         <Brand href="/admin/feedback" />
-        <Link
-          href="/admin/feedback"
-          className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
-        >
-          ← Founder inbox
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/admin/feedback"
+            className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+          >
+            ← Founder inbox
+          </Link>
+          <UserMenu user={session.user} />
+        </div>
       </header>
 
       <section className="flex flex-wrap items-end justify-between gap-5">

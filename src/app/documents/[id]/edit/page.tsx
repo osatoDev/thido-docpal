@@ -109,6 +109,7 @@ export default async function EditDocumentPage({ params, searchParams }: Props) 
         accessPermission === "FULL" ? document.collaborators : []
       }
       accessPermission={accessPermission}
+      currentUser={session.user}
       startedFromPaste={
         (Array.isArray(query.start) ? query.start[0] : query.start) === "paste"
       }

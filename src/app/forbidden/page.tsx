@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Brand } from "@/components/Brand";
+import { UserMenu } from "@/components/account/UserMenu";
 import { auth, signOut } from "@/lib/auth";
 import { safeRedirectPath } from "@/lib/authInput";
 
@@ -17,7 +18,10 @@ export default async function ForbiddenPage({
 
   return (
     <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col justify-center gap-10 px-5 py-12 sm:px-6 lg:px-8">
-      <Brand />
+      <header className="flex items-center justify-between">
+        <Brand />
+        {session?.user ? <UserMenu user={session.user} /> : null}
+      </header>
       <section className="max-w-xl border-t border-[var(--border-strong)] pt-8">
         <p className="page-kicker mb-3">Access denied</p>
         <h1 className="page-title">This area isn&apos;t available to you.</h1>

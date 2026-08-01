@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Brand } from "@/components/Brand";
+import { UserMenu } from "@/components/account/UserMenu";
 import { FeedbackConversation } from "@/components/feedback/FeedbackConversation";
 import { auth } from "@/lib/auth";
 import { sanitizeFeedbackPath } from "@/lib/feedback";
@@ -60,9 +61,7 @@ export default async function FeedbackPage({
           <Link href="/dashboard" className="hover:text-[var(--foreground)]">
             All documents
           </Link>
-          <Link href="/settings" className="hover:text-[var(--foreground)]">
-            Settings
-          </Link>
+          <UserMenu user={session.user} />
         </nav>
       </header>
 

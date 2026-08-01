@@ -9,6 +9,10 @@ import { Toolbar } from "./Toolbar";
 import { CommentSidebar } from "@/components/comments/CommentSidebar";
 import { CommentComposer } from "@/components/comments/CommentComposer";
 import { RecentThidoChangeNotice } from "@/components/comments/RecentThidoChangeNotice";
+import {
+  UserMenu,
+  type UserMenuProfile,
+} from "@/components/account/UserMenu";
 import { AiModeToggle } from "@/components/settings/AiModeToggle";
 import {
   ShareDocumentControl,
@@ -33,6 +37,7 @@ type Props = {
   initialShareToken: string | null;
   initialCollaborators: CollaboratorSummary[];
   accessPermission: CollaboratorPermission;
+  currentUser: UserMenuProfile;
   startedFromPaste?: boolean;
 };
 
@@ -61,6 +66,7 @@ export function TiptapEditor({
   initialShareToken,
   initialCollaborators,
   accessPermission,
+  currentUser,
   startedFromPaste = false,
 }: Props) {
   const canComment = accessPermission !== "VIEW";
@@ -574,13 +580,8 @@ export function TiptapEditor({
             >
               All documents
             </Link>
-            <Link
-              href="/settings"
-              className="text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)]"
-            >
-              Settings
-            </Link>
             <AiModeToggle />
+            <UserMenu user={currentUser} />
           </div>
         </header>
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">

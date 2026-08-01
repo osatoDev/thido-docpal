@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { InitialPromptForm } from "@/components/wizard/InitialPromptForm";
 import { Brand } from "@/components/Brand";
+import { UserMenu } from "@/components/account/UserMenu";
 import { auth } from "@/lib/auth";
 
 const RESUME_LOGIN_HREF =
@@ -37,12 +38,24 @@ export default async function NewDocumentPage({
     <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col px-5 py-6 sm:px-6 sm:py-10 lg:px-8">
       <header className="flex items-center justify-between border-b border-[var(--border)] pb-6">
         <Brand />
-        <Link
-          href={isAuthenticated ? "/dashboard" : RESUME_LOGIN_HREF}
-          className="secondary-button rounded-md px-3.5 py-2 text-sm font-medium"
-        >
-          {isAuthenticated ? "My documents" : "Sign in"}
-        </Link>
+        {session?.user ? (
+          <div className="flex items-center gap-3">
+            <Link
+              href="/dashboard"
+              className="secondary-button rounded-md px-3.5 py-2 text-sm font-medium"
+            >
+              My documents
+            </Link>
+            <UserMenu user={session.user} />
+          </div>
+        ) : (
+          <Link
+            href={RESUME_LOGIN_HREF}
+            className="secondary-button rounded-md px-3.5 py-2 text-sm font-medium"
+          >
+            Sign in
+          </Link>
+        )}
       </header>
 
       <section className="py-12 sm:py-14">

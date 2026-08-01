@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Brand } from "@/components/Brand";
+import { UserMenu } from "@/components/account/UserMenu";
 import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 
@@ -17,7 +18,7 @@ function formatDate(date: Date) {
 }
 
 export default async function FounderInboxPage() {
-  await requireAdmin("/admin/feedback");
+  const session = await requireAdmin("/admin/feedback");
   const threads = await prisma.feedbackThread.findMany({
     orderBy: { updatedAt: "desc" },
     select: {
@@ -44,6 +45,7 @@ export default async function FounderInboxPage() {
           <Link href="/dashboard" className="hover:text-[var(--foreground)]">
             Documents
           </Link>
+          <UserMenu user={session.user} />
         </nav>
       </header>
 
