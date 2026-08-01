@@ -22,19 +22,21 @@ export default async function LoginPage({
   const noticeMessage =
     authError === "AccessDenied"
       ? "The first 100 free beta places have been claimed. Existing members can still sign in."
+      : authError === "OAuthAccountNotLinked"
+        ? "Google could not be connected to the existing Thido account for this email. Try your original sign-in method or contact support."
       : notice === "draft-ready"
-      ? "Your document brief is ready. Sign in to generate it and save it to your account."
-      : notice === "session-expired"
-      ? "Your previous session is no longer valid. Please sign in again."
-      : notice === "sign-in-required"
-        ? "Please sign in to continue."
-        : notice === "signed-out"
-          ? "You have signed out successfully."
-          : notice === "email-verified"
-            ? "Your email is verified. You can sign in now."
-            : notice === "password-reset"
-              ? "Your password has been updated. Sign in with your new password."
-          : null;
+        ? "Your document brief is ready. Sign in to generate it and save it to your account."
+        : notice === "session-expired"
+          ? "Your previous session is no longer valid. Please sign in again."
+          : notice === "sign-in-required"
+            ? "Please sign in to continue."
+            : notice === "signed-out"
+              ? "You have signed out successfully."
+              : notice === "email-verified"
+                ? "Your email is verified. You can sign in now."
+                : notice === "password-reset"
+                  ? "Your password has been updated. Sign in with your new password."
+                  : null;
 
   return (
     <main className="relative flex flex-1 items-center overflow-hidden px-5 py-6 sm:px-6 sm:py-10 lg:px-8">

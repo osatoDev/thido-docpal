@@ -62,6 +62,7 @@ This is the running source of truth for production-readiness work. Completed box
 ## Authentication and account security
 
 - [x] Support Google OAuth.
+- [x] Allow Google to recover an existing same-email beta account only when Google supplies a verified-email claim, and make existing-user settings initialization idempotent during account linking.
 - [x] Support email-and-password registration and login.
 - [x] Store salted scrypt password hashes instead of plaintext passwords.
 - [x] Require password accounts to verify their email.
@@ -186,8 +187,9 @@ This is the running source of truth for production-readiness work. Completed box
 ## Testing and continuous integration
 
 - [x] Add automated unit tests for authentication input, password hashing, token helpers, rate limiting, and API auth responses.
-- [x] Confirm the current unit suite passes: 64 tests across twenty-one files.
+- [x] Confirm the current unit suite passes: 75 tests across twenty-three files, including verified-Google-email account-linking coverage.
 - [x] Confirm type checking, lint, Prisma validation, and the production build pass after the founder-feedback implementation.
+- [x] Confirm type checking, lint, Prisma validation, and the production build pass after the verified-Google-email account-linking fix.
 - [x] Prevent the founder-feedback POST runtime crash by keeping non-function state out of the `"use server"` action module and scanning every server-action module for invalid runtime exports in the unit suite.
 - [x] Fix new-user Google OAuth registration by casting the PostgreSQL advisory-lock result to a Prisma-supported type, verify it against PostgreSQL, and retain a regression assertion for the lock query.
 - [ ] Add a normal CI workflow that runs `npm ci`, `npm test`, `npm run lint`, and `npm run build` for pull requests and `main`.

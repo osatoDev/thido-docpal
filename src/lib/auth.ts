@@ -9,6 +9,10 @@ import {
   createBetaUser,
   hasBetaCapacity,
 } from "@/lib/betaAccess";
+import {
+  hasVerifiedGoogleEmail,
+  verifiedGoogleAccountLinking,
+} from "@/lib/googleAuth";
 import { verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
@@ -34,6 +38,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      // The signIn callback below requires Google's verified-email claim before
+      // Auth.js is allowed to attach Google to an existing same-email user.
+      ...verifiedGoogleAccountLinking,
     }),
     Credentials({
       id: "password",
@@ -137,9 +144,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/login",
   },
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       if (account?.provider !== "google") return true;
-      if (!user.email) return false;
+      if (!user.email || !hasVerifiedGoogleEmail(profile)) return false;
 
       const existingUser = await prisma.user.findFirst({
         where: { email: { equals: user.email, mode: "insensitive" } },
@@ -204,8 +211,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   events: {
     async createUser({ user }) {
       if (!user.id) return;
-      await prisma.userSettings.create({
-        data: { userId: user.id },
+      // Auth.js also emits this event when it safely links an OAuth provider to
+      // an existing same-email user, whose settings row may already exist.
+      await prisma.userSettings.upsert({
+        where: { userId: user.id },
+        update: {},
+        create: { userId: user.id },
       });
     },
   },
