@@ -28,6 +28,7 @@ export function CommentSidebar({
   onDocumentContentUpdated: (
     content: unknown,
     suggestion: SuggestionWithStatus,
+    revision?: number,
   ) => void;
   pendingCommentIds: Set<string>;
   commentProgress: Record<string, CommentAiProgress>;

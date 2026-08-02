@@ -2,6 +2,17 @@
 
 import { useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
+import {
+  BULLET_STYLES,
+  isBulletStyle,
+  type BulletStyle,
+} from "./extensions/StyledBulletList";
+
+const bulletStyleLabels: Record<BulletStyle, string> = {
+  disc: "● Disc",
+  circle: "○ Circle",
+  square: "■ Square",
+};
 
 function ToolbarButton({
   onClick,
@@ -42,6 +53,19 @@ export function Toolbar({
 
   if (!editor) return null;
   const currentEditor = editor;
+  const activeBulletStyle = isBulletStyle(
+    editor.getAttributes("bulletList").bulletStyle,
+  )
+    ? (editor.getAttributes("bulletList").bulletStyle as BulletStyle)
+    : "disc";
+
+  function setBulletStyle(bulletStyle: BulletStyle) {
+    const chain = currentEditor.chain().focus();
+    if (!currentEditor.isActive("bulletList")) {
+      chain.toggleBulletList();
+    }
+    chain.updateAttributes("bulletList", { bulletStyle }).run();
+  }
 
   async function uploadImage(file: File) {
     setUploadingImage(true);
@@ -56,7 +80,9 @@ export function Toolbar({
       const body = await response.json().catch(() => null);
       if (!response.ok || typeof body?.src !== "string") {
         throw new Error(
-          typeof body?.error === "string" ? body.error : "Could not add this photo.",
+          typeof body?.error === "string"
+            ? body.error
+            : "Could not insert this image.",
         );
       }
       currentEditor
@@ -66,7 +92,9 @@ export function Toolbar({
         .run();
     } catch (error) {
       setImageError(
-        error instanceof Error ? error.message : "Could not add this photo.",
+        error instanceof Error
+          ? error.message
+          : "Could not insert this image.",
       );
     } finally {
       setUploadingImage(false);
@@ -127,6 +155,25 @@ export function Toolbar({
       >
         • List
       </ToolbarButton>
+      <select
+        value={editor.isActive("bulletList") ? activeBulletStyle : ""}
+        onChange={(event) => {
+          const bulletStyle = event.target.value;
+          if (isBulletStyle(bulletStyle)) setBulletStyle(bulletStyle);
+        }}
+        aria-label="Bullet style"
+        title="Bullet style"
+        className="app-input rounded-sm px-2 py-1 text-sm outline-none"
+      >
+        <option value="" disabled>
+          Bullet style
+        </option>
+        {BULLET_STYLES.map((bulletStyle) => (
+          <option key={bulletStyle} value={bulletStyle}>
+            {bulletStyleLabels[bulletStyle]}
+          </option>
+        ))}
+      </select>
       <ToolbarButton
         label="Numbered list"
         isActive={editor.isActive("orderedList")}
@@ -147,7 +194,7 @@ export function Toolbar({
         type="file"
         accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
         className="sr-only"
-        aria-label="Choose a photo"
+        aria-label="Choose an image"
         onChange={(event) => {
           const file = event.currentTarget.files?.[0];
           if (file) void uploadImage(file);
@@ -158,10 +205,10 @@ export function Toolbar({
         disabled={uploadingImage}
         onClick={() => imageInputRef.current?.click()}
         className="rounded-sm px-2 py-1 text-sm font-medium hover:bg-[var(--surface-subtle)] disabled:cursor-wait disabled:opacity-60"
-        aria-label="Add photo"
-        title="Add photo"
+        aria-label="Insert image"
+        title="Insert image"
       >
-        {uploadingImage ? "Adding photo…" : "Photo"}
+        {uploadingImage ? "Inserting image…" : "Insert image"}
       </button>
       <span className="mx-1 h-5 w-px bg-[var(--border)]" />
       <ToolbarButton

@@ -24,6 +24,7 @@ export function CommentThread({
   onDocumentContentUpdated: (
     content: unknown,
     suggestion: SuggestionWithStatus,
+    revision?: number,
   ) => void;
   isPending?: boolean;
   aiProgress?: CommentAiProgress;
@@ -63,15 +64,15 @@ export function CommentThread({
 
   function handleSuggestionResolved(
     updated: SuggestionWithStatus,
-    documentContent?: unknown,
+    document?: { content?: unknown; revision?: number },
   ) {
     onChange({
       ...comment,
       suggestion: updated,
       status: updated.status === "ACCEPTED" ? "RESOLVED" : comment.status,
     });
-    if (documentContent) {
-      onDocumentContentUpdated(documentContent, updated);
+    if (document?.content) {
+      onDocumentContentUpdated(document.content, updated, document.revision);
     }
   }
 

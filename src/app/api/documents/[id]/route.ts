@@ -5,7 +5,6 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { documentAccessWhere, getDocumentForUser } from "@/lib/documentAuth";
 import { shouldPromotePlaceholder } from "@/lib/documentPersistence";
-import { collectCommentMarkIds } from "@/lib/documentMarks";
 import { unauthorizedResponse } from "@/lib/apiResponses";
 import { isCommentMarkOnlyChange } from "@/lib/publicDocument";
 import {
@@ -15,6 +14,9 @@ import {
   lockDocumentForCommentAi,
 } from "@/lib/documentAiJobs";
 import { reportServerError } from "@/lib/rollbar/server";
+import { recordDocumentRevision } from "@/lib/documentRevisions";
+import { DocumentRevisionSource } from "@prisma/client";
+import { reconcileOrphanedComments } from "@/lib/documentComments";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -80,6 +82,16 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   const body = await request.json().catch(() => ({}));
+  const baseRevision =
+    Number.isInteger(body.baseRevision) && body.baseRevision >= 0
+      ? (body.baseRevision as number)
+      : null;
+  if (baseRevision === null) {
+    return NextResponse.json(
+      { error: "A valid baseRevision is required." },
+      { status: 400 },
+    );
+  }
   const data: {
     title?: string;
     content?: object;
@@ -130,6 +142,18 @@ export async function PATCH(request: Request, { params }: Params) {
     const documentExists = await lockDocumentForCommentAi(transaction, id);
     if (!documentExists) return { kind: "missing" as const };
 
+    const currentDocument = await transaction.document.findUnique({
+      where: { id },
+      select: { id: true, title: true, content: true, revision: true },
+    });
+    if (!currentDocument) return { kind: "missing" as const };
+    if (currentDocument.revision !== baseRevision) {
+      return {
+        kind: "conflict" as const,
+        currentRevision: currentDocument.revision,
+      };
+    }
+
     await expireStaleCommentAiJobs(transaction, id);
     if (
       await hasActiveCommentAiJob(transaction, id, {
@@ -141,7 +165,11 @@ export async function PATCH(request: Request, { params }: Params) {
 
     const document = await transaction.document.update({
       where: { id },
-      data,
+      data: { ...data, revision: { increment: 1 } },
+    });
+    await recordDocumentRevision(transaction, document, {
+      source: DocumentRevisionSource.USER,
+      actorId: session.user.id,
     });
     return { kind: "updated" as const, document };
   });
@@ -154,44 +182,24 @@ export async function PATCH(request: Request, { params }: Params) {
       { status: 409 },
     );
   }
+  if (updateResult.kind === "conflict") {
+    return NextResponse.json(
+      {
+        error:
+          "This document changed in another tab or by another collaborator.",
+        documentConflict: true,
+        currentRevision: updateResult.currentRevision,
+      },
+      { status: 409 },
+    );
+  }
   const document = updateResult.document;
 
   if (body.content !== undefined) {
-    await reconcileOrphanedComments(id, body.content as JSONContent);
+    await reconcileOrphanedComments(prisma, id, body.content as JSONContent);
   }
 
   return NextResponse.json({ document });
-}
-
-/**
- * Keeps `Comment.isOrphaned` in sync with whether the comment's anchored
- * text still exists in the document. Runs on every content save so a
- * comment whose highlighted span was deleted (or undone back into
- * existence) reflects that in the UI instead of silently going stale.
- */
-async function reconcileOrphanedComments(documentId: string, content: JSONContent) {
-  const presentIds = Array.from(collectCommentMarkIds(content));
-
-  await prisma.$transaction([
-    prisma.comment.updateMany({
-      where: {
-        documentId,
-        scope: "SELECTION",
-        isOrphaned: false,
-        anchorMarkId: { notIn: presentIds },
-      },
-      data: { isOrphaned: true },
-    }),
-    prisma.comment.updateMany({
-      where: {
-        documentId,
-        scope: "SELECTION",
-        isOrphaned: true,
-        anchorMarkId: { in: presentIds },
-      },
-      data: { isOrphaned: false },
-    }),
-  ]);
 }
 
 export async function DELETE(_request: Request, { params }: Params) {

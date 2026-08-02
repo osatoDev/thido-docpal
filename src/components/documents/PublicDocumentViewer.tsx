@@ -5,7 +5,13 @@ import { EditorContent, useEditor } from "@tiptap/react";
 
 import { getEditorExtensions } from "@/lib/editorExtensions";
 
-export function PublicDocumentViewer({ content }: { content: JSONContent }) {
+export function PublicDocumentViewer({
+  content,
+  ariaLabel = "Shared document content",
+}: {
+  content: JSONContent;
+  ariaLabel?: string;
+}) {
   const editor = useEditor({
     extensions: getEditorExtensions(),
     content,
@@ -13,7 +19,7 @@ export function PublicDocumentViewer({ content }: { content: JSONContent }) {
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        "aria-label": "Shared document content",
+        "aria-label": ariaLabel,
         role: "document",
         class:
           "prose prose-sm sm:prose-base max-w-none focus:outline-none prose-headings:text-[var(--foreground)] prose-p:text-[var(--foreground)] prose-strong:text-[var(--foreground)] prose-blockquote:text-[var(--muted)]",

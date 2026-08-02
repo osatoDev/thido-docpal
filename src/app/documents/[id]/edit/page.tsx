@@ -101,6 +101,7 @@ export default async function EditDocumentPage({ params, searchParams }: Props) 
       documentId={document.id}
       initialTitle={document.title}
       initialContent={content}
+      initialRevision={document.revision}
       initialComments={document.comments}
       initialCommentProgress={initialCommentProgress}
       initialDocumentAiLocked={initialDocumentAiLocked}

@@ -36,7 +36,7 @@ export async function POST(request: Request, { params }: Params) {
   const formData = await request.formData().catch(() => null);
   const file = formData?.get("file");
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "Choose a photo to upload." }, { status: 400 });
+    return NextResponse.json({ error: "Choose an image to insert." }, { status: 400 });
   }
   const extension = IMAGE_EXTENSIONS[file.type];
   if (!extension) {

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { DEFAULT_DOCUMENT_TITLE } from "@/lib/documentPersistence";
 import { prisma } from "@/lib/prisma";
+import { initialRevisionData } from "@/lib/documentRevisions";
 
 async function createReadyDocument(startedFromPaste: boolean) {
   const session = await auth();
@@ -29,6 +30,12 @@ async function createReadyDocument(startedFromPaste: boolean) {
         title: DEFAULT_DOCUMENT_TITLE,
         status: "READY",
         isPlaceholder: true,
+        revisions: {
+          create: initialRevisionData({
+            title: DEFAULT_DOCUMENT_TITLE,
+            actorId: session.user.id,
+          }),
+        },
       },
       select: { id: true },
     }));

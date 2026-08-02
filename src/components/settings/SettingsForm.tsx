@@ -37,12 +37,13 @@ export function SettingsForm({
       <section className="border-b border-[var(--border)] py-7">
         <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
           <div>
-            <h2 className="font-semibold">Default AI model</h2>
+            <h2 className="font-semibold">AI model</h2>
             <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
               Used for drafting, follow-up questions, and comment responses.
             </p>
           </div>
           <select
+            aria-label="AI model"
             value={aiModel}
             onChange={(event) => {
               const next = event.target.value as AiModelId;
@@ -63,13 +64,14 @@ export function SettingsForm({
       <section className="border-b border-[var(--border)] py-7">
         <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
           <div>
-            <h2 className="font-semibold">AI edit suggestions</h2>
+            <h2 className="font-semibold">How Thido applies edits</h2>
             <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-              Let Thido infer your intent, always ask for approval, or always
-              apply suggested changes immediately.
+              Choose whether Thido decides from your prompt, asks for approval,
+              or applies changes immediately.
             </p>
           </div>
           <select
+            aria-label="How Thido applies edits"
             value={commentMode}
             onChange={(event) => {
               const next = event.target.value as CommentMode;

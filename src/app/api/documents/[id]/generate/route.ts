@@ -13,6 +13,8 @@ import {
 import { markdownToTiptapJSON } from "@/lib/markdownToTiptap";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { unauthorizedResponse } from "@/lib/apiResponses";
+import { recordDocumentRevision } from "@/lib/documentRevisions";
+import { DocumentRevisionSource } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -113,9 +115,19 @@ export async function POST(_request: Request, { params }: Params) {
         const message = await claudeStream.finalMessage();
         trackedMessage = message;
         const content = await markdownToTiptapJSON(fullText);
-        await prisma.document.update({
-          where: { id },
-          data: { content, status: "READY" },
+        await prisma.$transaction(async (transaction) => {
+          const updatedDocument = await transaction.document.update({
+            where: { id },
+            data: {
+              content,
+              status: "READY",
+              revision: { increment: 1 },
+            },
+          });
+          await recordDocumentRevision(transaction, updatedDocument, {
+            source: DocumentRevisionSource.AI,
+            actorId: session.user.id,
+          });
         });
         await telemetry.succeed(message);
       } catch (error) {

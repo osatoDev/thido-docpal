@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { unauthorizedResponse } from "@/lib/apiResponses";
 import { documentAccessWhere } from "@/lib/documentAuth";
+import { initialRevisionData } from "@/lib/documentRevisions";
 
 export async function GET() {
   const session = await auth();
@@ -37,7 +38,13 @@ export async function POST(request: Request) {
       : "Untitled Document";
 
   const document = await prisma.document.create({
-    data: { title, ownerId: session.user.id },
+    data: {
+      title,
+      ownerId: session.user.id,
+      revisions: {
+        create: initialRevisionData({ title, actorId: session.user.id }),
+      },
+    },
     select: { id: true },
   });
 

@@ -3,6 +3,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
 import type { Extensions } from "@tiptap/core";
 import { CommentMark } from "@/components/editor/extensions/CommentMark";
+import { StyledBulletList } from "@/components/editor/extensions/StyledBulletList";
 
 /**
  * Shared extension list used by both the client-side editor and the
@@ -15,8 +16,10 @@ import { CommentMark } from "@/components/editor/extensions/CommentMark";
 export function getEditorExtensions(): Extensions {
   return [
     StarterKit.configure({
+      bulletList: false,
       link: false,
     }),
+    StyledBulletList,
     Placeholder.configure({
       placeholder: "Start writing…",
     }),

@@ -13,12 +13,17 @@ import {
   UserMenu,
   type UserMenuProfile,
 } from "@/components/account/UserMenu";
-import { AiModeToggle } from "@/components/settings/AiModeToggle";
 import {
   ShareDocumentControl,
   type CollaboratorPermission,
   type CollaboratorSummary,
 } from "@/components/documents/ShareDocumentControl";
+import { PrintDocumentButton } from "@/components/documents/PrintDocumentButton";
+import {
+  VersionHistoryControl,
+  type RestoredDocument,
+} from "@/components/documents/VersionHistoryControl";
+import { DocumentFileActions } from "@/components/documents/DocumentFileActions";
 import { Brand } from "@/components/Brand";
 import type {
   CommentAiProgress,
@@ -31,6 +36,7 @@ type Props = {
   documentId: string;
   initialTitle: string;
   initialContent: JSONContent | null;
+  initialRevision: number;
   initialComments: CommentWithReplies[];
   initialCommentProgress: Record<string, CommentAiProgress>;
   initialDocumentAiLocked: boolean;
@@ -60,6 +66,7 @@ export function TiptapEditor({
   documentId,
   initialTitle,
   initialContent,
+  initialRevision,
   initialComments,
   initialCommentProgress,
   initialDocumentAiLocked,
@@ -74,7 +81,9 @@ export function TiptapEditor({
     accessPermission === "EDIT" || accessPermission === "FULL";
   const canManage = accessPermission === "FULL";
   const [title, setTitle] = useState(initialTitle);
+  const [revision, setRevision] = useState(initialRevision);
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [documentConflict, setDocumentConflict] = useState<string | null>(null);
   const [comments, setComments] = useState<CommentWithReplies[]>(initialComments);
   const [activeComposer, setActiveComposer] = useState<ActiveComposer | null>(null);
   const [pendingCommentIds, setPendingCommentIds] = useState<Set<string>>(() => {
@@ -95,6 +104,13 @@ export function TiptapEditor({
   const [recentThidoChange, setRecentThidoChange] =
     useState<SuggestionWithStatus | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSaveRef = useRef<{
+    title?: string;
+    content?: JSONContent;
+  } | null>(null);
+  const saveChainRef = useRef<Promise<void>>(Promise.resolve());
+  const revisionRef = useRef(initialRevision);
+  const conflictRef = useRef(false);
   const mountedRef = useRef(true);
   const documentAiLockedRef = useRef(initialDocumentAiLocked);
   const canEditNow = canEdit && !documentAiLocked;
@@ -105,6 +121,11 @@ export function TiptapEditor({
     if (locked) {
       setActiveComposer(null);
     }
+  }, []);
+
+  const updateRevision = useCallback((nextRevision: number) => {
+    revisionRef.current = nextRevision;
+    setRevision(nextRevision);
   }, []);
 
   const editor = useEditor({
@@ -143,34 +164,130 @@ export function TiptapEditor({
   }, [canEditNow, editor]);
 
   function scheduleSave(next: { title?: string; content?: JSONContent }) {
-    if (documentAiLockedRef.current) return;
+    if (documentAiLockedRef.current || conflictRef.current) return;
+    pendingSaveRef.current = { ...pendingSaveRef.current, ...next };
     if (debounceRef.current) clearTimeout(debounceRef.current);
     setSaveState("saving");
-    debounceRef.current = setTimeout(async () => {
+    debounceRef.current = setTimeout(() => {
       debounceRef.current = null;
+      const pending = pendingSaveRef.current;
+      pendingSaveRef.current = null;
+      if (pending) void saveDocumentUpdate(pending);
+    }, 600);
+  }
+
+  function saveDocumentUpdate(next: {
+    title?: string;
+    content?: JSONContent;
+  }) {
+    const operation = saveChainRef.current.then(async () => {
+      if (conflictRef.current) {
+        return { ok: false, body: { documentConflict: true } };
+      }
       try {
-        const res = await fetch(`/api/documents/${documentId}`, {
+        const response = await fetch(`/api/documents/${documentId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(next),
+          body: JSON.stringify({
+            ...next,
+            baseRevision: revisionRef.current,
+          }),
         });
-        if (res.status === 409) {
-          const errorBody = await res.json().catch(() => null);
-          if (errorBody?.documentAiLocked === true) {
-            updateDocumentAiLock(true);
-            setCommentError(
-              typeof errorBody.error === "string"
-                ? errorBody.error
-                : "Thido is working across the whole document.",
-            );
-            void pollForDocumentUnlock();
+        const body = (await response.json().catch(() => null)) as Record<
+          string,
+          unknown
+        > | null;
+
+        if (response.ok) {
+          const savedDocument = body?.document as
+            | { revision?: unknown }
+            | undefined;
+          if (typeof savedDocument?.revision === "number") {
+            updateRevision(savedDocument.revision);
           }
+          setSaveState("saved");
+          return { ok: true, body };
         }
-        setSaveState(res.ok ? "saved" : "error");
+
+        setSaveState("error");
+        if (body?.documentConflict === true) {
+          conflictRef.current = true;
+          setDocumentConflict(
+            typeof body.error === "string"
+              ? body.error
+              : "This document changed somewhere else.",
+          );
+        } else if (body?.documentAiLocked === true) {
+          updateDocumentAiLock(true);
+          setCommentError(
+            typeof body.error === "string"
+              ? body.error
+              : "Thido is working across the whole document.",
+          );
+          void pollForDocumentUnlock();
+        }
+        return { ok: false, body };
       } catch {
         setSaveState("error");
+        return { ok: false, body: null };
       }
-    }, 600);
+    });
+
+    saveChainRef.current = operation.then(
+      () => undefined,
+      () => undefined,
+    );
+    return operation;
+  }
+
+  async function reloadLatestDocument() {
+    try {
+      const response = await fetch(`/api/documents/${documentId}`, {
+        cache: "no-store",
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok || !body?.document) {
+        throw new Error("Could not load the latest document.");
+      }
+      const latest = body.document as {
+        title: string;
+        content: JSONContent | null;
+        revision: number;
+      };
+      setTitle(latest.title);
+      editorRef.current?.commands.setContent(latest.content ?? "", {
+        emitUpdate: false,
+      });
+      pendingSaveRef.current = null;
+      conflictRef.current = false;
+      setDocumentConflict(null);
+      updateRevision(latest.revision);
+      setSaveState("saved");
+    } catch (error) {
+      setCommentError(
+        error instanceof Error
+          ? error.message
+          : "Could not load the latest document.",
+      );
+    }
+  }
+
+  function handleDocumentRestored(document: RestoredDocument) {
+    setTitle(document.title);
+    editorRef.current?.commands.setContent(document.content ?? "", {
+      emitUpdate: false,
+    });
+    pendingSaveRef.current = null;
+    conflictRef.current = false;
+    setDocumentConflict(null);
+    updateRevision(document.revision);
+    setSaveState("saved");
+  }
+
+  function handleDocumentConflict(message: string) {
+    conflictRef.current = true;
+    setDocumentConflict(message);
+    setSaveState("error");
   }
 
   function startComment() {
@@ -321,14 +438,14 @@ export function TiptapEditor({
       // Suggestion approval resolves changes by this mark, so the mark must
       // be durable before the comment starts background AI generation.
       setSaveState("saving");
-      const saveResponse = await fetch(`/api/documents/${documentId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: editor.getJSON() }),
+      const pendingSave = pendingSaveRef.current;
+      pendingSaveRef.current = null;
+      const saveResult = await saveDocumentUpdate({
+        ...pendingSave,
+        content: editor.getJSON(),
       });
-      setSaveState(saveResponse.ok ? "saved" : "error");
-      if (!saveResponse.ok) {
-        const errorBody = await saveResponse.json().catch(() => null);
+      if (!saveResult.ok) {
+        const errorBody = saveResult.body;
         if (errorBody?.documentAiLocked === true) {
           existingDocumentLock = true;
           updateDocumentAiLock(true);
@@ -396,7 +513,10 @@ export function TiptapEditor({
       }
 
       if (data.documentContent && editor) {
-        editor.commands.setContent(data.documentContent);
+        editor.commands.setContent(data.documentContent, { emitUpdate: false });
+        if (typeof data.documentRevision === "number") {
+          updateRevision(data.documentRevision);
+        }
         if (savedComment.suggestion?.status === "AUTO_APPLIED") {
           setRecentThidoChange(savedComment.suggestion);
         }
@@ -473,7 +593,12 @@ export function TiptapEditor({
             data.documentContent &&
             editorRef.current
           ) {
-            editorRef.current.commands.setContent(data.documentContent);
+            editorRef.current.commands.setContent(data.documentContent, {
+              emitUpdate: false,
+            });
+            if (typeof data.documentRevision === "number") {
+              updateRevision(data.documentRevision);
+            }
             setRecentThidoChange(target.suggestion);
           }
           return;
@@ -486,7 +611,7 @@ export function TiptapEditor({
 
     // Keep the accurate processing state if the response is unusually slow.
     // A later page load will include the completed server-side response.
-  }, [documentId, updateDocumentAiLock]);
+  }, [documentId, updateDocumentAiLock, updateRevision]);
 
   const pollForDocumentUnlock = useCallback(async () => {
     for (let attempt = 0; attempt < 480; attempt += 1) {
@@ -521,6 +646,9 @@ export function TiptapEditor({
             editorRef.current.commands.setContent(data.documentContent, {
               emitUpdate: false,
             });
+            if (typeof data.documentRevision === "number") {
+              updateRevision(data.documentRevision);
+            }
           }
           return;
         }
@@ -528,7 +656,7 @@ export function TiptapEditor({
         // The next polling attempt can recover from a transient refresh error.
       }
     }
-  }, [documentId, updateDocumentAiLock]);
+  }, [documentId, updateDocumentAiLock, updateRevision]);
 
   useEffect(() => {
     for (const [commentId, progress] of Object.entries(
@@ -561,17 +689,19 @@ export function TiptapEditor({
   function handleDocumentContentUpdated(
     content: unknown,
     suggestion: SuggestionWithStatus,
+    nextRevision?: number,
   ) {
     if (content && editor) {
-      editor.commands.setContent(content as JSONContent);
+      editor.commands.setContent(content as JSONContent, { emitUpdate: false });
+      if (typeof nextRevision === "number") updateRevision(nextRevision);
       setRecentThidoChange(suggestion);
     }
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-      <div className="flex w-full min-w-0 flex-1 flex-col gap-6 px-3 py-5 sm:px-5 sm:py-6 lg:px-6">
-        <header className="flex flex-col gap-4 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="print-document-layout flex min-h-0 flex-1 flex-col lg:flex-row">
+      <div className="print-document-layout flex w-full min-w-0 flex-1 flex-col gap-6 px-3 py-5 sm:px-5 sm:py-6 lg:px-6">
+        <header className="print-hidden flex flex-col gap-4 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-center sm:justify-between">
           <Brand />
           <div className="flex flex-wrap items-center gap-3">
             <Link
@@ -580,11 +710,10 @@ export function TiptapEditor({
             >
               All documents
             </Link>
-            <AiModeToggle />
             <UserMenu user={currentUser} />
           </div>
         </header>
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
+        <div className="print-hidden mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
           <input
             value={title}
             readOnly={!canEditNow}
@@ -615,6 +744,22 @@ export function TiptapEditor({
                 {canComment ? "Comment access" : "View only"}
               </span>
             )}
+            <PrintDocumentButton />
+            <DocumentFileActions
+              documentId={documentId}
+              currentRevision={revision}
+              canImport={canEditNow}
+              onImport={handleDocumentRestored}
+              onConflict={handleDocumentConflict}
+            />
+            {canEdit && (
+              <VersionHistoryControl
+                documentId={documentId}
+                currentRevision={revision}
+                onRestore={handleDocumentRestored}
+                onConflict={handleDocumentConflict}
+              />
+            )}
             {canManage && (
               <ShareDocumentControl
                 documentId={documentId}
@@ -625,21 +770,49 @@ export function TiptapEditor({
           </div>
         </div>
 
+        <h1 className="print-document-title editor-title hidden font-serif text-4xl font-normal tracking-[-0.035em]">
+          {title}
+        </h1>
+
         {commentError && (
-          <p className="text-xs text-[var(--danger)]" role="alert">
+          <p className="print-hidden text-xs text-[var(--danger)]" role="alert">
             {commentError}
           </p>
         )}
 
+        {documentConflict && (
+          <div
+            className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 border border-[var(--warm)] bg-[var(--surface)] px-4 py-3 text-sm"
+            role="alert"
+          >
+            <div>
+              <p className="font-semibold">Your copy is out of date.</p>
+              <p className="mt-1 text-xs text-[var(--muted)]">
+                {documentConflict} Copy any unsaved text you need before
+                reloading.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void reloadLatestDocument()}
+              className="secondary-button rounded-md px-3 py-2 text-xs font-medium"
+            >
+              Reload latest version
+            </button>
+          </div>
+        )}
+
         {recentThidoChange && (
-          <RecentThidoChangeNotice
-            suggestion={recentThidoChange}
-            onDismiss={() => setRecentThidoChange(null)}
-          />
+          <div className="print-hidden">
+            <RecentThidoChangeNotice
+              suggestion={recentThidoChange}
+              onDismiss={() => setRecentThidoChange(null)}
+            />
+          </div>
         )}
 
         {startedFromPaste && !initialContent && (
-          <div className="mx-auto w-full max-w-6xl border-l-2 border-[var(--warm)] pl-4">
+          <div className="print-hidden mx-auto w-full max-w-6xl border-l-2 border-[var(--warm)] pl-4">
             <p className="text-sm font-medium">Paste your document below.</p>
             <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
               When it is saved, highlight any passage and choose Comment to
@@ -649,13 +822,17 @@ export function TiptapEditor({
         )}
 
         <div
-          className="app-panel mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-hidden rounded-sm"
+          className="print-document-panel app-panel mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-hidden rounded-sm"
           aria-busy={documentAiLocked}
         >
-          {canEditNow && <Toolbar editor={editor} documentId={documentId} />}
+          {canEditNow && (
+            <div className="print-hidden">
+              <Toolbar editor={editor} documentId={documentId} />
+            </div>
+          )}
           {editor && canCommentNow && (
             <BubbleMenu editor={editor}>
-              <div className="app-panel flex items-center gap-1 rounded-sm p-1">
+              <div className="print-hidden app-panel flex items-center gap-1 rounded-sm p-1">
                 <button
                   type="button"
                   onClick={startComment}
@@ -666,13 +843,13 @@ export function TiptapEditor({
               </div>
             </BubbleMenu>
           )}
-          <div className="flex-1 overflow-y-auto px-4 py-7 sm:px-7 sm:py-10 lg:px-8">
+          <div className="print-document-content flex-1 overflow-y-auto px-4 py-7 sm:px-7 sm:py-10 lg:px-8">
             <EditorContent editor={editor} />
           </div>
         </div>
       </div>
 
-      <div className="flex min-h-72 w-full shrink-0 flex-col border-t border-[var(--border)] lg:min-h-0 lg:w-80 lg:border-t-0">
+      <div className="print-hidden flex min-h-72 w-full shrink-0 flex-col border-t border-[var(--border)] lg:min-h-0 lg:w-80 lg:border-t-0">
         {activeComposer && !documentAiLocked && (
           <div className="border-b border-[var(--border)] bg-[var(--surface)] p-4">
             <CommentComposer

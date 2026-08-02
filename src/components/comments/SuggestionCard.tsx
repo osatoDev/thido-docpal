@@ -17,7 +17,10 @@ export function SuggestionCard({
   canManage,
 }: {
   suggestion: SuggestionWithStatus;
-  onResolved: (updated: SuggestionWithStatus, documentContent?: unknown) => void;
+  onResolved: (
+    updated: SuggestionWithStatus,
+    document?: { content?: unknown; revision?: number },
+  ) => void;
   canManage: boolean;
 }) {
   const [busy, setBusy] = useState(false);
@@ -41,7 +44,7 @@ export function SuggestionCard({
             : "Could not update the suggestion",
         );
       }
-      onResolved(data.suggestion, data.document?.content);
+      onResolved(data.suggestion, data.document);
     } catch (err) {
       if (status === undefined || status >= 500) {
         reportClientError(err, {

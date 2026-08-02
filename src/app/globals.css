@@ -323,3 +323,91 @@ select {
     padding: 0.65rem;
   }
 }
+
+@media print {
+  @page {
+    margin: 18mm;
+  }
+
+  :root,
+  :root[data-theme="dark"] {
+    color-scheme: light;
+    --background: #ffffff;
+    --foreground: #161916;
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --surface-subtle: #f3f3f1;
+    --muted: #555a55;
+    --muted-soft: #737873;
+    --border: #d7d9d7;
+    --border-strong: #b8bbb8;
+    --shadow: none;
+  }
+
+  html,
+  body {
+    background: #ffffff;
+  }
+
+  body {
+    print-color-adjust: exact;
+  }
+
+  .print-hidden,
+  .theme-toggle {
+    display: none !important;
+  }
+
+  .print-document-layout {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+
+  .print-document-title {
+    display: block !important;
+    margin-bottom: 12mm;
+    padding-bottom: 6mm;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .print-document-article {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .print-document-heading {
+    margin-bottom: 12mm !important;
+    padding-bottom: 6mm !important;
+  }
+
+  .print-document-panel {
+    display: block !important;
+    max-width: none !important;
+    overflow: visible !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .print-document-content {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .print-document-panel .ProseMirror {
+    min-height: 0 !important;
+  }
+
+  .comment-highlight {
+    border-bottom: 0;
+    background: transparent;
+  }
+
+  .ProseMirror img {
+    break-inside: avoid;
+  }
+}

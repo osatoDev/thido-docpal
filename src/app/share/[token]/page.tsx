@@ -4,6 +4,7 @@ import type { JSONContent } from "@tiptap/react";
 
 import { Brand } from "@/components/Brand";
 import { PublicDocumentViewer } from "@/components/documents/PublicDocumentViewer";
+import { PrintDocumentButton } from "@/components/documents/PrintDocumentButton";
 import { prisma } from "@/lib/prisma";
 import { toPublicDocumentContent } from "@/lib/publicDocument";
 import { isShareToken } from "@/lib/shareTokens";
@@ -48,21 +49,24 @@ export default async function SharedDocumentPage({
   const sharerName = document.owner.name?.trim() || "the document owner";
 
   return (
-    <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col px-5 py-6 sm:px-6 sm:py-10 lg:px-8">
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-6">
+    <main className="print-document-layout mx-auto flex w-full max-w-[90rem] flex-1 flex-col px-5 py-6 sm:px-6 sm:py-10 lg:px-8">
+      <header className="print-hidden flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-6">
         <Brand href="/documents/new" />
-        <p className="text-xs font-medium text-[var(--muted)]">
-          Shared document · Read only
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="text-xs font-medium text-[var(--muted)]">
+            Shared document · Read only
+          </p>
+          <PrintDocumentButton />
+        </div>
       </header>
 
-      <article className="mx-auto w-full max-w-4xl py-10 sm:py-14">
-        <header className="mb-8 border-b border-[var(--border)] pb-7">
-          <p className="page-kicker mb-3">Shared with you</p>
+      <article className="print-document-article mx-auto w-full max-w-4xl py-10 sm:py-14">
+        <header className="print-document-heading mb-8 border-b border-[var(--border)] pb-7">
+          <p className="print-hidden page-kicker mb-3">Shared with you</p>
           <h1 className="editor-title font-serif text-3xl font-normal tracking-[-0.035em] sm:text-4xl">
             {document.title}
           </h1>
-          <div className="mt-5 flex items-center gap-3">
+          <div className="print-hidden mt-5 flex items-center gap-3">
             <span
               aria-hidden="true"
               className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--surface-subtle)] text-sm font-semibold text-[var(--foreground)]"
@@ -87,7 +91,7 @@ export default async function SharedDocumentPage({
           </div>
         </header>
 
-        <div className="app-panel rounded-sm px-6 py-8 sm:px-12 sm:py-12">
+        <div className="print-document-panel app-panel rounded-sm px-6 py-8 sm:px-12 sm:py-12">
           {content ? (
             <PublicDocumentViewer content={content} />
           ) : (

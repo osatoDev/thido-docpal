@@ -1,11 +1,12 @@
 # Thido production checklist
 
-Last reviewed: 1 August 2026
+Last reviewed: 2 August 2026
 
 This is the running source of truth for production-readiness work. Completed boxes indicate repository evidence or a verified check. External configuration remains unchecked until it is explicitly verified.
 
 ## Immediate deployment blockers
 
+- [ ] Apply the `20260802190000_add_document_revisions` migration to the production database before deploying version history, optimistic concurrency, or Word import.
 - [x] Apply the `20260801130000_add_waitlist_and_document_images` migration to the production database before deploying the post-cap waitlist or document photos.
 - [x] Apply the `20260801100000_add_auto_ai_comment_mode` migration to the production database before deploying the default Auto edit mode.
 - [x] Apply the `20260731180000_add_founder_feedback` migration to the production database before deploying founder conversations or notification links.
@@ -134,19 +135,33 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Give dashboard document-link clicks an immediate selected-row state while preserving partial prefetch semantics for access tracking.
 - [x] Use the pointer cursor consistently for enabled buttons and button-role controls across the app.
 - [x] Reduce the document editor's stacked side gutters and widen its responsive canvas while retaining modest content padding.
+- [x] Let users choose persisted disc, circle, or square markers for unordered lists across editing, sharing, and printing.
 - [x] Keep explicit whole-document AI comment requests in the foreground with a visible working state while ordinary anchored comments continue in the background.
 - [x] Provide a visible whole-document comment composer with explicit scope, full-document AI revisions, reviewable suggestions, and concurrency-safe auto-apply behavior.
 - [x] Lock document editing and new comments while a whole-document AI action is active, reject competing work across tabs, and expire abandoned locks after ten minutes.
 - [x] Let users expand a background comment response to see its real queued, processing, or failed state while it refreshes automatically.
 - [x] Move resolved comment threads into a collapsible archive and retain the ability to reopen or delete them.
 - [x] Add Auto as the default AI edit mode, use the structured prompt decision to apply clear edit instructions while keeping questions and ambiguous requests as proposals, and retain explicit always-propose and always-apply overrides.
+- [x] Keep the AI model and edit-application preferences in Settings instead of duplicating them in each document editor.
 - [x] Show a dismissible recent Thido-change notice with the resulting text and keep durable changed-from/changed-to details in the comment thread.
 - [x] Let dashboard users sort document rows instantly by title and last-accessed time without a server round trip.
 - [x] Use an accessible trash icon for dashboard deletion while keeping the confirmation dialog tied to the selected document title.
 - [x] Bind dashboard deletion to the clicked row's document ID in the server action instead of trusting a hidden form field.
 - [x] Remove the default dashboard `READY` status column and show only non-ready document states inline with the title.
 - [ ] Define and communicate which pasted rich-text structures are preserved; treat importing Word/Google Docs comments and tracked changes as a separate feature.
+- [x] Implement the repository-backed Priority 0 foundations in the [Google Docs feature-gap analysis](./google-docs-feature-gap-analysis.md): bounded durable version history and restore, revision-based stale-write protection across user and AI changes, Word import/export, and server-generated PDF download.
+- [x] Document Word import/export behavior, unsupported structures, limits, and sanitization in the [file fidelity contract](./word-import-export.md).
+- [ ] Choose and provision cross-instance coordination for live ProseMirror collaboration—either a managed compatible service or Vercel WebSockets plus durable Redis-backed pub/sub—before adding shared cursors and presence.
+- [ ] Define and enforce the retention window and storage limits for durable document revisions.
+- [ ] Browser-check version preview/restore, cross-tab stale-write recovery, Word import/export, and multi-page PDF output with supported formatting and images.
+- [ ] Add first-class links, tables, checklists, find/replace, word count, and a documented spelling/language experience.
+- [ ] Add heading-based document navigation, internal links, a table of contents, page breaks, and footnotes before pursuing advanced page-layout controls.
+- [ ] Add a human suggestion mode that shares a coherent accept/reject and history model with AI proposals.
+- [ ] Add collaborator mentions, comment assignments, notification preferences, and filters for work needing a user's response.
+- [ ] Defer offline editing until version history and conflict-safe synchronization are proven.
 - [x] Support document photos through the shared TipTap schema, authenticated editor uploads, and scoped rendering in authenticated and public-share views.
+- [x] Let users open the browser print dialog from authenticated and public document views, with print styling limited to the document title, formatted body, and images.
+- [ ] Browser-check printing from authenticated and public document views in light and dark themes, including multi-page documents and images.
 - [x] Provision the private `thido-document-images` Vercel Blob store and keep only Blob identifiers and image metadata in PostgreSQL.
 - [x] Limit the initial document-photo upload path to 4 MB per JPEG, PNG, WebP, GIF, or AVIF image so uploads remain within the Vercel Function request limit.
 - [x] Verify an authenticated editor can upload a real JPEG to the private Blob store, render it through the protected image route, and remove its Blob when the test document is deleted.
@@ -193,8 +208,8 @@ This is the running source of truth for production-readiness work. Completed box
 ## Testing and continuous integration
 
 - [x] Add automated unit tests for authentication input, password hashing, token helpers, rate limiting, and API auth responses.
-- [x] Confirm the current unit suite passes: 77 tests across twenty-three files, including reviewed beta-seat allocation and private-image public-share URL coverage.
-- [x] Browser-check the rendered connected-accounts Settings panel, empty admin approval waitlist, and editor photo control with no framework overlay or browser errors.
+- [x] Confirm the current unit suite passes: 87 tests across twenty-seven files, including reviewed beta-seat allocation, private-image public-share URL coverage, persisted bullet styles, revision coalescing, import sanitization, and Word/PDF generation.
+- [x] Browser-check the rendered connected-accounts Settings panel, empty admin approval waitlist, and editor image insertion control with no framework overlay or browser errors.
 - [x] Deploy the connected-accounts, private document-photo, post-cap waitlist, verified auth sender, and analytics-status changes to Vercel Production (`dpl_6tYbWWaY4rT5FdFEBrkyGRQRjjHd`) and smoke-check the live login and registration pages without browser errors.
 - [x] Confirm type checking, lint, Prisma validation, and the production build pass after the founder-feedback implementation.
 - [x] Confirm type checking, lint, Prisma validation, and the production build pass after the verified-Google-email account-linking fix.

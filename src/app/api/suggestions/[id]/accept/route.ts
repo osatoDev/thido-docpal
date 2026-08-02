@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { JSONContent } from "@tiptap/react";
-import type { Suggestion } from "@prisma/client";
+import { DocumentRevisionSource, type Suggestion } from "@prisma/client";
 import { generateHTML } from "@tiptap/html/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -15,6 +15,7 @@ import {
   hasActiveCommentAiJob,
   lockDocumentForCommentAi,
 } from "@/lib/documentAiJobs";
+import { recordDocumentRevision } from "@/lib/documentRevisions";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -46,7 +47,7 @@ export async function POST(_request: Request, { params }: Params) {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const document = await prisma.document.findUnique({
       where: { id: suggestion.documentId },
-      select: { content: true, updatedAt: true },
+      select: { content: true, revision: true },
     });
     if (!document?.content) {
       return NextResponse.json(
@@ -97,7 +98,11 @@ export async function POST(_request: Request, { params }: Params) {
     }
 
     let result:
-      | { kind: "resolved"; suggestion: Suggestion | null }
+      | {
+          kind: "resolved";
+          suggestion: Suggestion | null;
+          revision: number;
+        }
       | { kind: "locked" }
       | { kind: "retry" };
     try {
@@ -120,11 +125,19 @@ export async function POST(_request: Request, { params }: Params) {
         const documentUpdate = await transaction.document.updateMany({
           where: {
             id: suggestion.documentId,
-            updatedAt: document.updatedAt,
+            revision: document.revision,
           },
-          data: { content: updatedContent },
+          data: { content: updatedContent, revision: { increment: 1 } },
         });
         if (documentUpdate.count !== 1) return { kind: "retry" as const };
+
+        const updatedDocument = await transaction.document.findUniqueOrThrow({
+          where: { id: suggestion.documentId },
+        });
+        await recordDocumentRevision(transaction, updatedDocument, {
+          source: DocumentRevisionSource.USER,
+          actorId: session.user.id,
+        });
 
         const suggestionUpdate = await transaction.suggestion.updateMany({
           where: { id, status: "PENDING" },
@@ -142,6 +155,7 @@ export async function POST(_request: Request, { params }: Params) {
         return {
           kind: "resolved" as const,
           suggestion: await transaction.suggestion.findUnique({ where: { id } }),
+          revision: updatedDocument.revision,
         };
       });
     } catch (error) {
@@ -163,7 +177,7 @@ export async function POST(_request: Request, { params }: Params) {
     if (result.kind === "resolved") {
       return NextResponse.json({
         suggestion: result.suggestion,
-        document: { content: updatedContent },
+        document: { content: updatedContent, revision: result.revision },
       });
     }
   }

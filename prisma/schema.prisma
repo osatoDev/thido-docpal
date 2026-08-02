@@ -77,6 +77,7 @@ model User {
   feedbackMessages         FeedbackMessage[]
   collaboratorInvites      DocumentCollaborator[] @relation("CollaboratorInviter")
   uploadedDocumentImages   DocumentImage[]        @relation("DocumentImageUploader")
+  documentRevisions        DocumentRevision[]     @relation("DocumentRevisionActor")
   waitlistReviews          WaitlistEntry[]        @relation("WaitlistReviewer")
   waitlistAdmission        WaitlistEntry?         @relation("WaitlistApprovedUser")
 }
@@ -215,6 +216,14 @@ enum DocumentStatus {
   READY
 }
 
+enum DocumentRevisionSource {
+  INITIAL
+  USER
+  AI
+  RESTORE
+  IMPORT
+}
+
 enum DocumentPermission {
   VIEW
   COMMENT
@@ -232,6 +241,7 @@ model Document {
   status         DocumentStatus         @default(DRAFTING)
   isPlaceholder  Boolean                @default(false)
   content        Json?
+  revision       Int                    @default(0)
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
   lastAccessedAt DateTime               @default(now())
@@ -240,9 +250,28 @@ model Document {
   collaborators  DocumentCollaborator[]
   aiGenerations  AiGeneration[]
   images         DocumentImage[]
+  revisions      DocumentRevision[]
 
   @@index([ownerId])
   @@index([isPlaceholder, updatedAt])
+}
+
+model DocumentRevision {
+  id                   String                 @id @default(cuid())
+  documentId           String
+  document             Document               @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  revision             Int
+  title                String
+  content              Json?
+  source               DocumentRevisionSource
+  actorId              String?
+  actor                User?                  @relation("DocumentRevisionActor", fields: [actorId], references: [id], onDelete: SetNull)
+  restoredFromRevision Int?
+  createdAt            DateTime               @default(now())
+
+  @@unique([documentId, revision])
+  @@index([documentId, createdAt])
+  @@index([actorId])
 }
 
 model DocumentImage {

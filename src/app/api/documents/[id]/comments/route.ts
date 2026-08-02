@@ -36,6 +36,8 @@ import {
   isCommentAiJobActive,
   lockDocumentForCommentAi,
 } from "@/lib/documentAiJobs";
+import { recordDocumentRevision } from "@/lib/documentRevisions";
+import { DocumentRevisionSource } from "@prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -57,6 +59,7 @@ export async function GET(_request: Request, { params }: Params) {
     },
     select: {
       content: true,
+      revision: true,
       comments: {
         where: { parentId: null },
         orderBy: { createdAt: "desc" },
@@ -102,6 +105,7 @@ export async function GET(_request: Request, { params }: Params) {
     comments: document.comments,
     aiProgress,
     documentContent: document.content,
+    documentRevision: document.revision,
     documentAiLocked,
   });
 }
@@ -270,16 +274,17 @@ export async function POST(request: Request, { params }: Params) {
       ? (
           await prisma.document.findUnique({
             where: { id: documentId },
-            select: { content: true },
+            select: { content: true, revision: true },
           })
-        )?.content
+        )
       : null;
 
   return NextResponse.json(
     {
       comment: completedComment ?? comment,
       aiProcessing: aiCompleted ? "completed" : "failed",
-      documentContent,
+      documentContent: documentContent?.content ?? null,
+      documentRevision: documentContent?.revision,
     },
     { status: 201 },
   );
@@ -312,7 +317,7 @@ async function generateAiResponse({
   try {
     const latestDocument = await prisma.document.findUnique({
       where: { id: documentId },
-      select: { content: true, updatedAt: true },
+      select: { content: true, revision: true },
     });
     const latestContent =
       latestDocument?.content && typeof latestDocument.content === "object"
@@ -444,18 +449,21 @@ async function generateAiResponse({
 
       if (parsed.intent === "change_request" && parsed.proposed_text) {
         if (autoApply) {
-          const updatedContent =
+          const appliedDocument =
             scope === "DOCUMENT"
               ? await applyDocumentReplacementWithoutClobbering({
                   documentId,
-                  expectedUpdatedAt: latestDocument?.updatedAt,
+                  expectedRevision: latestDocument?.revision,
                   proposedText: parsed.proposed_text,
+                  actorId: userId,
                 })
               : await applyReplacementWithoutClobbering({
                   documentId,
                   anchorMarkId: anchorMarkId!,
                   proposedText: parsed.proposed_text,
+                  actorId: userId,
                 });
+          const updatedContent = appliedDocument?.content ?? null;
 
           await prisma.suggestion.create({
             data: {
@@ -518,35 +526,49 @@ async function finishCommentAiJob(
 
 async function applyDocumentReplacementWithoutClobbering({
   documentId,
-  expectedUpdatedAt,
+  expectedRevision,
   proposedText,
+  actorId,
 }: {
   documentId: string;
-  expectedUpdatedAt?: Date;
+  expectedRevision?: number;
   proposedText: string;
-}): Promise<JSONContent | null> {
-  if (!expectedUpdatedAt) return null;
+  actorId: string;
+}): Promise<{ content: JSONContent; revision: number } | null> {
+  if (expectedRevision === undefined) return null;
   const updatedContent = await markdownToTiptapJSON(proposedText);
-  const update = await prisma.document.updateMany({
-    where: { id: documentId, updatedAt: expectedUpdatedAt },
-    data: { content: updatedContent },
+  return prisma.$transaction(async (transaction) => {
+    const update = await transaction.document.updateMany({
+      where: { id: documentId, revision: expectedRevision },
+      data: { content: updatedContent, revision: { increment: 1 } },
+    });
+    if (update.count !== 1) return null;
+    const document = await transaction.document.findUniqueOrThrow({
+      where: { id: documentId },
+    });
+    await recordDocumentRevision(transaction, document, {
+      source: DocumentRevisionSource.AI,
+      actorId,
+    });
+    return { content: updatedContent, revision: document.revision };
   });
-  return update.count === 1 ? updatedContent : null;
 }
 
 async function applyReplacementWithoutClobbering({
   documentId,
   anchorMarkId,
   proposedText,
+  actorId,
 }: {
   documentId: string;
   anchorMarkId: string;
   proposedText: string;
-}): Promise<JSONContent | null> {
+  actorId: string;
+}): Promise<{ content: JSONContent; revision: number } | null> {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const latest = await prisma.document.findUnique({
       where: { id: documentId },
-      select: { content: true, updatedAt: true },
+      select: { content: true, revision: true },
     });
     if (!latest?.content) return null;
 
@@ -557,11 +579,22 @@ async function applyReplacementWithoutClobbering({
     );
     if (!updatedContent) return null;
 
-    const update = await prisma.document.updateMany({
-      where: { id: documentId, updatedAt: latest.updatedAt },
-      data: { content: updatedContent },
+    const applied = await prisma.$transaction(async (transaction) => {
+      const update = await transaction.document.updateMany({
+        where: { id: documentId, revision: latest.revision },
+        data: { content: updatedContent, revision: { increment: 1 } },
+      });
+      if (update.count !== 1) return null;
+      const document = await transaction.document.findUniqueOrThrow({
+        where: { id: documentId },
+      });
+      await recordDocumentRevision(transaction, document, {
+        source: DocumentRevisionSource.AI,
+        actorId,
+      });
+      return { content: updatedContent, revision: document.revision };
     });
-    if (update.count === 1) return updatedContent;
+    if (applied) return applied;
   }
 
   return null;
