@@ -43,7 +43,7 @@ export default async function SharedDocumentPage({
 
   const content =
     document.content && typeof document.content === "object"
-      ? toPublicDocumentContent(document.content as JSONContent)
+      ? toPublicDocumentContent(document.content as JSONContent, token)
       : null;
   const sharerName = document.owner.name?.trim() || "the document owner";
 

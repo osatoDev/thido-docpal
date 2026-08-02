@@ -38,8 +38,8 @@ export function BillingPanel({
             Plan and billing
           </h2>
           <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-            You have free beta seat {betaSeat} of 100. No card is required for
-            beta access.
+            You’re beta member #{betaSeat}. The first 100 places were automatic;
+            later places are approved from the waitlist. No card is required.
           </p>
           {noticeMessage && (
             <p className="mt-3 text-sm text-[var(--foreground)]" role="status">

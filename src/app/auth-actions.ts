@@ -3,7 +3,7 @@
 import { AuthError } from "next-auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { AuthTokenType } from "@prisma/client";
+import { AuthTokenType, WaitlistSignupMethod } from "@prisma/client";
 
 import { signIn } from "@/lib/auth";
 import {
@@ -16,14 +16,19 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { reportServerError } from "@/lib/rollbar/server";
 import { issueAuthToken } from "@/lib/authTokenStore";
-import { sendVerificationEmail } from "@/lib/email";
+import {
+  sendVerificationEmail,
+  sendWaitlistConfirmationEmail,
+} from "@/lib/email";
 import {
   BetaCapacityReachedError,
   createBetaUser,
 } from "@/lib/betaAccess";
+import { joinWaitlist } from "@/lib/waitlist";
 
 export type AuthActionState = {
   message?: string;
+  success?: boolean;
   errors?: {
     name?: string[];
     email?: string[];
@@ -34,8 +39,8 @@ export type AuthActionState = {
 const GENERIC_LOGIN_ERROR = "The email or password is incorrect.";
 const GENERIC_REGISTRATION_ERROR =
   "We couldn't create that account. Try signing in or use another email.";
-const BETA_FULL_ERROR =
-  "The first 100 free beta places have been claimed. Existing members can still sign in.";
+const WAITLIST_SUCCESS =
+  "The first 100 beta places are full, so you’ve joined the waitlist. We’ll email you after the founding team reviews your request.";
 
 async function clientAddress(): Promise<string> {
   const requestHeaders = await headers();
@@ -130,7 +135,29 @@ export async function registerWithPassword(
     });
   } catch (error) {
     if (error instanceof BetaCapacityReachedError) {
-      return { message: BETA_FULL_ERROR };
+      try {
+        const { newlyJoined, accepted } = await joinWaitlist({
+          name,
+          email,
+          passwordHash,
+          signupMethod: WaitlistSignupMethod.PASSWORD,
+        });
+        if (!accepted) {
+          return {
+            message:
+              "This email already has a reviewed beta request. Contact support if you think this is a mistake.",
+          };
+        }
+        if (newlyJoined) await sendWaitlistConfirmationEmail(email);
+        return { message: WAITLIST_SUCCESS, success: true };
+      } catch (waitlistError) {
+        console.error("Unable to join beta waitlist", waitlistError);
+        await reportServerError(waitlistError, {
+          source: "auth",
+          operation: "join-password-waitlist",
+        });
+        return { message: GENERIC_REGISTRATION_ERROR };
+      }
     }
     // Includes the unique-index race if two registrations arrive together.
     return { message: GENERIC_REGISTRATION_ERROR };

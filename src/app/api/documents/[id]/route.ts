@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { del } from "@vercel/blob";
 import type { JSONContent } from "@tiptap/react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -13,6 +14,7 @@ import {
   hasActiveCommentAiJob,
   lockDocumentForCommentAi,
 } from "@/lib/documentAiJobs";
+import { reportServerError } from "@/lib/rollbar/server";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -208,6 +210,10 @@ export async function DELETE(_request: Request, { params }: Params) {
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  const imageBlobs = await prisma.documentImage.findMany({
+    where: { documentId: id },
+    select: { blobUrl: true },
+  });
 
   const deleteResult = await prisma.$transaction(async (transaction) => {
     const documentExists = await lockDocumentForCommentAi(transaction, id);
@@ -233,6 +239,19 @@ export async function DELETE(_request: Request, { params }: Params) {
       { error: DOCUMENT_AI_LOCK_MESSAGE },
       { status: 409 },
     );
+  }
+
+  if (imageBlobs.length > 0) {
+    try {
+      await del(imageBlobs.map((image) => image.blobUrl));
+    } catch (error) {
+      console.error("Unable to delete document image blobs", error);
+      await reportServerError(error, {
+        source: "document-image",
+        operation: "delete-with-document",
+        documentId: id,
+      });
+    }
   }
 
   return NextResponse.json({ ok: true });

@@ -21,7 +21,7 @@ export default async function LoginPage({
   const authError = Array.isArray(params.error) ? params.error[0] : params.error;
   const noticeMessage =
     authError === "AccessDenied"
-      ? "The first 100 free beta places have been claimed. Existing members can still sign in."
+      ? "The first 100 beta places are full. If you tried to create an account with Google, you’ve been added to the waitlist and we’ll email you after review."
       : authError === "OAuthAccountNotLinked"
         ? "Google could not be connected to the existing Thido account for this email. Try your original sign-in method or contact support."
       : notice === "draft-ready"

@@ -8,11 +8,15 @@ import { UserMenu } from "@/components/account/UserMenu";
 import { SettingsForm } from "@/components/settings/SettingsForm";
 import { BillingPanel } from "@/components/settings/BillingPanel";
 import { getBillingOffer } from "@/lib/billing";
+import { ConnectedAccounts } from "@/components/settings/ConnectedAccounts";
 
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ billing?: string | string[] }>;
+  searchParams: Promise<{
+    billing?: string | string[];
+    accounts?: string | string[];
+  }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -28,7 +32,10 @@ export default async function SettingsPage({
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
+        email: true,
         betaSeat: true,
+        passwordHash: true,
+        accounts: { select: { provider: true } },
         stripeSubscriptionStatus: true,
         stripeCurrentPeriodEnd: true,
         stripeCancelAtPeriodEnd: true,
@@ -43,6 +50,9 @@ export default async function SettingsPage({
   const billingNotice = Array.isArray(query.billing)
     ? query.billing[0]
     : query.billing;
+  const accountsNotice = Array.isArray(query.accounts)
+    ? query.accounts[0]
+    : query.accounts;
 
   return (
     <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col gap-12 px-5 py-6 sm:px-6 sm:py-10 lg:px-8">
@@ -70,6 +80,12 @@ export default async function SettingsPage({
       <SettingsForm
         initialAiModel={isAiModelId(settings.aiModel) ? settings.aiModel : DEFAULT_AI_MODEL}
         initialCommentMode={settings.aiCommentMode}
+      />
+      <ConnectedAccounts
+        email={user.email ?? session.user.email ?? "your email"}
+        hasGoogle={user.accounts.some((account) => account.provider === "google")}
+        hasPassword={Boolean(user.passwordHash)}
+        notice={accountsNotice}
       />
       <BillingPanel
         betaSeat={user.betaSeat}

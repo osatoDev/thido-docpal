@@ -6,6 +6,7 @@ This is the running source of truth for production-readiness work. Completed box
 
 ## Immediate deployment blockers
 
+- [x] Apply the `20260801130000_add_waitlist_and_document_images` migration to the production database before deploying the post-cap waitlist or document photos.
 - [x] Apply the `20260801100000_add_auto_ai_comment_mode` migration to the production database before deploying the default Auto edit mode.
 - [x] Apply the `20260731180000_add_founder_feedback` migration to the production database before deploying founder conversations or notification links.
 - [x] Accept the Stripe Marketplace terms in Vercel, install the Stripe integration on `thido-docpal`, and connect the `stripe-cobalt-harbor` sandbox resource to Production, Preview, and Development.
@@ -23,8 +24,9 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Verify `npx prisma migrate status` reports all 14 production migrations through `20260731160000_add_beta_access_and_billing` are applied.
 - [x] Verify `npx prisma migrate status` reports all 15 production migrations through `20260731180000_add_founder_feedback` are applied.
 - [x] Verify `npx prisma migrate status` reports all 16 production migrations through `20260801100000_add_auto_ai_comment_mode` are applied.
+- [x] Verify `npx prisma migrate status` reports all 17 production migrations through `20260801130000_add_waitlist_and_document_images` are applied.
 - [x] Configure `RESEND_API_KEY` in Vercel Production and Preview environments.
-- [ ] Verify the sending domain in Resend and replace `onboarding@resend.dev` with a production `AUTH_EMAIL_FROM` address.
+- [x] Verify `thido.ai` is active in Resend and use `Thido <auth@thido.ai>` as both the code fallback and production `AUTH_EMAIL_FROM` sender.
 - [ ] Send real verification and password-reset emails and confirm delivery, links, expiry, and single-use behavior against the production database.
 - [ ] Confirm all required Vercel production environment variables are set:
   - [x] `DATABASE_URL`
@@ -35,6 +37,7 @@ This is the running source of truth for production-readiness work. Completed box
   - [x] `GOOGLE_CLIENT_SECRET`
   - [x] `RESEND_API_KEY`
   - [x] `AUTH_EMAIL_FROM`
+  - [x] `BLOB_READ_WRITE_TOKEN` (private `thido-document-images` store linked to Production, Preview, and Development)
   - [x] `ANTHROPIC_API_KEY`
   - [x] `ADMIN_EMAILS` (`osato@thido.ai` in Production, Preview, and Development)
   - [x] `FEEDBACK_NOTIFICATION_EMAILS` (`osato@thido.ai` and `osatog1@gmail.com` in Production, Preview, and Development)
@@ -74,7 +77,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Show explicit sign-in, expired-session, sign-out, verification, and password-reset notices.
 - [x] Use a responsive wide login layout that keeps authentication controls readable without excessive desktop side margins.
 - [x] Provide a dedicated forbidden page for authorization failures.
-- [ ] Add an authenticated connected-accounts screen for deliberately linking Google and password credentials.
+- [x] Add authenticated Settings controls that deliberately link Google or add password sign-in to the current account.
 - [ ] Add recent-authentication checks before linking or unlinking credentials.
 - [ ] Prevent users from removing their final usable sign-in method when account-management controls are added.
 - [ ] Add security-notification emails for password changes and provider linking or unlinking.
@@ -143,9 +146,11 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Bind dashboard deletion to the clicked row's document ID in the server action instead of trusting a hidden form field.
 - [x] Remove the default dashboard `READY` status column and show only non-ready document states inline with the title.
 - [ ] Define and communicate which pasted rich-text structures are preserved; treat importing Word/Google Docs comments and tracked changes as a separate feature.
-- [ ] Decide whether Thido will support uploaded source files, exports, images, or attachments.
-- [ ] If binary files are added, provision object storage such as Vercel Blob or S3 and store only object metadata and keys in PostgreSQL.
-- [ ] Define maximum document size and API request-body limits.
+- [x] Support document photos through the shared TipTap schema, authenticated editor uploads, and scoped rendering in authenticated and public-share views.
+- [x] Provision the private `thido-document-images` Vercel Blob store and keep only Blob identifiers and image metadata in PostgreSQL.
+- [x] Limit the initial document-photo upload path to 4 MB per JPEG, PNG, WebP, GIF, or AVIF image so uploads remain within the Vercel Function request limit.
+- [x] Verify an authenticated editor can upload a real JPEG to the private Blob store, render it through the protected image route, and remove its Blob when the test document is deleted.
+- [ ] Delete orphaned Blob objects when an uploaded image is removed from the editor or abandoned before the document autosave completes.
 - [ ] Add data export and account deletion flows.
 - [ ] Define retention rules for documents, comments, deleted accounts, auth tokens, and operational logs.
 - [ ] Define a cleanup window for abandoned document placeholders that are no longer reusable.
@@ -155,7 +160,8 @@ This is the running source of truth for production-readiness work. Completed box
 
 - [x] Enforce a race-safe limit of 100 free beta accounts across password registration and Google sign-in, backfill existing accounts deterministically, show remaining places, and keep existing members able to sign in after the cap is reached.
 - [x] Deploy the beta-access foundation to Vercel Production and verify the live `/register` page reports 93 of 100 places remaining for the seven seated accounts, with no card required.
-- [ ] Define what happens to registration after the beta reaches 100 accounts: waitlist, invite-only access, or closed registration.
+- [x] After the first 100 automatic beta accounts, place password and verified-Google applicants on a waitlist and let an authenticated admin approve or reject the exact request with one click and an outcome email.
+- [ ] Exercise password and Google waitlist entry, approval, rejection, duplicate submission, and approval-email delivery against production after the migration is deployed.
 - [ ] Choose and approve paid-plan pricing, currency, billing interval, entitlements, and launch timing using [the paid-plan pricing suggestions](./paid-plan-pricing.md) before activating Stripe Checkout.
 - [x] Prepare an accurate Stripe registration description for Thido as an AI-assisted document productivity SaaS in [the Stripe business description](./stripe-business-description.md).
 - [x] Implement authenticated Stripe subscription Checkout, signed webhook processing, idempotent subscription-state persistence, failure reporting, and Customer Portal access using the Vercel Marketplace integration; keep Checkout hidden until a Price is configured.
@@ -187,7 +193,9 @@ This is the running source of truth for production-readiness work. Completed box
 ## Testing and continuous integration
 
 - [x] Add automated unit tests for authentication input, password hashing, token helpers, rate limiting, and API auth responses.
-- [x] Confirm the current unit suite passes: 75 tests across twenty-three files, including verified-Google-email account-linking coverage.
+- [x] Confirm the current unit suite passes: 77 tests across twenty-three files, including reviewed beta-seat allocation and private-image public-share URL coverage.
+- [x] Browser-check the rendered connected-accounts Settings panel, empty admin approval waitlist, and editor photo control with no framework overlay or browser errors.
+- [x] Deploy the connected-accounts, private document-photo, post-cap waitlist, verified auth sender, and analytics-status changes to Vercel Production (`dpl_6tYbWWaY4rT5FdFEBrkyGRQRjjHd`) and smoke-check the live login and registration pages without browser errors.
 - [x] Confirm type checking, lint, Prisma validation, and the production build pass after the founder-feedback implementation.
 - [x] Confirm type checking, lint, Prisma validation, and the production build pass after the verified-Google-email account-linking fix.
 - [x] Prevent the founder-feedback POST runtime crash by keeping non-function state out of the `"use server"` action module and scanning every server-action module for invalid runtime exports in the unit suite.
@@ -200,6 +208,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Add browser tests for creating, opening anonymously, and revoking read-only document share links, plus inviting by email and enforcing every collaborator permission level.
 - [ ] Create a separate test database and ensure tests can never target production credentials.
 - [ ] Add accessibility checks for authentication, editor, settings, and admin pages.
+- [ ] Review and resolve the seven dependency audit findings reported after adding Vercel Blob and TipTap Image (five high and two critical) without applying an unreviewed breaking upgrade.
 - [ ] Define a release smoke-test checklist for production deployments.
 
 ## Monitoring and operations
@@ -208,7 +217,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Add an admin analytics summary integration.
 - [x] Accept the Rollbar Marketplace terms in Vercel, install `rollbar/error-tracking` on the `thido-docpal` project, connect it to production, preview, and development, and pull the generated client and server tokens.
 - [x] Verify the Rollbar server token and connected project accept a content-free development occurrence.
-- [ ] Enable Vercel Web Analytics for the production project.
+- [x] Verify through the Vercel project API that production Web Analytics is enabled and has received data.
 - [ ] Configure `VERCEL_TOKEN`, `VERCEL_PROJECT_ID`, and `VERCEL_TEAM_ID` when required for the admin analytics view.
 - [ ] Verify `/admin` shows real production analytics and system configuration status.
 - [ ] Verify analytics, request logs, and error tracking record `/share/[token]` as a route pattern rather than storing bearer-token values; exclude or redact shared-document paths where necessary.

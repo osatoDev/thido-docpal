@@ -65,7 +65,7 @@ async function sendEmail({
 
   const { error } = await resend.emails.send(
     {
-      from: process.env.AUTH_EMAIL_FROM ?? "Thido <onboarding@resend.dev>",
+      from: process.env.AUTH_EMAIL_FROM ?? "Thido <auth@thido.ai>",
       to,
       subject,
       text,
@@ -75,6 +75,67 @@ async function sendEmail({
   );
 
   if (error) throw new Error(`Email delivery failed: ${error.message}`);
+}
+
+export async function sendWaitlistConfirmationEmail(email: string) {
+  const url = appUrl("/login");
+  await sendEmail({
+    to: email,
+    subject: "You’re on the Thido beta waitlist",
+    text: `You’re on the Thido beta waitlist. We’ll email you as soon as your account is approved.\n\nThido: ${url}`,
+    html: emailShell(
+      "You’re on the waitlist",
+      "The first 100 automatic beta places are full. We’ll email you as soon as the founding team reviews your request.",
+      "Visit Thido",
+      url,
+    ),
+    previewUrl: url,
+    idempotencyKey: `waitlist-confirmation-${email.toLowerCase()}`,
+  });
+}
+
+export async function sendWaitlistApprovedEmail({
+  email,
+  verificationToken,
+}: {
+  email: string;
+  verificationToken?: string;
+}) {
+  const url = verificationToken
+    ? appUrl(`/verify-email?token=${encodeURIComponent(verificationToken)}&callbackUrl=%2Fdashboard`)
+    : appUrl("/login");
+  await sendEmail({
+    to: email,
+    subject: "Your Thido beta account is approved",
+    text: `Your Thido beta account has been approved. Continue here: ${url}`,
+    html: emailShell(
+      "You’re approved",
+      verificationToken
+        ? "Your beta account is ready. Verify your email to finish signing in."
+        : "Your beta account is ready. Continue with Google using this email address.",
+      verificationToken ? "Verify and continue" : "Sign in with Google",
+      url,
+    ),
+    previewUrl: url,
+    idempotencyKey: `waitlist-approved-${email.toLowerCase()}`,
+  });
+}
+
+export async function sendWaitlistRejectedEmail(email: string) {
+  const url = appUrl("/");
+  await sendEmail({
+    to: email,
+    subject: "An update on your Thido beta request",
+    text: `We’re unable to offer you a Thido beta place right now. You can still follow Thido here: ${url}`,
+    html: emailShell(
+      "Your beta request",
+      "We’re unable to offer you a beta place right now. Thank you for your interest in Thido.",
+      "Visit Thido",
+      url,
+    ),
+    previewUrl: url,
+    idempotencyKey: `waitlist-rejected-${email.toLowerCase()}`,
+  });
 }
 
 export async function sendFounderFeedbackNotification({

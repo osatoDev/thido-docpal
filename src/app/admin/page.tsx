@@ -7,6 +7,10 @@ import { prisma } from "@/lib/prisma";
 import { getVercelAnalyticsSummary } from "@/lib/vercelAnalytics";
 import { getAiOperationsSummary } from "@/lib/ai/adminMetrics";
 import { founderFeedbackRecipients } from "@/lib/feedback";
+import {
+  approveWaitlistEntry,
+  rejectWaitlistEntry,
+} from "@/app/admin/waitlist-actions";
 
 export const metadata: Metadata = {
   title: "Admin — Thido",
@@ -57,6 +61,7 @@ export default async function AdminPage() {
     recentDocuments,
     analytics,
     aiOperations,
+    pendingWaitlist,
   ] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { betaSeat: { not: null } } }),
@@ -78,6 +83,17 @@ export default async function AdminPage() {
       }),
       getVercelAnalyticsSummary(),
       getAiOperationsSummary(),
+      prisma.waitlistEntry.findMany({
+        where: { status: "PENDING" },
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          signupMethod: true,
+          createdAt: true,
+        },
+      }),
   ]);
 
   const metrics = [
@@ -87,6 +103,7 @@ export default async function AdminPage() {
     { label: "Comments", value: comments },
     { label: "Pending suggestions", value: pendingSuggestions },
     { label: "Founder replies due", value: awaitingFounderReplies },
+    { label: "Waitlist", value: pendingWaitlist.length },
   ];
 
   const configuration = [
@@ -107,7 +124,11 @@ export default async function AdminPage() {
       ),
     },
     {
-      label: "Vercel Analytics API",
+      label: "Vercel Web Analytics tracking",
+      ready: true,
+    },
+    {
+      label: "Admin traffic-reporting API",
       ready: Boolean(process.env.VERCEL_TOKEN && process.env.VERCEL_PROJECT_ID),
     },
   ];
@@ -151,7 +172,7 @@ export default async function AdminPage() {
         </p>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6" aria-label="Application totals">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-7" aria-label="Application totals">
         {metrics.map((metric) => (
           <article key={metric.label} className="app-panel rounded-2xl p-5">
             <p className="text-sm font-medium text-[var(--muted)]">{metric.label}</p>
@@ -160,6 +181,67 @@ export default async function AdminPage() {
             </p>
           </article>
         ))}
+      </section>
+
+      <section className="app-panel overflow-hidden rounded-2xl" aria-labelledby="waitlist-heading">
+        <div className="border-b border-[var(--border)] p-5 sm:p-7">
+          <p className="page-kicker">Beta access</p>
+          <h2 id="waitlist-heading" className="mt-1 font-serif text-2xl">
+            Approval waitlist
+          </h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Requests appear here after the first 100 automatic accounts. Each
+            button is bound to this row’s exact request.
+          </p>
+        </div>
+        {pendingWaitlist.length === 0 ? (
+          <p className="p-5 text-sm text-[var(--muted)] sm:p-7">
+            No beta requests are awaiting review.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[48rem] text-left text-sm">
+              <thead className="bg-[var(--surface-subtle)] text-[var(--muted)]">
+                <tr>
+                  <th className="px-5 py-3 font-medium sm:px-7">Applicant</th>
+                  <th className="px-5 py-3 font-medium">Method</th>
+                  <th className="px-5 py-3 font-medium">Requested</th>
+                  <th className="px-5 py-3 text-right font-medium sm:px-7">Decision</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border)]">
+                {pendingWaitlist.map((entry) => (
+                  <tr key={entry.id}>
+                    <td className="px-5 py-4 sm:px-7">
+                      <p className="font-medium">{entry.name || "No name"}</p>
+                      <p className="mt-0.5 text-xs text-[var(--muted)]">{entry.email}</p>
+                    </td>
+                    <td className="px-5 py-4 capitalize text-[var(--muted)]">
+                      {entry.signupMethod.toLowerCase()}
+                    </td>
+                    <td className="px-5 py-4 font-mono text-xs text-[var(--muted)]">
+                      {formatDate(entry.createdAt)}
+                    </td>
+                    <td className="px-5 py-4 sm:px-7">
+                      <div className="flex justify-end gap-2">
+                        <form action={approveWaitlistEntry.bind(null, entry.id)}>
+                          <button type="submit" className="primary-button rounded-lg px-3 py-2 text-xs font-semibold">
+                            Approve
+                          </button>
+                        </form>
+                        <form action={rejectWaitlistEntry.bind(null, entry.id)}>
+                          <button type="submit" className="secondary-button rounded-lg px-3 py-2 text-xs font-semibold text-[var(--danger)]">
+                            Reject
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <section className="app-panel overflow-hidden rounded-2xl" aria-labelledby="ai-operations-heading">

@@ -652,7 +652,7 @@ export function TiptapEditor({
           className="app-panel mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-hidden rounded-sm"
           aria-busy={documentAiLocked}
         >
-          {canEditNow && <Toolbar editor={editor} />}
+          {canEditNow && <Toolbar editor={editor} documentId={documentId} />}
           {editor && canCommentNow && (
             <BubbleMenu editor={editor}>
               <div className="app-panel flex items-center gap-1 rounded-sm p-1">

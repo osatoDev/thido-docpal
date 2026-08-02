@@ -1,5 +1,6 @@
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
+import Image from "@tiptap/extension-image";
 import type { Extensions } from "@tiptap/core";
 import { CommentMark } from "@/components/editor/extensions/CommentMark";
 
@@ -18,6 +19,10 @@ export function getEditorExtensions(): Extensions {
     }),
     Placeholder.configure({
       placeholder: "Start writing…",
+    }),
+    Image.configure({
+      allowBase64: false,
+      inline: false,
     }),
     CommentMark,
   ];

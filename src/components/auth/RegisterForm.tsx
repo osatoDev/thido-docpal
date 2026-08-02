@@ -82,27 +82,30 @@ export function RegisterForm({
       </div>
       {state.message && (
         <p
-          role="alert"
+          role={state.success ? "status" : "alert"}
           aria-live="polite"
-          className="text-sm text-[var(--danger)]"
+          className={`text-sm ${state.success ? "text-[var(--accent-strong)]" : "text-[var(--danger)]"}`}
         >
           {state.message}
         </p>
       )}
       {remainingSeats === 0 && !state.message && (
         <p role="status" className="text-sm text-[var(--muted)]">
-          The free beta is full. Existing members can still sign in.
+          The first 100 beta places are full. Submit your details to join the
+          approval waitlist.
         </p>
       )}
       <button
         type="submit"
-        disabled={pending || remainingSeats === 0}
+        disabled={pending}
         className="primary-button mt-1 rounded-xl px-4 py-3 text-sm font-semibold disabled:cursor-wait disabled:opacity-60"
       >
         {pending
-          ? "Creating account…"
+          ? remainingSeats === 0
+            ? "Joining waitlist…"
+            : "Creating account…"
           : remainingSeats === 0
-            ? "Beta full"
+            ? "Join the beta waitlist"
             : "Claim free beta place"}
       </button>
       <p className="text-center text-xs leading-5 text-[var(--muted)]">

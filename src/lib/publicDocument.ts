@@ -7,8 +7,23 @@ import { collectCommentMarkIds } from "@/lib/documentMarks";
  * public share boundary. Comment bodies live separately in PostgreSQL, but
  * the marks also contain internal comment ids and should not be exposed.
  */
-export function toPublicDocumentContent(content: JSONContent): JSONContent {
+export function toPublicDocumentContent(
+  content: JSONContent,
+  shareToken?: string,
+): JSONContent {
   const publicContent: JSONContent = { ...content };
+
+  if (
+    shareToken &&
+    content.type === "image" &&
+    typeof content.attrs?.src === "string" &&
+    content.attrs.src.startsWith("/api/document-images/")
+  ) {
+    publicContent.attrs = {
+      ...content.attrs,
+      src: `${content.attrs.src}?share=${encodeURIComponent(shareToken)}`,
+    };
+  }
 
   if (content.marks) {
     const marks = content.marks
@@ -22,7 +37,9 @@ export function toPublicDocumentContent(content: JSONContent): JSONContent {
   }
 
   if (content.content) {
-    publicContent.content = content.content.map(toPublicDocumentContent);
+    publicContent.content = content.content.map((child) =>
+      toPublicDocumentContent(child, shareToken),
+    );
   }
 
   return publicContent;

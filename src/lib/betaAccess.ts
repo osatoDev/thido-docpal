@@ -26,6 +26,11 @@ export function nextBetaSeat(claimedSeats: number[], limit = BETA_USER_LIMIT) {
   return null;
 }
 
+/** Allocates a stable membership number for an admin-approved waitlist user. */
+export function nextApprovedBetaSeat(claimedSeats: number[]) {
+  return Math.max(0, ...claimedSeats) + 1;
+}
+
 export async function createBetaUser(data: Prisma.UserCreateInput) {
   return prisma.$transaction(async (transaction) => {
     await transaction.$queryRaw<Array<{ lockResult: string }>>(

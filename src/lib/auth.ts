@@ -3,6 +3,7 @@ import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { AdapterUser } from "@auth/core/adapters";
+import { WaitlistSignupMethod } from "@prisma/client";
 
 import { loginSchema } from "@/lib/authInput";
 import {
@@ -16,6 +17,9 @@ import {
 import { verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { joinWaitlist } from "@/lib/waitlist";
+import { sendWaitlistConfirmationEmail } from "@/lib/email";
+import { reportServerError } from "@/lib/rollbar/server";
 
 // Test login lets you sign in as any email with no OAuth round-trip, purely
 // for local/CI testing. Never enabled in production, even if the env var
@@ -152,9 +156,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         where: { email: { equals: user.email, mode: "insensitive" } },
         select: { betaSeat: true },
       });
-      return existingUser
-        ? existingUser.betaSeat !== null
-        : hasBetaCapacity();
+      if (existingUser) return existingUser.betaSeat !== null;
+      if (await hasBetaCapacity()) return true;
+
+      try {
+        const { newlyJoined } = await joinWaitlist({
+          email: user.email,
+          name: user.name,
+          signupMethod: WaitlistSignupMethod.GOOGLE,
+        });
+        if (newlyJoined) await sendWaitlistConfirmationEmail(user.email);
+      } catch (error) {
+        console.error("Unable to join Google beta waitlist", error);
+        await reportServerError(error, {
+          source: "auth",
+          operation: "join-google-waitlist",
+        });
+      }
+      return false;
     },
     async jwt({ token, user }) {
       if (user) {

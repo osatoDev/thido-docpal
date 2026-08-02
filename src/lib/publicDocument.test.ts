@@ -44,6 +44,37 @@ describe("public document content", () => {
     });
     expect(content.content?.[0].content?.[0].marks).toHaveLength(2);
   });
+
+  it("authorizes private document images with the public share token", () => {
+    const content: JSONContent = {
+      type: "doc",
+      content: [
+        {
+          type: "image",
+          attrs: {
+            src: "/api/document-images/image-1",
+            alt: "A chart",
+          },
+        },
+      ],
+    };
+
+    expect(toPublicDocumentContent(content, "share-token")).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "image",
+          attrs: {
+            src: "/api/document-images/image-1?share=share-token",
+            alt: "A chart",
+          },
+        },
+      ],
+    });
+    expect(content.content?.[0].attrs?.src).toBe(
+      "/api/document-images/image-1",
+    );
+  });
 });
 
 describe("comment-only content changes", () => {
