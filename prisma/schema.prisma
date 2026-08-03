@@ -78,6 +78,7 @@ model User {
   collaboratorInvites      DocumentCollaborator[] @relation("CollaboratorInviter")
   uploadedDocumentImages   DocumentImage[]        @relation("DocumentImageUploader")
   documentRevisions        DocumentRevision[]     @relation("DocumentRevisionActor")
+  documentLinkAccesses     DocumentLinkAccess[]
   waitlistReviews          WaitlistEntry[]        @relation("WaitlistReviewer")
   waitlistAdmission        WaitlistEntry?         @relation("WaitlistApprovedUser")
 }
@@ -232,28 +233,44 @@ enum DocumentPermission {
 }
 
 model Document {
-  id             String                 @id @default(cuid())
-  guestDraftId   String?                @unique
-  shareToken     String?                @unique
-  title          String                 @default("Untitled Document")
-  ownerId        String
-  owner          User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  status         DocumentStatus         @default(DRAFTING)
-  isPlaceholder  Boolean                @default(false)
-  content        Json?
-  revision       Int                    @default(0)
-  createdAt      DateTime               @default(now())
-  updatedAt      DateTime               @updatedAt
-  lastAccessedAt DateTime               @default(now())
-  promptAnswers  PromptAnswer[]
-  comments       Comment[]
-  collaborators  DocumentCollaborator[]
-  aiGenerations  AiGeneration[]
-  images         DocumentImage[]
-  revisions      DocumentRevision[]
+  id              String                 @id @default(cuid())
+  guestDraftId    String?                @unique
+  shareToken      String?                @unique
+  sharePermission DocumentPermission     @default(VIEW)
+  title           String                 @default("Untitled Document")
+  ownerId         String
+  owner           User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  status          DocumentStatus         @default(DRAFTING)
+  isPlaceholder   Boolean                @default(false)
+  content         Json?
+  revision        Int                    @default(0)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  lastAccessedAt  DateTime               @default(now())
+  promptAnswers   PromptAnswer[]
+  comments        Comment[]
+  collaborators   DocumentCollaborator[]
+  aiGenerations   AiGeneration[]
+  images          DocumentImage[]
+  revisions       DocumentRevision[]
+  linkAccesses    DocumentLinkAccess[]
 
   @@index([ownerId])
   @@index([isPlaceholder, updatedAt])
+}
+
+model DocumentLinkAccess {
+  id             String   @id @default(cuid())
+  documentId     String
+  document       Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  lastAccessedAt DateTime @default(now())
+
+  @@unique([documentId, userId])
+  @@index([userId])
+  @@index([documentId, lastAccessedAt])
 }
 
 model DocumentRevision {

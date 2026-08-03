@@ -5,6 +5,7 @@ import type { JSONContent } from "@tiptap/react";
 import { Brand } from "@/components/Brand";
 import { PublicDocumentViewer } from "@/components/documents/PublicDocumentViewer";
 import { PrintDocumentButton } from "@/components/documents/PrintDocumentButton";
+import { SharedDocumentActions } from "@/components/documents/SharedDocumentActions";
 import { prisma } from "@/lib/prisma";
 import { toPublicDocumentContent } from "@/lib/publicDocument";
 import { isShareToken } from "@/lib/shareTokens";
@@ -17,10 +18,12 @@ export const metadata: Metadata = {
 
 export default async function SharedDocumentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ action?: string | string[] }>;
 }) {
-  const { token } = await params;
+  const [{ token }, query] = await Promise.all([params, searchParams]);
   if (!isShareToken(token)) {
     notFound();
   }
@@ -32,6 +35,7 @@ export default async function SharedDocumentPage({
       title: true,
       content: true,
       updatedAt: true,
+      sharePermission: true,
       owner: { select: { name: true } },
     },
   });
@@ -52,9 +56,16 @@ export default async function SharedDocumentPage({
     <main className="print-document-layout mx-auto flex w-full max-w-[90rem] flex-1 flex-col px-5 py-6 sm:px-6 sm:py-10 lg:px-8">
       <header className="print-hidden flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-6">
         <Brand href="/documents/new" />
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <SharedDocumentActions
+            token={token}
+            permission={document.sharePermission}
+            initialAction={
+              Array.isArray(query.action) ? query.action[0] : query.action
+            }
+          />
           <p className="text-xs font-medium text-[var(--muted)]">
-            Shared document · Read only
+            Shared document
           </p>
           <PrintDocumentButton />
         </div>

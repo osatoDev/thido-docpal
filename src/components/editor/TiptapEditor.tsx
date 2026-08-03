@@ -41,6 +41,13 @@ type Props = {
   initialCommentProgress: Record<string, CommentAiProgress>;
   initialDocumentAiLocked: boolean;
   initialShareToken: string | null;
+  initialSharePermission: CollaboratorPermission;
+  initialLinkAccesses: Array<{
+    userId: string;
+    name: string | null;
+    email: string | null;
+    lastAccessedAt: string;
+  }>;
   initialCollaborators: CollaboratorSummary[];
   accessPermission: CollaboratorPermission;
   currentUser: UserMenuProfile;
@@ -71,6 +78,8 @@ export function TiptapEditor({
   initialCommentProgress,
   initialDocumentAiLocked,
   initialShareToken,
+  initialSharePermission,
+  initialLinkAccesses,
   initialCollaborators,
   accessPermission,
   currentUser,
@@ -764,6 +773,8 @@ export function TiptapEditor({
               <ShareDocumentControl
                 documentId={documentId}
                 initialShareToken={initialShareToken}
+                initialSharePermission={initialSharePermission}
+                initialLinkAccesses={initialLinkAccesses}
                 initialCollaborators={initialCollaborators}
               />
             )}

@@ -76,6 +76,11 @@ export default async function DashboardPage() {
         },
         select: { permission: true },
       },
+      linkAccesses: {
+        where: { userId: session.user.id },
+        select: { id: true },
+        take: 1,
+      },
     },
   });
   const documentRows: DashboardDocumentRow[] = documents.map((document) => ({
@@ -92,6 +97,10 @@ export default async function DashboardPage() {
       ownerId: document.ownerId,
       userId: session.user.id,
       collaboratorPermission: document.collaborators[0]?.permission,
+      linkPermission:
+        document.shareToken && document.linkAccesses.length > 0
+          ? document.sharePermission
+          : null,
     }),
     status: document.status,
   }));

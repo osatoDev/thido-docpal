@@ -11,6 +11,13 @@ export type CollaboratorSummary = {
   permission: CollaboratorPermission;
 };
 
+export type LinkAccessSummary = {
+  userId: string;
+  name: string | null;
+  email: string | null;
+  lastAccessedAt: string;
+};
+
 const permissionOptions: Array<{
   value: CollaboratorPermission;
   label: string;
@@ -24,14 +31,20 @@ const permissionOptions: Array<{
 export function ShareDocumentControl({
   documentId,
   initialShareToken,
+  initialSharePermission,
+  initialLinkAccesses,
   initialCollaborators,
 }: {
   documentId: string;
   initialShareToken: string | null;
+  initialSharePermission: CollaboratorPermission;
+  initialLinkAccesses: LinkAccessSummary[];
   initialCollaborators: CollaboratorSummary[];
 }) {
   const [open, setOpen] = useState(false);
   const [shareToken, setShareToken] = useState(initialShareToken);
+  const [sharePermission, setSharePermission] =
+    useState<CollaboratorPermission>(initialSharePermission);
   const [collaborators, setCollaborators] = useState(initialCollaborators);
   const [email, setEmail] = useState("");
   const [permission, setPermission] =
@@ -147,12 +160,15 @@ export function ShareDocumentControl({
     try {
       const response = await fetch(`/api/documents/${documentId}/share`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ permission: sharePermission }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || typeof result.shareToken !== "string") {
         throw new Error("Could not create the share link.");
       }
       setShareToken(result.shareToken);
+      setSharePermission(result.sharePermission ?? sharePermission);
     } catch (reason) {
       setError(
         reason instanceof Error ? reason.message : "Something went wrong.",
@@ -316,14 +332,71 @@ export function ShareDocumentControl({
           )}
 
           <div className="mt-5 border-t border-[var(--border)] pt-4">
-            <p className="text-xs font-semibold">Public read-only link</p>
+            <p className="text-xs font-semibold">Anyone with the link</p>
             <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-              Anyone with this link can view the document without signing in.
+              Anyone can view the document. Protected actions check the
+              person&apos;s account when selected.
             </p>
+
+            <label
+              htmlFor="link-permission"
+              className="mt-3 block text-xs font-medium text-[var(--muted)]"
+            >
+              Link permission
+            </label>
+            <select
+              id="link-permission"
+              value={sharePermission}
+              disabled={busyAction !== null}
+              onChange={(event) =>
+                setSharePermission(
+                  event.target.value as CollaboratorPermission,
+                )
+              }
+              className="app-input mt-1 w-full rounded-md px-2 py-2 text-xs outline-none"
+            >
+              {permissionOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {sharePermission === "FULL" && (
+              <p className="mt-2 text-xs leading-5 text-[var(--warm)]">
+                Anyone who receives this link can edit, delete, and manage
+                sharing after their account is checked.
+              </p>
+            )}
+
+            {initialLinkAccesses.length > 0 && (
+              <div className="mt-3 rounded-md bg-[var(--surface-subtle)] p-3">
+                <p className="text-xs font-semibold">Link access activity</p>
+                <ul className="mt-2 flex flex-col gap-2">
+                  {initialLinkAccesses.map((access) => (
+                    <li key={access.userId} className="text-xs">
+                      <span className="font-medium text-[var(--foreground)]">
+                        {access.name || access.email || "Thido user"}
+                      </span>
+                      <span className="ml-1 text-[var(--muted)]">
+                        · {new Date(access.lastAccessedAt).toLocaleString()}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {sharePath ? (
               <div className="mt-3 flex flex-col gap-3">
                 <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={busyAction !== null}
+                    onClick={enableLinkSharing}
+                    className="secondary-button rounded-md px-3 py-2 text-xs font-semibold disabled:opacity-50"
+                  >
+                    {busyAction === "link" ? "Saving…" : "Save permission"}
+                  </button>
                   <button
                     type="button"
                     disabled={busyAction !== null}
@@ -382,7 +455,7 @@ export function ShareDocumentControl({
                 onClick={enableLinkSharing}
                 className="secondary-button mt-3 rounded-md px-3 py-2 text-xs font-semibold disabled:opacity-50"
               >
-                {busyAction === "link" ? "Creating…" : "Create public link"}
+                {busyAction === "link" ? "Creating…" : "Create link"}
               </button>
             )}
           </div>

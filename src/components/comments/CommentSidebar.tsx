@@ -122,6 +122,7 @@ export function CommentSidebar({
             isPending={pendingCommentIds.has(comment.id)}
             aiProgress={commentProgress[comment.id]}
             canManage={canManageComments}
+            canReply={canCreateComments && !documentAiLocked}
           />
         ))
       )}
@@ -146,6 +147,7 @@ export function CommentSidebar({
                 isPending={pendingCommentIds.has(comment.id)}
                 aiProgress={commentProgress[comment.id]}
                 canManage={canManageComments}
+                canReply={canCreateComments && !documentAiLocked}
               />
             ))}
           </div>

@@ -2,19 +2,26 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { unauthorizedResponse } from "@/lib/apiResponses";
-import { documentAccessWhere } from "@/lib/documentAuth";
+import {
+  DOCUMENT_PERMISSIONS,
+  documentAccessWhere,
+} from "@/lib/documentAuth";
 import { prisma } from "@/lib/prisma";
 import { createShareToken } from "@/lib/shareTokens";
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function POST(_request: Request, { params }: Params) {
+export async function POST(request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
     return unauthorizedResponse();
   }
 
   const { id } = await params;
+  const body = await request.json().catch(() => ({}));
+  const permission = DOCUMENT_PERMISSIONS.includes(body.permission)
+    ? body.permission
+    : "VIEW";
   const existing = await prisma.document.findFirst({
     where: {
       id,
@@ -34,7 +41,15 @@ export async function POST(_request: Request, { params }: Params) {
         shareToken: null,
         AND: documentAccessWhere(session.user.id, session.user.email, "FULL"),
       },
-      data: { shareToken: createShareToken() },
+      data: { shareToken: createShareToken(), sharePermission: permission },
+    });
+  } else {
+    await prisma.document.updateMany({
+      where: {
+        id,
+        AND: documentAccessWhere(session.user.id, session.user.email, "FULL"),
+      },
+      data: { sharePermission: permission },
     });
   }
 
@@ -43,7 +58,7 @@ export async function POST(_request: Request, { params }: Params) {
       id,
       AND: documentAccessWhere(session.user.id, session.user.email, "FULL"),
     },
-    select: { shareToken: true },
+    select: { shareToken: true, sharePermission: true },
   });
 
   if (!document?.shareToken) {
@@ -53,7 +68,10 @@ export async function POST(_request: Request, { params }: Params) {
     );
   }
 
-  return NextResponse.json({ shareToken: document.shareToken });
+  return NextResponse.json({
+    shareToken: document.shareToken,
+    sharePermission: document.sharePermission,
+  });
 }
 
 export async function DELETE(_request: Request, { params }: Params) {
@@ -63,12 +81,20 @@ export async function DELETE(_request: Request, { params }: Params) {
   }
 
   const { id } = await params;
-  const result = await prisma.document.updateMany({
-    where: {
-      id,
-      AND: documentAccessWhere(session.user.id, session.user.email, "FULL"),
-    },
-    data: { shareToken: null },
+  const result = await prisma.$transaction(async (transaction) => {
+    const update = await transaction.document.updateMany({
+      where: {
+        id,
+        AND: documentAccessWhere(session.user.id, session.user.email, "FULL"),
+      },
+      data: { shareToken: null, sharePermission: "VIEW" },
+    });
+    if (update.count > 0) {
+      await transaction.documentLinkAccess.deleteMany({
+        where: { documentId: id },
+      });
+    }
+    return update;
   });
 
   if (result.count === 0) {

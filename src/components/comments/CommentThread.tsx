@@ -17,6 +17,7 @@ export function CommentThread({
   isPending = false,
   aiProgress,
   canManage,
+  canReply,
 }: {
   comment: CommentWithReplies;
   onChange: (updated: CommentWithReplies) => void;
@@ -29,8 +30,11 @@ export function CommentThread({
   isPending?: boolean;
   aiProgress?: CommentAiProgress;
   canManage: boolean;
+  canReply: boolean;
 }) {
   const [busy, setBusy] = useState(false);
+  const [replyBody, setReplyBody] = useState("");
+  const [replyError, setReplyError] = useState<string | null>(null);
 
   async function toggleResolved() {
     setBusy(true);
@@ -57,6 +61,42 @@ export function CommentThread({
         method: "DELETE",
       });
       if (res.ok) onDelete(comment.id);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function addMessage(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const body = replyBody.trim();
+    if (!body) return;
+    setBusy(true);
+    setReplyError(null);
+    try {
+      const response = await fetch(`/api/comments/${comment.id}/replies`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.comment) {
+        throw new Error(
+          typeof result.error === "string"
+            ? result.error
+            : "Could not add this message.",
+        );
+      }
+      onChange(result.comment);
+      setReplyBody("");
+      if (result.aiProcessing === "failed") {
+        setReplyError(
+          "Your message was saved, but Thido could not finish responding.",
+        );
+      }
+    } catch (reason) {
+      setReplyError(
+        reason instanceof Error ? reason.message : "Something went wrong.",
+      );
     } finally {
       setBusy(false);
     }
@@ -131,6 +171,41 @@ export function CommentThread({
           ))}
         </div>
       )}
+
+      {canReply &&
+        comment.status === "OPEN" &&
+        comment.replies.some((reply) => reply.authorType === "AI") && (
+          <form onSubmit={addMessage} className="flex flex-col gap-2">
+            <label
+              htmlFor={`comment-reply-${comment.id}`}
+              className="text-xs font-medium text-[var(--muted)]"
+            >
+              Add another message
+            </label>
+            <textarea
+              id={`comment-reply-${comment.id}`}
+              rows={2}
+              maxLength={4_000}
+              value={replyBody}
+              disabled={busy}
+              onChange={(event) => setReplyBody(event.target.value)}
+              placeholder="Continue this conversation…"
+              className="app-input resize-none rounded-sm p-2 text-xs outline-none disabled:opacity-60"
+            />
+            <button
+              type="submit"
+              disabled={busy || !replyBody.trim()}
+              className="primary-button self-end rounded-sm px-2.5 py-1.5 text-xs font-medium disabled:opacity-50"
+            >
+              {busy ? "Sending…" : "Send"}
+            </button>
+            {replyError && (
+              <p className="text-xs text-[var(--danger)]" role="alert">
+                {replyError}
+              </p>
+            )}
+          </form>
+        )}
 
       {canManage && (
         <div className="flex items-center gap-3 text-xs text-[var(--muted-soft)]">

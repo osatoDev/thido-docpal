@@ -16,6 +16,18 @@ export const DOCUMENT_PERMISSIONS = [
   "FULL",
 ] as const satisfies readonly DocumentPermission[];
 
+export function strongestDocumentPermission(
+  ...permissions: Array<DocumentPermission | null | undefined>
+): DocumentPermission {
+  return permissions.reduce<DocumentPermission>(
+    (strongest, permission) =>
+      permission && PERMISSION_RANK[permission] > PERMISSION_RANK[strongest]
+        ? permission
+        : strongest,
+    "VIEW",
+  );
+}
+
 export function normalizeCollaboratorEmail(email: string) {
   return email.trim().toLowerCase();
 }
@@ -56,6 +68,11 @@ export function documentAccessWhere(
             } satisfies Prisma.DocumentWhereInput,
           ]
         : []),
+      {
+        shareToken: { not: null },
+        sharePermission: { in: permissionsAtLeast(required) },
+        linkAccesses: { some: { userId } },
+      },
     ],
   };
 }
@@ -110,10 +127,14 @@ export function effectiveDocumentPermission({
   ownerId,
   userId,
   collaboratorPermission,
+  linkPermission,
 }: {
   ownerId: string;
   userId: string;
   collaboratorPermission?: DocumentPermission | null;
+  linkPermission?: DocumentPermission | null;
 }): DocumentPermission {
-  return ownerId === userId ? "FULL" : (collaboratorPermission ?? "VIEW");
+  return ownerId === userId
+    ? "FULL"
+    : strongestDocumentPermission(collaboratorPermission, linkPermission);
 }

@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   effectiveDocumentPermission,
+  documentAccessWhere,
   hasDocumentPermission,
   normalizeCollaboratorEmail,
+  strongestDocumentPermission,
 } from "@/lib/documentAuth";
 
 describe("document collaboration permissions", () => {
@@ -36,5 +38,29 @@ describe("document collaboration permissions", () => {
         collaboratorPermission: "EDIT",
       }),
     ).toBe("EDIT");
+  });
+
+  it("uses the strongest direct or active-link permission", () => {
+    expect(strongestDocumentPermission("COMMENT", "FULL")).toBe("FULL");
+    expect(
+      effectiveDocumentPermission({
+        ownerId: "owner",
+        userId: "link-user",
+        collaboratorPermission: "VIEW",
+        linkPermission: "EDIT",
+      }),
+    ).toBe("EDIT");
+  });
+
+  it("requires an active token and a user link grant for link-derived access", () => {
+    expect(documentAccessWhere("link-user", null, "EDIT")).toMatchObject({
+      OR: expect.arrayContaining([
+        {
+          shareToken: { not: null },
+          sharePermission: { in: ["EDIT", "FULL"] },
+          linkAccesses: { some: { userId: "link-user" } },
+        },
+      ]),
+    });
   });
 });

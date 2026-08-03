@@ -57,12 +57,16 @@ export default function PrivacyPage() {
           may view, comment on, edit, delete, or manage sharing for the document.
         </p>
         <p>
-          If you enable link sharing, we store a random share-link token. Anyone
-          who receives the link can view the document title, body, and your
-          profile name without an account until you revoke the link. The shared
-          view does not expose your email address, other account details,
-          comments, or editing controls. Recipients may still copy or retain
-          content they can view.
+          If you enable link sharing, we store a random share-link token and the
+          permission you select. Anyone who receives the link can view the
+          document title, body, and your profile name without an account until
+          you revoke the link. When a protected link action is selected, we
+          check the person&apos;s account and store the account and access time
+          so the document owner or a full-access manager can review link access.
+          Depending on the link permission, a signed-in holder may comment,
+          edit, delete, or manage sharing. The shared view does not expose your
+          email address or other account details. Recipients may still copy or
+          retain content they can view.
         </p>
 
         <h3>Communications</h3>

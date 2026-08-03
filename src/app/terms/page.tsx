@@ -84,11 +84,13 @@ export default function TermsPage() {
           service providers are appropriate for that information.
         </p>
         <p>
-          If you create a public share link, anyone who obtains that link can
-          view the shared document until you revoke it. You are responsible for
-          choosing appropriate content and recipients. Revoking a link prevents
-          future access through Thido but cannot retrieve copies already made by
-          a recipient.
+          If you create a share link, anyone who obtains that link can view the
+          shared document until you revoke it. You may also choose a link
+          permission that lets signed-in link holders comment, edit, or receive
+          full access. You are responsible for choosing appropriate content,
+          recipients, and permissions. Revoking a link prevents future
+          link-derived access through Thido but cannot retrieve copies already
+          made by a recipient.
         </p>
         <p>
           You may also invite a person by email and choose their access level.
@@ -98,6 +100,8 @@ export default function TermsPage() {
           choosing the intended recipient and permission. A full-access
           collaborator can permanently delete the document, although inviting
           them does not transfer ownership.
+          The same authority applies to a signed-in person using a full-access
+          link, and the link may be forwarded to other people.
         </p>
       </section>
 

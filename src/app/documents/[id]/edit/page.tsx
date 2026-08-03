@@ -36,6 +36,14 @@ export default async function EditDocumentPage({ params, searchParams }: Props) 
         orderBy: { createdAt: "asc" },
         select: { id: true, email: true, permission: true },
       },
+      linkAccesses: {
+        orderBy: { lastAccessedAt: "desc" },
+        select: {
+          userId: true,
+          lastAccessedAt: true,
+          user: { select: { name: true, email: true } },
+        },
+      },
       comments: {
         where: { parentId: null },
         orderBy: { createdAt: "asc" },
@@ -69,10 +77,16 @@ export default async function EditDocumentPage({ params, searchParams }: Props) 
   const collaboratorPermission = document.collaborators.find(
     (collaborator) => collaborator.email === normalizedEmail,
   )?.permission;
+  const linkPermission =
+    document.shareToken &&
+    document.linkAccesses.some((access) => access.userId === session.user.id)
+      ? document.sharePermission
+      : null;
   const accessPermission = effectiveDocumentPermission({
     ownerId: document.ownerId,
     userId: session.user.id,
     collaboratorPermission,
+    linkPermission,
   });
   const initialCommentProgress: Record<string, CommentAiProgress> =
     Object.fromEntries(
@@ -106,6 +120,17 @@ export default async function EditDocumentPage({ params, searchParams }: Props) 
       initialCommentProgress={initialCommentProgress}
       initialDocumentAiLocked={initialDocumentAiLocked}
       initialShareToken={document.shareToken}
+      initialSharePermission={document.sharePermission}
+      initialLinkAccesses={
+        accessPermission === "FULL"
+          ? document.linkAccesses.map((access) => ({
+              userId: access.userId,
+              name: access.user.name,
+              email: access.user.email,
+              lastAccessedAt: access.lastAccessedAt.toISOString(),
+            }))
+          : []
+      }
       initialCollaborators={
         accessPermission === "FULL" ? document.collaborators : []
       }

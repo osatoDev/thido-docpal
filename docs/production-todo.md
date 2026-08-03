@@ -1,11 +1,12 @@
 # Thido production checklist
 
-Last reviewed: 2 August 2026
+Last reviewed: 3 August 2026
 
 This is the running source of truth for production-readiness work. Completed boxes indicate repository evidence or a verified check. External configuration remains unchecked until it is explicitly verified.
 
 ## Immediate deployment blockers
 
+- [ ] Apply the `20260803170000_add_permissioned_share_links` migration to the production database before deploying permission-bearing link sharing.
 - [ ] Apply the `20260802190000_add_document_revisions` migration to the production database before deploying version history, optimistic concurrency, or Word import.
 - [x] Apply the `20260801130000_add_waitlist_and_document_images` migration to the production database before deploying the post-cap waitlist or document photos.
 - [x] Apply the `20260801100000_add_auto_ai_comment_mode` migration to the production database before deploying the default Auto edit mode.
@@ -123,9 +124,11 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Let users switch between guided initial questions and a freeform prompt; retain tailored follow-ups for guided briefs and generate directly from freeform briefs.
 - [x] Make a blank `READY` document the default signed-in creation path, with AI-guided drafting and paste-existing flows available as explicit alternatives.
 - [x] Keep untouched blank editor sessions as hidden, reusable placeholders and count them as documents only after a custom title or meaningful body content is saved.
+- [ ] Make AI-generated documents persist a meaningful document title instead of retaining `Untitled Document` when the generated body begins with a clear title.
 - [x] Show a clear `BETA` status badge beside the shared Thido wordmark across the application.
 - [x] Give signed-in users a consistent top-right profile image or initials menu with direct Settings and Log out actions.
 - [x] Let document owners create, copy, open, and revoke unlisted read-only share links; public views expose the title, document body, and owner profile name while keeping email and other account details private.
+- [ ] Deploy and browser-check permission-bearing **Anyone with the link** sharing for authenticated users, including visible controls with click-time session checks, post-authentication return to the selected action, immediate revocation, access logging, and explicit safeguards for full access; implementation and acceptance criteria are in [the full-access link-sharing design](./full-access-link-sharing.md).
 - [x] Clearly identify who shared a document on the public read-only view, with a non-identifying owner label for legacy accounts that have no profile name.
 - [x] Let full-access users invite collaborators by email with view, comment, edit, or full access; enforce those permissions on document, comment, suggestion, deletion, public-link, and sharing-management operations.
 - [x] List documents shared directly with the signed-in email address on the dashboard and identify the owner.
@@ -141,6 +144,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Lock document editing and new comments while a whole-document AI action is active, reject competing work across tabs, and expire abandoned locks after ten minutes.
 - [x] Let users expand a background comment response to see its real queued, processing, or failed state while it refreshes automatically.
 - [x] Move resolved comment threads into a collapsible archive and retain the ability to reopen or delete them.
+- [ ] Deploy and browser-check additional user messages and contextual Thido responses inside open AI comment threads, including failure recovery and whole-document locking.
 - [x] Add Auto as the default AI edit mode, use the structured prompt decision to apply clear edit instructions while keeping questions and ambiguous requests as proposals, and retain explicit always-propose and always-apply overrides.
 - [x] Keep the AI model and edit-application preferences in Settings instead of duplicating them in each document editor.
 - [x] Show a dismissible recent Thido-change notice with the resulting text and keep durable changed-from/changed-to details in the comment thread.
@@ -210,8 +214,10 @@ This is the running source of truth for production-readiness work. Completed box
 
 ## Testing and continuous integration
 
+- [ ] Validate the assumptions in [Can the current version of Thido support 100 users?](./can-thido-support-100-users.md) with an isolated staging load test at 10, 25, 50, and 100 concurrent virtual users before making a concurrent-capacity claim.
 - [x] Add automated unit tests for authentication input, password hashing, token helpers, rate limiting, and API auth responses.
-- [x] Confirm the current unit suite passes: 91 tests across twenty-eight files, including reviewed beta-seat allocation, private-image public-share URL coverage, safe links, persisted bullet/checklist/table structures, revision coalescing, import sanitization, and Word/PDF generation.
+- [x] Confirm the current unit suite passes: 94 tests across twenty-nine files, including reviewed beta-seat allocation, private-image public-share URL coverage, safe links, persisted bullet/checklist/table structures, revision coalescing, import sanitization, Word/PDF generation, link-derived authorization, and AI comment conversation ordering.
+- [x] Apply all nineteen migrations to an isolated temporary PostgreSQL instance and browser-check visible full-access link controls, click-time authentication with action return, full editor access, link-access activity, immediate revocation, and an additional user/AI message pair in an existing whole-document comment thread.
 - [x] Browser-check the rendered connected-accounts Settings panel, empty admin approval waitlist, and editor image insertion control with no framework overlay or browser errors.
 - [x] Deploy the connected-accounts, private document-photo, post-cap waitlist, verified auth sender, and analytics-status changes to Vercel Production (`dpl_6tYbWWaY4rT5FdFEBrkyGRQRjjHd`) and smoke-check the live login and registration pages without browser errors.
 - [x] Confirm type checking, lint, Prisma validation, and the production build pass after the founder-feedback implementation.
@@ -297,7 +303,7 @@ This is the running source of truth for production-readiness work. Completed box
 
 ## Final launch verification
 
-- [ ] Create a fresh password account in production and complete email verification.
+- [x] Create and sign in to a fresh production password account, complete email verification through the delivered `auth@thido.ai` message, and retain the dedicated `osatog1+thido-automation@gmail.com` account in the local encrypted browser-auth vault for future Thido requests.
 - [ ] Reset that account's password and confirm older sessions become invalid.
 - [ ] Create and sign in with a fresh Google account.
 - [ ] Confirm a non-admin cannot access `/admin` and an allowlisted admin can.
