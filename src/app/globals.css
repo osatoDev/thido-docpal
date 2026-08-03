@@ -314,6 +314,101 @@ select {
   border-radius: 0.5rem;
 }
 
+.ProseMirror a {
+  color: #1a5fb4;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.ProseMirror ul[data-type="taskList"] {
+  margin: 1rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ProseMirror li[data-type="taskItem"] {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0.35rem 0;
+}
+
+.ProseMirror li[data-type="taskItem"] > label {
+  display: inline-flex;
+  align-items: center;
+  padding-top: 0.35rem;
+}
+
+.ProseMirror li[data-type="taskItem"] > label input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--foreground);
+}
+
+.ProseMirror li[data-type="taskItem"] > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.ProseMirror li[data-type="taskItem"] p {
+  margin: 0;
+}
+
+.ProseMirror .tableWrapper {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+}
+
+.ProseMirror table {
+  width: 100%;
+  min-width: 28rem;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.ProseMirror th,
+.ProseMirror td {
+  position: relative;
+  min-width: 5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-strong);
+  vertical-align: top;
+  text-align: left;
+}
+
+.ProseMirror th {
+  background: var(--surface-subtle);
+  font-weight: 700;
+}
+
+.ProseMirror th p,
+.ProseMirror td p {
+  margin: 0;
+}
+
+.ProseMirror .selectedCell::after {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  content: "";
+  background: color-mix(in srgb, #1a5fb4 18%, transparent);
+}
+
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: -2px;
+  width: 4px;
+  pointer-events: none;
+  background: #1a5fb4;
+}
+
+.resize-cursor {
+  cursor: col-resize;
+}
+
 @media (max-width: 640px) {
   .theme-toggle span {
     display: none;
@@ -408,6 +503,16 @@ select {
   }
 
   .ProseMirror img {
+    break-inside: avoid;
+  }
+
+  .ProseMirror .tableWrapper {
+    overflow: visible;
+  }
+
+  .ProseMirror table,
+  .ProseMirror tr,
+  .ProseMirror li[data-type="taskItem"] {
     break-inside: avoid;
   }
 }

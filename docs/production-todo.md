@@ -155,7 +155,9 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Defer live ProseMirror collaboration, shared cursors, and presence; use revision-based stale-write rejection as the supported conflict-safety model for now. Revisit the infrastructure options only if simultaneous live editing becomes a product requirement. The decision context is documented in [why real-time collaboration needs dedicated infrastructure](./why-realtime-collaboration-infrastructure.md).
 - [ ] Define and enforce the retention window and storage limits for durable document revisions.
 - [ ] Browser-check version preview/restore, cross-tab stale-write recovery, Word import/export, and multi-page PDF output with supported formatting and images.
-- [ ] Add first-class links, tables, checklists, find/replace, word count, and a documented spelling/language experience.
+- [x] Add first-class safe HTTP(S)/email links, checklists, and small accessible tables with row/column controls, shared-schema rendering, and supported Word/PDF conversion.
+- [ ] Browser-check link editing, checklist toggling, table row/column controls, public rendering, printing, and representative Word/PDF output.
+- [ ] Add editor-aware find/replace, word and character counts, and a documented spelling/language experience.
 - [ ] Add heading-based document navigation, internal links, a table of contents, page breaks, and footnotes before pursuing advanced page-layout controls.
 - [ ] Add a human suggestion mode that shares a coherent accept/reject and history model with AI proposals.
 - [ ] Add collaborator mentions, comment assignments, notification preferences, and filters for work needing a user's response.
@@ -209,7 +211,7 @@ This is the running source of truth for production-readiness work. Completed box
 ## Testing and continuous integration
 
 - [x] Add automated unit tests for authentication input, password hashing, token helpers, rate limiting, and API auth responses.
-- [x] Confirm the current unit suite passes: 87 tests across twenty-seven files, including reviewed beta-seat allocation, private-image public-share URL coverage, persisted bullet styles, revision coalescing, import sanitization, and Word/PDF generation.
+- [x] Confirm the current unit suite passes: 91 tests across twenty-eight files, including reviewed beta-seat allocation, private-image public-share URL coverage, safe links, persisted bullet/checklist/table structures, revision coalescing, import sanitization, and Word/PDF generation.
 - [x] Browser-check the rendered connected-accounts Settings panel, empty admin approval waitlist, and editor image insertion control with no framework overlay or browser errors.
 - [x] Deploy the connected-accounts, private document-photo, post-cap waitlist, verified auth sender, and analytics-status changes to Vercel Production (`dpl_6tYbWWaY4rT5FdFEBrkyGRQRjjHd`) and smoke-check the live login and registration pages without browser errors.
 - [x] Confirm type checking, lint, Prisma validation, and the production build pass after the founder-feedback implementation.

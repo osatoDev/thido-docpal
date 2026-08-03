@@ -1,12 +1,17 @@
 import {
   AlignmentType,
   Document as WordDocument,
+  ExternalHyperlink,
   HeadingLevel,
   ImageRun,
   LevelFormat,
   Packer,
   Paragraph,
+  Table as WordTable,
+  TableCell as WordTableCell,
+  TableRow as WordTableRow,
   TextRun,
+  WidthType,
   type ParagraphChild,
 } from "docx";
 import PDFDocument from "pdfkit";
@@ -14,6 +19,7 @@ import type { JSONContent } from "@tiptap/react";
 
 import { loadDocumentImageAsPng } from "@/lib/documentFileImages";
 import { isBulletStyle, type BulletStyle } from "@/components/editor/extensions/StyledBulletList";
+import { isSafeDocumentLink } from "@/lib/documentLinks";
 
 const bulletGlyphs: Record<BulletStyle, string> = {
   disc: "•",
@@ -21,19 +27,23 @@ const bulletGlyphs: Record<BulletStyle, string> = {
   square: "▪",
 };
 
-function textRuns(node: JSONContent): TextRun[] {
+function textRuns(node: JSONContent): ParagraphChild[] {
   if (node.type === "hardBreak") return [new TextRun({ break: 1 })];
   if (node.type === "text") {
     const markTypes = new Set(node.marks?.map((mark) => mark.type));
-    return [
-      new TextRun({
-        text: node.text ?? "",
-        bold: markTypes.has("bold"),
-        italics: markTypes.has("italic"),
-        strike: markTypes.has("strike"),
-        font: markTypes.has("code") ? "Courier New" : undefined,
-      }),
-    ];
+    const run = new TextRun({
+      text: node.text ?? "",
+      bold: markTypes.has("bold"),
+      italics: markTypes.has("italic"),
+      strike: markTypes.has("strike"),
+      font: markTypes.has("code") ? "Courier New" : undefined,
+      color: markTypes.has("link") ? "1A5FB4" : undefined,
+      underline: markTypes.has("link") ? {} : undefined,
+    });
+    const href = node.marks?.find((mark) => mark.type === "link")?.attrs?.href;
+    return typeof href === "string" && isSafeDocumentLink(href)
+      ? [new ExternalHyperlink({ link: href, children: [run] })]
+      : [run];
   }
   return node.content?.flatMap(textRuns) ?? [];
 }
@@ -51,9 +61,10 @@ async function wordParagraph(
   options: {
     numbering?: { reference: string; level: number };
     blockquote?: boolean;
+    prefix?: ParagraphChild[];
   } = {},
 ) {
-  const children: ParagraphChild[] = [];
+  const children: ParagraphChild[] = [...(options.prefix ?? [])];
   for (const child of node.content ?? []) {
     if (child.type === "image") {
       const image = await loadDocumentImageAsPng(documentId, child.attrs?.src);
@@ -88,13 +99,65 @@ async function wordParagraph(
   });
 }
 
+type WordBlock = Paragraph | WordTable;
+
+async function wordTable(documentId: string, node: JSONContent) {
+  const rows: WordTableRow[] = [];
+  for (const row of node.content ?? []) {
+    const cells: WordTableCell[] = [];
+    for (const cell of row.content ?? []) {
+      const children = await wordBlocks(documentId, cell.content ?? []);
+      cells.push(
+        new WordTableCell({
+          children: children.length > 0 ? children : [new Paragraph("")],
+          columnSpan: Math.max(1, Number(cell.attrs?.colspan) || 1),
+          rowSpan: Math.max(1, Number(cell.attrs?.rowspan) || 1),
+          shading:
+            cell.type === "tableHeader" ? { fill: "E9ECE9" } : undefined,
+        }),
+      );
+    }
+    rows.push(new WordTableRow({ children: cells }));
+  }
+  return new WordTable({
+    rows,
+    width: { size: 100, type: WidthType.PERCENTAGE },
+  });
+}
+
 async function wordBlocks(
   documentId: string,
   nodes: JSONContent[],
   level = 0,
-): Promise<Paragraph[]> {
-  const paragraphs: Paragraph[] = [];
+): Promise<WordBlock[]> {
+  const paragraphs: WordBlock[] = [];
   for (const node of nodes) {
+    if (node.type === "table") {
+      paragraphs.push(await wordTable(documentId, node));
+      continue;
+    }
+    if (node.type === "taskList") {
+      for (const item of node.content ?? []) {
+        let firstParagraph = true;
+        for (const child of item.content ?? []) {
+          if (child.type === "taskList") {
+            paragraphs.push(
+              ...(await wordBlocks(documentId, [child], level + 1)),
+            );
+          } else {
+            paragraphs.push(
+              await wordParagraph(documentId, child, {
+                prefix: firstParagraph
+                  ? [new TextRun({ text: item.attrs?.checked ? "☒ " : "☐ " })]
+                  : undefined,
+              }),
+            );
+            firstParagraph = false;
+          }
+        }
+      }
+      continue;
+    }
     if (node.type === "bulletList" || node.type === "orderedList") {
       const style = isBulletStyle(node.attrs?.bulletStyle)
         ? node.attrs.bulletStyle
@@ -197,6 +260,7 @@ type PdfRun = {
   text: string;
   bold: boolean;
   italic: boolean;
+  href?: string;
 };
 
 function pdfRuns(node: JSONContent): PdfRun[] {
@@ -205,11 +269,17 @@ function pdfRuns(node: JSONContent): PdfRun[] {
   }
   if (node.type === "text") {
     const marks = new Set(node.marks?.map((mark) => mark.type));
+    const linkHref = node.marks?.find((mark) => mark.type === "link")?.attrs
+      ?.href;
     return [
       {
         text: node.text ?? "",
         bold: marks.has("bold"),
         italic: marks.has("italic"),
+        href:
+          typeof linkHref === "string" && isSafeDocumentLink(linkHref)
+            ? linkHref
+            : undefined,
       },
     ];
   }
@@ -233,11 +303,77 @@ function renderPdfRuns(
     return;
   }
   runs.forEach((run, index) => {
-    pdf.font(pdfFont(run)).text(run.text, {
-      ...options,
-      continued: index < runs.length - 1,
-    });
+    pdf
+      .font(pdfFont(run))
+      .fillColor(run.href ? "#1a5fb4" : "#161916")
+      .text(run.text, {
+        ...options,
+        continued: index < runs.length - 1,
+        link: run.href,
+        underline: Boolean(run.href),
+      });
   });
+  pdf.fillColor("#161916");
+}
+
+function plainText(node: JSONContent): string {
+  if (node.type === "text") return node.text ?? "";
+  if (node.type === "hardBreak") return "\n";
+  return node.content?.map(plainText).join("") ?? "";
+}
+
+function ensurePdfSpace(pdf: PDFKit.PDFDocument, height: number) {
+  if (pdf.y + height > pdf.page.height - pdf.page.margins.bottom) {
+    pdf.addPage();
+  }
+}
+
+function renderPdfTable(pdf: PDFKit.PDFDocument, node: JSONContent) {
+  const rows = node.content ?? [];
+  const columnCount = Math.max(
+    1,
+    ...rows.map((row) => row.content?.length ?? 0),
+  );
+  const tableWidth =
+    pdf.page.width - pdf.page.margins.left - pdf.page.margins.right;
+  const cellWidth = tableWidth / columnCount;
+
+  for (const row of rows) {
+    const cells = row.content ?? [];
+    const texts = Array.from({ length: columnCount }, (_, index) =>
+      plainText(cells[index] ?? {}).trim(),
+    );
+    const rowHeight = Math.max(
+      28,
+      ...texts.map(
+        (text) =>
+          pdf.heightOfString(text || " ", { width: cellWidth - 10 }) + 10,
+      ),
+    );
+    ensurePdfSpace(pdf, rowHeight);
+    const top = pdf.y;
+    texts.forEach((text, index) => {
+      const cell = cells[index];
+      const left = pdf.page.margins.left + index * cellWidth;
+      if (cell?.type === "tableHeader") {
+        pdf.save().rect(left, top, cellWidth, rowHeight).fill("#e9ece9").restore();
+      }
+      pdf
+        .rect(left, top, cellWidth, rowHeight)
+        .strokeColor("#aeb3ae")
+        .stroke();
+      pdf
+        .font(cell?.type === "tableHeader" ? "Times-Bold" : "Times-Roman")
+        .fontSize(10)
+        .fillColor("#161916")
+        .text(text || " ", left + 5, top + 5, {
+          width: cellWidth - 10,
+          height: rowHeight - 10,
+        });
+    });
+    pdf.y = top + rowHeight;
+  }
+  pdf.moveDown(0.75);
 }
 
 async function renderPdfBlocks(
@@ -247,6 +383,34 @@ async function renderPdfBlocks(
   level = 0,
 ) {
   for (const node of nodes) {
+    if (node.type === "table") {
+      renderPdfTable(pdf, node);
+      continue;
+    }
+    if (node.type === "taskList") {
+      for (const item of node.content ?? []) {
+        let first = true;
+        for (const child of item.content ?? []) {
+          if (child.type === "taskList") {
+            await renderPdfBlocks(pdf, documentId, [child], level + 1);
+          } else {
+            pdf
+              .font("Times-Roman")
+              .fontSize(11)
+              .text(
+                first ? (item.attrs?.checked ? "[x] " : "[ ] ") : "",
+                54 + level * 20,
+                undefined,
+                { continued: true },
+              );
+            renderPdfRuns(pdf, pdfRuns(child));
+            pdf.moveDown(0.25);
+            first = false;
+          }
+        }
+      }
+      continue;
+    }
     if (node.type === "bulletList" || node.type === "orderedList") {
       const style = isBulletStyle(node.attrs?.bulletStyle)
         ? node.attrs.bulletStyle

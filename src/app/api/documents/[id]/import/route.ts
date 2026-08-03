@@ -209,17 +209,6 @@ export async function POST(request: Request, { params }: Params) {
       .map((message) => message.message)
       .filter((message, index, messages) => messages.indexOf(message) === index)
       .slice(0, 8);
-    if (/<table[\s>]/i.test(conversion.value)) {
-      warnings.unshift(
-        "Tables were converted to supported text because Thido does not yet support editable tables.",
-      );
-    }
-    if (/<a[\s>]/i.test(conversion.value)) {
-      warnings.unshift(
-        "Links were imported as text because Thido does not yet support editable links.",
-      );
-    }
-
     return NextResponse.json({
       document: {
         title: result.document.title,

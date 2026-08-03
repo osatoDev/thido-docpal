@@ -23,7 +23,13 @@ const content: JSONContent = {
       content: [
         { type: "text", text: "Normal " },
         { type: "text", text: "bold", marks: [{ type: "bold" }] },
-        { type: "text", text: " text." },
+        { type: "text", text: " text and " },
+        {
+          type: "text",
+          text: "a link",
+          marks: [{ type: "link", attrs: { href: "https://example.com" } }],
+        },
+        { type: "text", text: "." },
       ],
     },
     {
@@ -36,6 +42,72 @@ const content: JSONContent = {
             {
               type: "paragraph",
               content: [{ type: "text", text: "List item" }],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      type: "taskList",
+      content: [
+        {
+          type: "taskItem",
+          attrs: { checked: true },
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Completed task" }],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      type: "table",
+      content: [
+        {
+          type: "tableRow",
+          content: [
+            {
+              type: "tableHeader",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Name" }],
+                },
+              ],
+            },
+            {
+              type: "tableHeader",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Status" }],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          type: "tableRow",
+          content: [
+            {
+              type: "tableCell",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Draft" }],
+                },
+              ],
+            },
+            {
+              type: "tableCell",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Ready" }],
+                },
+              ],
             },
           ],
         },
@@ -79,6 +151,10 @@ describe("document export", () => {
         (node: JSONContent) => node.type === "bulletList",
       ),
     ).toBe(true);
+    expect(
+      imported.content?.some((node: JSONContent) => node.type === "table"),
+    ).toBe(true);
+    expect(converted.value).toContain('href="https://example.com"');
   });
 
   it("creates safe, useful download names", () => {

@@ -32,9 +32,9 @@ The most consequential gaps identified in the initial audit were:
 3. **Document portability — implemented for the current schema.** Authenticated
    users can import and export Word files and download server-generated PDFs;
    imports report unsupported structures.
-4. **Everyday document structures.** Links, tables, checklists, document
-   outlines, bookmarks, table of contents, footnotes, and page elements are
-   missing.
+4. **Everyday document structures.** Safe links, small tables, and checklists
+   are implemented. Document outlines, bookmarks, table of contents, footnotes,
+   and page elements remain missing.
 5. **Everyday writing utilities.** There is no product-level find and replace,
    word count, spelling/grammar review, or clear document-language control.
 6. **Mature review workflows.** Thido has comments and AI proposals, but not a
@@ -81,8 +81,8 @@ basic once a draft becomes important or collaborative.
 | Simultaneous editing | Safeguarded, live merging deferred | Revision preconditions prevent silent stale overwrites and provide a reload path. Live presence, shared cursors, and operation-level merging are outside the current scope. |
 | Word import/export | Present for the supported schema | Users can import `.docx` with fidelity warnings and download editable Word files. Unsupported Word structures are reported rather than presented as fully preserved. |
 | PDF export | Present | Users can download a server-generated PDF or use the browser print workflow. |
-| Links and bookmarks | Missing | The shared TipTap schema explicitly disables links; internal bookmarks are also unavailable. |
-| Tables and checklists | Missing | Common structured content cannot be authored. |
+| Links and bookmarks | Partial | Safe HTTP(S) and email links can be added, edited, opened, copied, removed, pasted, and exported. Internal bookmarks remain unavailable. |
+| Tables and checklists | Present for the initial scope | Users can create checklists and small resizable tables, then add or delete rows and columns. Advanced table styling and semantic Word checklist round trips remain future work. |
 | Find and replace | Missing | Browser Find may locate visible text, but Thido has no editor-aware replace workflow. |
 | Spelling, grammar, and word count | Missing as product features | Browser-native behavior may vary, but Thido offers no consistent review or count UI. |
 | Outline and table of contents | Missing | Headings exist, but there is no navigable structural view or generated contents list. |
@@ -165,8 +165,9 @@ interoperability maps tracked changes to suggestions
 
 Thido now supplements pasting and browser printing with `.docx` import, editable
 `.docx` export, and explicit server-generated PDF download. The remaining
-portability work is broader schema fidelity—particularly links, tables,
-footnotes, and tracked changes—rather than the absence of a file workflow.
+portability work is broader schema fidelity—particularly advanced table
+styling, semantic checklists, footnotes, and tracked changes—rather than the
+absence of a file workflow.
 
 Recommended sequence:
 
@@ -174,8 +175,9 @@ Recommended sequence:
 2. **Partly done:** add `.docx` import with explicit replacement confirmation
    and fidelity notes; a pre-commit visual preview remains future work.
 3. **Done for the current schema:** preserve supported headings, paragraphs,
-   emphasis, lists, and images in both directions. Links, tables, and footnotes
-   depend on adding those editor nodes first.
+   emphasis, links, lists, basic tables, and images in both directions.
+   Footnotes and richer table styling depend on adding those editor features
+   first.
 4. **Done:** report unsupported structures instead of presenting them as fully
    preserved.
 5. **Deferred deliberately:** treat Google/Word comments and tracked changes as
@@ -184,6 +186,11 @@ Recommended sequence:
 ## Priority 1: baseline authoring expectations
 
 ### 4. Links, tables, and checklists
+
+**Repository status:** Implemented for the recommended initial scope. The
+shared editor schema now preserves safe links, task lists, and tables across
+editing, read-only/public rendering, print, and supported import/export paths.
+Bookmarks and advanced table layout remain future work.
 
 Links are among the most basic expectations of a web document. Google Docs also
 supports internal bookmarks for navigation
@@ -198,11 +205,14 @@ reordering table rows and columns
 
 Recommended initial scope:
 
-- safe HTTP(S) and email links with edit, open, copy, and remove actions;
-- small accessible tables with row/column insertion and deletion;
-- checklists as a distinct list type;
-- copy/paste preservation for all three structures;
-- public-view, print, and export rendering tests.
+- **Done:** safe HTTP(S) and email links with edit, open, copy, and remove
+  actions;
+- **Done:** small accessible tables with row/column insertion and deletion;
+- **Done:** checklists as a distinct list type;
+- **Done for Thido and supported HTML:** copy/paste schema preservation for all
+  three structures;
+- **Covered in repository tests:** public-view schema and Word/PDF rendering;
+  interactive browser verification remains on the production checklist.
 
 ### 5. Find and replace, word count, and writing review
 
@@ -343,13 +353,13 @@ investments unless target-user research identifies them as essential.
 - optimistic concurrency and stale-write protection;
 - durable version history with AI checkpoints and restore;
 - explicit Word and PDF downloads;
-- links;
+- links (done);
 - find/replace and word count.
 
 ### Authoring release
 
 - `.docx` import with a fidelity preview;
-- tables and checklists;
+- tables and checklists (done for the initial scope);
 - outline, internal links, and table of contents;
 - page breaks and footnotes;
 - consistent spellcheck/language behavior.

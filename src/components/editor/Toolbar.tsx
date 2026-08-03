@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
+import { LinkControl } from "./LinkControl";
+import { TableControl } from "./TableControl";
 import {
   BULLET_STYLES,
   isBulletStyle,
@@ -182,12 +184,22 @@ export function Toolbar({
         1. List
       </ToolbarButton>
       <ToolbarButton
+        label="Checklist"
+        isActive={editor.isActive("taskList")}
+        onClick={() => editor.chain().focus().toggleTaskList().run()}
+      >
+        ☑ List
+      </ToolbarButton>
+      <ToolbarButton
         label="Blockquote"
         isActive={editor.isActive("blockquote")}
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
       >
         “ ”
       </ToolbarButton>
+      <span className="mx-1 h-5 w-px bg-[var(--border)]" />
+      <LinkControl editor={editor} />
+      <TableControl editor={editor} />
       <span className="mx-1 h-5 w-px bg-[var(--border)]" />
       <input
         ref={imageInputRef}
