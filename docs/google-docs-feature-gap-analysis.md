@@ -5,8 +5,8 @@
 **Implementation update:** The repository now includes bounded durable version
 snapshots with preview and non-destructive restore, revision-based stale-write
 protection, `.docx` import/export, and server-generated PDF downloads. Live
-operation merging and collaborator presence still require a managed real-time
-collaboration transport and remain open.
+operation merging, shared cursors, and collaborator presence are deliberately
+deferred and are not part of the current Priority 0 scope.
 
 ## Purpose
 
@@ -26,9 +26,9 @@ The most consequential gaps identified in the initial audit were:
 1. **Version history and recovery — implemented in the repository.** Users can
    inspect and restore bounded snapshots, including changes made by AI and
    collaborators.
-2. **Safe simultaneous editing — safety foundation implemented.** Revision
-   preconditions prevent silent overwrites and provide visible recovery. Live
-   presence, shared cursors, and operation merging remain open.
+2. **Conflict-safe editing — implemented.** Revision preconditions prevent
+   silent overwrites and provide visible recovery. Google-Docs-style live
+   presence, shared cursors, and operation merging are deliberately deferred.
 3. **Document portability — implemented for the current schema.** Authenticated
    users can import and export Word files and download server-generated PDFs;
    imports report unsupported structures.
@@ -42,7 +42,8 @@ The most consequential gaps identified in the initial audit were:
    or a consolidated review history.
 
 The first three areas are trust and adoption requirements, not editor polish.
-Only the real-time collaboration layer remains incomplete within Priority 0.
+The defined Priority 0 repository scope is implemented. Real-time simultaneous
+editing is recorded as deferred future work rather than an activation blocker.
 
 ## What Thido already supports
 
@@ -77,7 +78,7 @@ basic once a draft becomes important or collaborative.
 | Comments | Partial | Threads, replies, resolution, and AI responses exist; assignments, mentions, notifications, filtering, and review dashboards do not. |
 | Suggested edits | Partial | AI suggestions can be accepted or rejected; humans cannot enter a general track-changes or suggesting mode. |
 | Version history | Present in repository; migration required | Bounded snapshots record source and actor, provide formatted previews, and can be restored without deleting later history. Named versions and visual diffs remain future enhancements. |
-| Simultaneous editing | Partial | Revision preconditions now prevent silent stale overwrites and provide a reload path. Live presence, shared cursors, and operation-level merging still require an external real-time transport. |
+| Simultaneous editing | Safeguarded, live merging deferred | Revision preconditions prevent silent stale overwrites and provide a reload path. Live presence, shared cursors, and operation-level merging are outside the current scope. |
 | Word import/export | Present for the supported schema | Users can import `.docx` with fidelity warnings and download editable Word files. Unsupported Word structures are reported rather than presented as fully preserved. |
 | PDF export | Present | Users can download a server-generated PDF or use the browser print workflow. |
 | Links and bookmarks | Missing | The shared TipTap schema explicitly disables links; internal bookmarks are also unavailable. |
@@ -119,10 +120,10 @@ irrecoverable document change.
 
 ### 2. Conflict-safe collaborative editing
 
-**Repository status:** Optimistic concurrency and visible stale-write recovery
-are implemented across user saves, AI changes, suggestion acceptance, imports,
-and restores. Operation-based real-time merging and presence remain open until
-a managed collaboration provider is selected and provisioned.
+**Repository status:** Implemented for the current scope. Optimistic concurrency
+and visible stale-write recovery cover user saves, AI changes, suggestion
+acceptance, imports, and restores. Operation-based real-time merging and
+presence are deliberately deferred.
 
 Google's collaboration model sets an expectation that multiple permitted users
 can work in the same file and receive one another's changes. Google documents
@@ -139,8 +140,9 @@ Minimum useful Thido scope:
 - immediately add optimistic-concurrency protection using a document revision
   number or `updatedAt` precondition;
 - reject stale writes with a clear compare/reload/retry experience;
-- then adopt operation-based collaboration through a supported ProseMirror
-  collaboration stack, with presence and shared selections;
+- if simultaneous editing becomes a product requirement, adopt operation-based
+  collaboration through a supported ProseMirror stack with presence and shared
+  selections;
 - make AI changes participate in the same revision stream rather than bypassing
   collaboration rules;
 - test multi-tab and multi-user edits, disconnections, reconnects, and AI edits.

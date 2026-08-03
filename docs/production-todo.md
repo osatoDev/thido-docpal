@@ -151,7 +151,8 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Define and communicate which pasted rich-text structures are preserved; treat importing Word/Google Docs comments and tracked changes as a separate feature.
 - [x] Implement the repository-backed Priority 0 foundations in the [Google Docs feature-gap analysis](./google-docs-feature-gap-analysis.md): bounded durable version history and restore, revision-based stale-write protection across user and AI changes, Word import/export, and server-generated PDF download.
 - [x] Document Word import/export behavior, unsupported structures, limits, and sanitization in the [file fidelity contract](./word-import-export.md).
-- [ ] Choose and provision cross-instance coordination for live ProseMirror collaboration—either a managed compatible service or Vercel WebSockets plus durable Redis-backed pub/sub—before adding shared cursors and presence.
+- [x] Keep PDFKit external to the Next.js server bundle so its built-in AFM font files resolve correctly in deployed PDF exports.
+- [x] Defer live ProseMirror collaboration, shared cursors, and presence; use revision-based stale-write rejection as the supported conflict-safety model for now. Revisit the infrastructure options only if simultaneous live editing becomes a product requirement. The decision context is documented in [why real-time collaboration needs dedicated infrastructure](./why-realtime-collaboration-infrastructure.md).
 - [ ] Define and enforce the retention window and storage limits for durable document revisions.
 - [ ] Browser-check version preview/restore, cross-tab stale-write recovery, Word import/export, and multi-page PDF output with supported formatting and images.
 - [ ] Add first-class links, tables, checklists, find/replace, word count, and a documented spelling/language experience.
