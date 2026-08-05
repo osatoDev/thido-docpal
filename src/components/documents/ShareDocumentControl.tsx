@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type CollaboratorPermission = "VIEW" | "COMMENT" | "EDIT" | "FULL";
 
@@ -41,6 +41,8 @@ export function ShareDocumentControl({
   initialLinkAccesses: LinkAccessSummary[];
   initialCollaborators: CollaboratorSummary[];
 }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [shareToken, setShareToken] = useState(initialShareToken);
   const [sharePermission, setSharePermission] =
@@ -55,6 +57,27 @@ export function ShareDocumentControl({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const sharePath = shareToken ? `/share/${shareToken}` : null;
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      triggerRef.current?.focus();
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
 
   async function inviteCollaborator(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -210,8 +233,9 @@ export function ShareDocumentControl({
   }
 
   return (
-    <div className="relative">
+    <div ref={rootRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         aria-expanded={open}
         aria-controls="document-share-panel"
@@ -222,7 +246,7 @@ export function ShareDocumentControl({
           setCopied(false);
           setConfirmingStop(false);
         }}
-        className="secondary-button rounded-md px-3 py-1.5 text-xs font-medium"
+        className="primary-button rounded-sm px-3 py-1.5 text-xs font-medium"
       >
         Share
       </button>

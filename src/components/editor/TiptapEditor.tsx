@@ -18,12 +18,9 @@ import {
   type CollaboratorPermission,
   type CollaboratorSummary,
 } from "@/components/documents/ShareDocumentControl";
-import { PrintDocumentButton } from "@/components/documents/PrintDocumentButton";
-import {
-  VersionHistoryControl,
-  type RestoredDocument,
-} from "@/components/documents/VersionHistoryControl";
-import { DocumentFileActions } from "@/components/documents/DocumentFileActions";
+import { type RestoredDocument } from "@/components/documents/VersionHistoryControl";
+import { DocumentDownloadActions } from "@/components/documents/DocumentDownloadActions";
+import { DocumentMoreActions } from "@/components/documents/DocumentMoreActions";
 import { Brand } from "@/components/Brand";
 import type {
   CommentAiProgress,
@@ -722,7 +719,7 @@ export function TiptapEditor({
             <UserMenu user={currentUser} />
           </div>
         </header>
-        <div className="print-hidden mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
+        <div className="print-hidden mx-auto flex w-full max-w-6xl flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center sm:gap-4">
           <input
             value={title}
             readOnly={!canEditNow}
@@ -736,7 +733,7 @@ export function TiptapEditor({
               canEditNow ? "" : "cursor-default"
             }`}
           />
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
             <span className="text-xs text-[var(--muted-soft)]">
               {documentAiLocked
                 ? "Thido is revising…"
@@ -753,31 +750,30 @@ export function TiptapEditor({
                 {canComment ? "Comment access" : "View only"}
               </span>
             )}
-            <PrintDocumentButton />
-            <DocumentFileActions
-              documentId={documentId}
-              currentRevision={revision}
-              canImport={canEditNow}
-              onImport={handleDocumentRestored}
-              onConflict={handleDocumentConflict}
-            />
-            {canEdit && (
-              <VersionHistoryControl
+            <div
+              role="group"
+              aria-label="Document actions"
+              className="flex shrink-0 items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--surface)] p-1"
+            >
+              <DocumentDownloadActions documentId={documentId} />
+              {canManage && (
+                <ShareDocumentControl
+                  documentId={documentId}
+                  initialShareToken={initialShareToken}
+                  initialSharePermission={initialSharePermission}
+                  initialLinkAccesses={initialLinkAccesses}
+                  initialCollaborators={initialCollaborators}
+                />
+              )}
+              <DocumentMoreActions
                 documentId={documentId}
                 currentRevision={revision}
-                onRestore={handleDocumentRestored}
+                canImport={canEditNow}
+                canViewHistory={canEdit}
+                onImport={handleDocumentRestored}
                 onConflict={handleDocumentConflict}
               />
-            )}
-            {canManage && (
-              <ShareDocumentControl
-                documentId={documentId}
-                initialShareToken={initialShareToken}
-                initialSharePermission={initialSharePermission}
-                initialLinkAccesses={initialLinkAccesses}
-                initialCollaborators={initialCollaborators}
-              />
-            )}
+            </div>
           </div>
         </div>
 

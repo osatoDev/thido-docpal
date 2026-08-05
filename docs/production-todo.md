@@ -1,6 +1,6 @@
 # Thido production checklist
 
-Last reviewed: 3 August 2026
+Last reviewed: 4 August 2026
 
 This is the running source of truth for production-readiness work. Completed boxes indicate repository evidence or a verified check. External configuration remains unchecked until it is explicitly verified.
 
@@ -154,6 +154,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Remove the default dashboard `READY` status column and show only non-ready document states inline with the title.
 - [ ] Define and communicate which pasted rich-text structures are preserved; treat importing Word/Google Docs comments and tracked changes as a separate feature.
 - [x] Implement the repository-backed Priority 0 foundations in the [Google Docs feature-gap analysis](./google-docs-feature-gap-analysis.md): bounded durable version history and restore, revision-based stale-write protection across user and AI changes, Word import/export, and server-generated PDF download.
+- [x] Consolidate document-level controls into the intentional header hierarchy in [the document action layout recommendation](./document-action-layout.md): use **Download** for Word/PDF exports, keep **Share** prominent, and group lower-frequency Print, Import Word, and Version history actions without introducing a full desktop-style menu bar.
 - [x] Document Word import/export behavior, unsupported structures, limits, and sanitization in the [file fidelity contract](./word-import-export.md).
 - [x] Keep PDFKit external to the Next.js server bundle so its built-in AFM font files resolve correctly in deployed PDF exports.
 - [x] Defer live ProseMirror collaboration, shared cursors, and presence; use revision-based stale-write rejection as the supported conflict-safety model for now. Revisit the infrastructure options only if simultaneous live editing becomes a product requirement. The decision context is documented in [why real-time collaboration needs dedicated infrastructure](./why-realtime-collaboration-infrastructure.md).
