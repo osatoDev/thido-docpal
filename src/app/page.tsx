@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { Brand } from "@/components/Brand";
+import { HowItWorksControl } from "@/components/HowItWorksControl";
 import { UserMenu } from "@/components/account/UserMenu";
 import {
   createBlankDocument,
@@ -22,6 +23,7 @@ export default async function Home() {
           aria-label="Account navigation"
           className="flex items-center gap-4 text-sm text-[var(--muted)]"
         >
+          <HowItWorksControl />
           <Link href="/dashboard" className="hover:text-[var(--foreground)]">
             My documents
           </Link>

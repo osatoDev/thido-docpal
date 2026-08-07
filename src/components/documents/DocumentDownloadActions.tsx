@@ -55,7 +55,7 @@ export function DocumentDownloadActions({ documentId }: { documentId: string }) 
       {open ? (
         <div
           id={menuId}
-          className="app-panel absolute top-full right-0 z-30 mt-2 w-56 rounded-md p-2 text-xs"
+          className="app-panel absolute top-full left-0 z-30 mt-2 w-56 rounded-md p-2 text-xs"
         >
           <a
             href={`/api/documents/${documentId}/export/docx`}

@@ -1,29 +1,13 @@
 import Link from "next/link";
 import { InitialPromptForm } from "@/components/wizard/InitialPromptForm";
 import { Brand } from "@/components/Brand";
+import { HowItWorksControl } from "@/components/HowItWorksControl";
 import { UserMenu } from "@/components/account/UserMenu";
 import { auth } from "@/lib/auth";
+import { HOW_IT_WORKS_STEPS } from "@/lib/howItWorks";
 
 const RESUME_LOGIN_HREF =
   "/login?callbackUrl=%2Fdocuments%2Fnew%3Fresume%3D1";
-
-const WORKFLOW_STEPS = [
-  {
-    number: "01",
-    title: "Share what you know",
-    description: "Give Thido the purpose, audience, tone, and essential points.",
-  },
-  {
-    number: "02",
-    title: "Shape the brief",
-    description: "Use guided questions or describe the full request in your own words.",
-  },
-  {
-    number: "03",
-    title: "Refine the draft",
-    description: "Edit every word and discuss changes alongside the document.",
-  },
-];
 
 export default async function NewDocumentPage({
   searchParams,
@@ -36,10 +20,11 @@ export default async function NewDocumentPage({
 
   return (
     <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col px-5 py-6 sm:px-6 sm:py-10 lg:px-8">
-      <header className="flex items-center justify-between border-b border-[var(--border)] pb-6">
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-6">
         <Brand />
         {session?.user ? (
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <HowItWorksControl />
             <Link
               href="/dashboard"
               className="secondary-button rounded-md px-3.5 py-2 text-sm font-medium"
@@ -49,12 +34,15 @@ export default async function NewDocumentPage({
             <UserMenu user={session.user} />
           </div>
         ) : (
-          <Link
-            href={RESUME_LOGIN_HREF}
-            className="secondary-button rounded-md px-3.5 py-2 text-sm font-medium"
-          >
-            Sign in
-          </Link>
+          <div className="flex items-center gap-2">
+            <HowItWorksControl />
+            <Link
+              href={RESUME_LOGIN_HREF}
+              className="secondary-button rounded-md px-3.5 py-2 text-sm font-medium"
+            >
+              Sign in
+            </Link>
+          </div>
         )}
       </header>
 
@@ -86,7 +74,7 @@ export default async function NewDocumentPage({
       <section className="mt-20 border-y border-[var(--border-strong)] py-10" aria-labelledby="how-it-works-heading">
         <p id="how-it-works-heading" className="page-kicker mb-7">How it works</p>
         <ol className="grid gap-8 sm:grid-cols-3 sm:gap-6">
-          {WORKFLOW_STEPS.map((step) => (
+          {HOW_IT_WORKS_STEPS.map((step) => (
             <li key={step.number} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 sm:block">
               <span className="font-mono text-xs text-[var(--accent-strong)]">{step.number}</span>
               <div className="sm:mt-5">

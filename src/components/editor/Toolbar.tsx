@@ -184,11 +184,11 @@ export function Toolbar({
         1. List
       </ToolbarButton>
       <ToolbarButton
-        label="Checklist"
+        label="Checkbox list"
         isActive={editor.isActive("taskList")}
         onClick={() => editor.chain().focus().toggleTaskList().run()}
       >
-        ☑ List
+        ☐ Checkbox list
       </ToolbarButton>
       <ToolbarButton
         label="Blockquote"

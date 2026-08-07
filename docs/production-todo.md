@@ -1,6 +1,6 @@
 # Thido production checklist
 
-Last reviewed: 4 August 2026
+Last reviewed: 7 August 2026
 
 This is the running source of truth for production-readiness work. Completed boxes indicate repository evidence or a verified check. External configuration remains unchecked until it is explicitly verified.
 
@@ -128,6 +128,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Show a clear `BETA` status badge beside the shared Thido wordmark across the application.
 - [x] Give signed-in users a consistent top-right profile image or initials menu with direct Settings and Log out actions.
 - [x] Let document owners create, copy, open, and revoke unlisted read-only share links; public views expose the title, document body, and owner profile name while keeping email and other account details private.
+- [ ] Make public share links owner-aware without automatically redirecting: when a signed-in owner opens their own link, retain the recipient-equivalent public rendering, label it as a public-link preview shared by them, and provide **Open original** and **Manage sharing** actions. The behavior and acceptance criteria are in [the shared-link owner experience](./shared-link-owner-experience.md).
 - [ ] Deploy and browser-check permission-bearing **Anyone with the link** sharing for authenticated users, including visible controls with click-time session checks, post-authentication return to the selected action, immediate revocation, access logging, and explicit safeguards for full access; implementation and acceptance criteria are in [the full-access link-sharing design](./full-access-link-sharing.md).
 - [x] Clearly identify who shared a document on the public read-only view, with a non-identifying owner label for legacy accounts that have no profile name.
 - [x] Let full-access users invite collaborators by email with view, comment, edit, or full access; enforce those permissions on document, comment, suggestion, deletion, public-link, and sharing-management operations.
@@ -144,6 +145,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Lock document editing and new comments while a whole-document AI action is active, reject competing work across tabs, and expire abandoned locks after ten minutes.
 - [x] Let users expand a background comment response to see its real queued, processing, or failed state while it refreshes automatically.
 - [x] Move resolved comment threads into a collapsible archive and retain the ability to reopen or delete them.
+- [x] Let document viewers hide and restore the comments sidebar to reclaim document width, expose the state through an accessible toggle, support `Ctrl/⌘ + Alt + C`, and automatically reopen the sidebar when starting a comment.
 - [ ] Deploy and browser-check additional user messages and contextual Thido responses inside open AI comment threads, including failure recovery and whole-document locking.
 - [x] Add Auto as the default AI edit mode, use the structured prompt decision to apply clear edit instructions while keeping questions and ambiguous requests as proposals, and retain explicit always-propose and always-apply overrides.
 - [x] Keep the AI model and edit-application preferences in Settings instead of duplicating them in each document editor.
@@ -154,13 +156,17 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Remove the default dashboard `READY` status column and show only non-ready document states inline with the title.
 - [ ] Define and communicate which pasted rich-text structures are preserved; treat importing Word/Google Docs comments and tracked changes as a separate feature.
 - [x] Implement the repository-backed Priority 0 foundations in the [Google Docs feature-gap analysis](./google-docs-feature-gap-analysis.md): bounded durable version history and restore, revision-based stale-write protection across user and AI changes, Word import/export, and server-generated PDF download.
-- [x] Consolidate document-level controls into the intentional header hierarchy in [the document action layout recommendation](./document-action-layout.md): use **Download** for Word/PDF exports, keep **Share** prominent, and group lower-frequency Print, Import Word, and Version history actions without introducing a full desktop-style menu bar.
+- [x] Consolidate document-level controls into the intentional header hierarchy in [the document action layout recommendation](./document-action-layout.md): keep **Download** and **More** at the expected upper-left of the document workspace, keep **Share** prominent on the right, and avoid a full desktop-style menu bar.
+- [x] Label the existing task-list formatting control explicitly as **Checkbox list** so the checkbox bullet option is discoverable without relying on its icon.
+- [x] Add a compact, Polymarket-inspired **How it works** home-navigation control that opens Thido's own accessible three-step walkthrough.
+- [x] Give every signed-in route a persistent one-click **New document** action that reuses the safe blank-placeholder creation flow.
 - [x] Document Word import/export behavior, unsupported structures, limits, and sanitization in the [file fidelity contract](./word-import-export.md).
 - [x] Keep PDFKit external to the Next.js server bundle so its built-in AFM font files resolve correctly in deployed PDF exports.
 - [x] Defer live ProseMirror collaboration, shared cursors, and presence; use revision-based stale-write rejection as the supported conflict-safety model for now. Revisit the infrastructure options only if simultaneous live editing becomes a product requirement. The decision context is documented in [why real-time collaboration needs dedicated infrastructure](./why-realtime-collaboration-infrastructure.md).
 - [ ] Define and enforce the retention window and storage limits for durable document revisions.
 - [ ] Browser-check version preview/restore, cross-tab stale-write recovery, Word import/export, and multi-page PDF output with supported formatting and images.
 - [x] Add first-class safe HTTP(S)/email links, checklists, and small accessible tables with row/column controls, shared-schema rendering, and supported Word/PDF conversion.
+- [x] Let editable-document users right-click a table cell to add or delete rows and columns, toggle the header row, or delete the table, while retaining the toolbar control for keyboard and touch access.
 - [ ] Browser-check link editing, checklist toggling, table row/column controls, public rendering, printing, and representative Word/PDF output.
 - [ ] Add editor-aware find/replace, word and character counts, and a documented spelling/language experience.
 - [ ] Add heading-based document navigation, internal links, a table of contents, page breaks, and footnotes before pursuing advanced page-layout controls.
@@ -231,6 +237,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Add browser tests for pasted rich text, autosave, comment anchoring, AI suggestion accept/reject, concurrent edits, and orphaned comments.
 - [ ] Add browser tests for creating, proposing, accepting, rejecting, and auto-applying whole-document comments, including cross-tab edit and comment locking.
 - [ ] Add browser tests for creating, opening anonymously, and revoking read-only document share links, plus inviting by email and enforcing every collaborator permission level.
+- [ ] Add automated billing tests for offer gating, authenticated Checkout and duplicate-subscription prevention, webhook signature rejection and idempotency, subscription-state transitions, and Customer Portal authorization; current status is summarized in [the paid-plan implementation status](./paid-plan-implementation-status.md).
 - [ ] Create a separate test database and ensure tests can never target production credentials.
 - [ ] Add accessibility checks for authentication, editor, settings, and admin pages.
 - [ ] Review and resolve the seven dependency audit findings reported after adding Vercel Blob and TipTap Image (five high and two critical) without applying an unreviewed breaking upgrade.

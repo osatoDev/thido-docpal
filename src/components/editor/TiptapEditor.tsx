@@ -6,6 +6,7 @@ import { EditorContent, useEditor, type JSONContent } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { Toolbar } from "./Toolbar";
+import { TableContextMenu } from "./TableContextMenu";
 import { CommentSidebar } from "@/components/comments/CommentSidebar";
 import { CommentComposer } from "@/components/comments/CommentComposer";
 import { RecentThidoChangeNotice } from "@/components/comments/RecentThidoChangeNotice";
@@ -92,6 +93,7 @@ export function TiptapEditor({
   const [documentConflict, setDocumentConflict] = useState<string | null>(null);
   const [comments, setComments] = useState<CommentWithReplies[]>(initialComments);
   const [activeComposer, setActiveComposer] = useState<ActiveComposer | null>(null);
+  const [commentsSidebarOpen, setCommentsSidebarOpen] = useState(true);
   const [pendingCommentIds, setPendingCommentIds] = useState<Set<string>>(() => {
     return new Set(
       Object.entries(initialCommentProgress).flatMap(([commentId, progress]) =>
@@ -168,6 +170,27 @@ export function TiptapEditor({
   useEffect(() => {
     editor?.setEditable(canEditNow);
   }, [canEditNow, editor]);
+
+  useEffect(() => {
+    function toggleCommentsSidebar(event: KeyboardEvent) {
+      const commandModifier = event.metaKey || event.ctrlKey;
+      if (
+        !commandModifier ||
+        !event.altKey ||
+        event.shiftKey ||
+        event.code !== "KeyC" ||
+        event.repeat
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      setCommentsSidebarOpen((open) => !open);
+    }
+
+    document.addEventListener("keydown", toggleCommentsSidebar);
+    return () => document.removeEventListener("keydown", toggleCommentsSidebar);
+  }, []);
 
   function scheduleSave(next: { title?: string; content?: JSONContent }) {
     if (documentAiLockedRef.current || conflictRef.current) return;
@@ -319,6 +342,7 @@ export function TiptapEditor({
       .setTextSelection({ from, to })
       .setComment(anchorMarkId)
       .run();
+    setCommentsSidebarOpen(true);
     setActiveComposer({
       scope: "SELECTION",
       anchorMarkId,
@@ -341,6 +365,7 @@ export function TiptapEditor({
         .run();
     }
     setCommentError(null);
+    setCommentsSidebarOpen(true);
     setActiveComposer({ scope: "DOCUMENT" });
   }
 
@@ -720,60 +745,94 @@ export function TiptapEditor({
           </div>
         </header>
         <div className="print-hidden mx-auto flex w-full max-w-6xl flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center sm:gap-4">
-          <input
-            value={title}
-            readOnly={!canEditNow}
-            onChange={(e) => {
-              if (!canEditNow) return;
-              setTitle(e.target.value);
-              scheduleSave({ title: e.target.value });
-            }}
-            aria-label="Document title"
-            className={`editor-title w-full border-none bg-transparent font-serif text-3xl font-normal tracking-[-0.035em] outline-none sm:text-4xl ${
-              canEditNow ? "" : "cursor-default"
-            }`}
-          />
-          <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
-            <span className="text-xs text-[var(--muted-soft)]">
-              {documentAiLocked
-                ? "Thido is revising…"
-                : saveState === "saving"
-                  ? "Saving…"
-                  : saveState === "saved"
-                    ? "Saved"
-                    : saveState === "error"
-                      ? "Save failed"
-                      : null}
-            </span>
-            {!canEdit && (
-              <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)]">
-                {canComment ? "Comment access" : "View only"}
+          <div className="min-w-0 flex-1">
+            <input
+              value={title}
+              readOnly={!canEditNow}
+              onChange={(e) => {
+                if (!canEditNow) return;
+                setTitle(e.target.value);
+                scheduleSave({ title: e.target.value });
+              }}
+              aria-label="Document title"
+              className={`editor-title w-full border-none bg-transparent font-serif text-3xl font-normal tracking-[-0.035em] outline-none sm:text-4xl ${
+                canEditNow ? "" : "cursor-default"
+              }`}
+            />
+            <div className="mt-2 flex min-h-6 items-center gap-3">
+              <span className="text-xs text-[var(--muted-soft)]">
+                {documentAiLocked
+                  ? "Thido is revising…"
+                  : saveState === "saving"
+                    ? "Saving…"
+                    : saveState === "saved"
+                      ? "Saved"
+                      : saveState === "error"
+                        ? "Save failed"
+                        : null}
               </span>
-            )}
-            <div
-              role="group"
-              aria-label="Document actions"
-              className="flex shrink-0 items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--surface)] p-1"
-            >
-              <DocumentDownloadActions documentId={documentId} />
-              {canManage && (
-                <ShareDocumentControl
-                  documentId={documentId}
-                  initialShareToken={initialShareToken}
-                  initialSharePermission={initialSharePermission}
-                  initialLinkAccesses={initialLinkAccesses}
-                  initialCollaborators={initialCollaborators}
-                />
+              {!canEdit && (
+                <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)]">
+                  {canComment ? "Comment access" : "View only"}
+                </span>
               )}
-              <DocumentMoreActions
-                documentId={documentId}
-                currentRevision={revision}
-                canImport={canEditNow}
-                canViewHistory={canEdit}
-                onImport={handleDocumentRestored}
-                onConflict={handleDocumentConflict}
-              />
             </div>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <button
+              type="button"
+              aria-controls="document-comments-sidebar"
+              aria-expanded={commentsSidebarOpen}
+              aria-keyshortcuts="Control+Alt+C Meta+Alt+C"
+              title={`${commentsSidebarOpen ? "Hide" : "Show"} comments (Ctrl/⌘ + Alt + C)`}
+              onClick={() => setCommentsSidebarOpen((open) => !open)}
+              className={`secondary-button flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium ${
+                commentsSidebarOpen ? "bg-[var(--surface-subtle)]" : ""
+              }`}
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                className="h-4 w-4"
+              >
+                <rect x="3.5" y="4" width="17" height="16" rx="1.5" />
+                <path d="M15.5 4v16M7 8h5M7 12h5" />
+              </svg>
+              <span>{commentsSidebarOpen ? "Hide comments" : "Show comments"}</span>
+              <kbd className="hidden rounded border border-[var(--border)] px-1.5 py-0.5 font-sans text-[10px] font-normal text-[var(--muted)] xl:inline">
+                Ctrl/⌘ + Alt + C
+              </kbd>
+            </button>
+            {canManage && (
+              <ShareDocumentControl
+                documentId={documentId}
+                initialShareToken={initialShareToken}
+                initialSharePermission={initialSharePermission}
+                initialLinkAccesses={initialLinkAccesses}
+                initialCollaborators={initialCollaborators}
+              />
+            )}
+          </div>
+        </div>
+
+        <div className="print-hidden mx-auto -mt-3 flex w-full max-w-6xl justify-start">
+          <div
+            role="group"
+            aria-label="Document file actions"
+            className="flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--surface)] p-1"
+          >
+            <DocumentDownloadActions documentId={documentId} />
+            <DocumentMoreActions
+              documentId={documentId}
+              currentRevision={revision}
+              canImport={canEditNow}
+              canViewHistory={canEdit}
+              onImport={handleDocumentRestored}
+              onConflict={handleDocumentConflict}
+            />
           </div>
         </div>
 
@@ -851,42 +910,53 @@ export function TiptapEditor({
             </BubbleMenu>
           )}
           <div className="print-document-content flex-1 overflow-y-auto px-4 py-7 sm:px-7 sm:py-10 lg:px-8">
-            <EditorContent editor={editor} />
+            {editor && canEditNow ? (
+              <TableContextMenu editor={editor}>
+                <EditorContent editor={editor} />
+              </TableContextMenu>
+            ) : (
+              <EditorContent editor={editor} />
+            )}
           </div>
         </div>
       </div>
 
-      <div className="print-hidden flex min-h-72 w-full shrink-0 flex-col border-t border-[var(--border)] lg:min-h-0 lg:w-80 lg:border-t-0">
-        {activeComposer && !documentAiLocked && (
-          <div className="border-b border-[var(--border)] bg-[var(--surface)] p-4">
-            <CommentComposer
-              key={activeComposer.scope}
-              scope={activeComposer.scope}
-              quotedText={
-                activeComposer.scope === "SELECTION"
-                  ? activeComposer.quotedText
-                  : undefined
-              }
-              onSubmit={submitComment}
-              onCancel={cancelComment}
-            />
-          </div>
-        )}
-        <CommentSidebar
-          comments={comments}
-          onChange={handleCommentChange}
-          onDelete={handleCommentDelete}
-          onDocumentContentUpdated={handleDocumentContentUpdated}
-          pendingCommentIds={pendingCommentIds}
-          commentProgress={commentProgress}
-          foregroundCommentCount={foregroundCommentCount}
-          documentAiLocked={documentAiLocked}
-          onStartDocumentComment={startDocumentComment}
-          documentComposerOpen={activeComposer?.scope === "DOCUMENT"}
-          canCreateComments={canCommentNow && !!editor}
-          canManageComments={canEditNow}
-        />
-      </div>
+      {commentsSidebarOpen && (
+        <div
+          id="document-comments-sidebar"
+          className="print-hidden flex min-h-72 w-full shrink-0 flex-col border-t border-[var(--border)] lg:min-h-0 lg:w-80 lg:border-t-0"
+        >
+          {activeComposer && !documentAiLocked && (
+            <div className="border-b border-[var(--border)] bg-[var(--surface)] p-4">
+              <CommentComposer
+                key={activeComposer.scope}
+                scope={activeComposer.scope}
+                quotedText={
+                  activeComposer.scope === "SELECTION"
+                    ? activeComposer.quotedText
+                    : undefined
+                }
+                onSubmit={submitComment}
+                onCancel={cancelComment}
+              />
+            </div>
+          )}
+          <CommentSidebar
+            comments={comments}
+            onChange={handleCommentChange}
+            onDelete={handleCommentDelete}
+            onDocumentContentUpdated={handleDocumentContentUpdated}
+            pendingCommentIds={pendingCommentIds}
+            commentProgress={commentProgress}
+            foregroundCommentCount={foregroundCommentCount}
+            documentAiLocked={documentAiLocked}
+            onStartDocumentComment={startDocumentComment}
+            documentComposerOpen={activeComposer?.scope === "DOCUMENT"}
+            canCreateComments={canCommentNow && !!editor}
+            canManageComments={canEditNow}
+          />
+        </div>
+      )}
     </div>
   );
 }

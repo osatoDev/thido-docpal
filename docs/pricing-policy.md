@@ -1,8 +1,8 @@
 # Thido pricing policy (proposal)
 
-Status: **draft, not implemented.** No billing integration exists in the codebase today. This document proposes a pricing structure to guide that work; it is not a commitment or a published price list.
+Status: **draft commercial policy; billing foundation implemented, paid plan not activated.** Stripe Checkout, webhooks, subscription-state persistence, and the Customer Portal exist in the codebase, but pricing and entitlements remain proposals and are not a commitment or published price list. See [the paid-plan implementation status](./paid-plan-implementation-status.md).
 
-Last reviewed: 26 July 2026
+Last reviewed: 5 August 2026
 
 ## Why pricing is needed
 
@@ -29,7 +29,7 @@ Every document generation and AI-assisted comment revision calls a paid model pr
 
 - Unlimited documents.
 - 100 AI-assisted actions per month included; clearly labeled usage meter in-app.
-- Export to common formats (once export is built — currently undecided per `docs/production-todo.md`).
+- Word and PDF export, which already exists in the beta; whether export becomes a paid entitlement remains undecided.
 - Priority queuing on AI requests during shared rate-limit contention.
 - Email support with target response time.
 

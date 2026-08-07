@@ -156,7 +156,7 @@ export function DocumentMoreActions({
         {open ? (
           <div
             id={menuId}
-            className="app-panel absolute top-full right-0 z-30 mt-2 w-56 rounded-md p-2 text-xs"
+            className="app-panel absolute top-full left-0 z-30 mt-2 w-56 rounded-md p-2 text-xs"
           >
             <button
               type="button"
@@ -195,7 +195,7 @@ export function DocumentMoreActions({
 
         {message ? (
           <p
-            className="absolute top-full right-0 z-20 mt-2 w-80 rounded-md border border-[var(--border)] bg-[var(--surface)] p-3 text-xs leading-5 text-[var(--muted)] shadow-sm"
+            className="absolute top-full left-0 z-20 mt-2 w-80 rounded-md border border-[var(--border)] bg-[var(--surface)] p-3 text-xs leading-5 text-[var(--muted)] shadow-sm"
             role="status"
           >
             {message}
@@ -203,7 +203,7 @@ export function DocumentMoreActions({
         ) : null}
         {error ? (
           <p
-            className="absolute top-full right-0 z-20 mt-2 w-80 rounded-md border border-[var(--danger)] bg-[var(--surface)] p-3 text-xs leading-5 text-[var(--danger)] shadow-sm"
+            className="absolute top-full left-0 z-20 mt-2 w-80 rounded-md border border-[var(--danger)] bg-[var(--surface)] p-3 text-xs leading-5 text-[var(--danger)] shadow-sm"
             role="alert"
           >
             {error}
