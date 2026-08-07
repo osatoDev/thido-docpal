@@ -7,7 +7,7 @@ import {
   VersionHistoryDialog,
 } from "@/components/documents/VersionHistoryControl";
 
-export function DocumentMoreActions({
+export function DocumentFileMenu({
   documentId,
   currentRevision,
   canImport,
@@ -25,6 +25,7 @@ export function DocumentMoreActions({
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
   const [open, setOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -34,6 +35,10 @@ export function DocumentMoreActions({
 
   useEffect(() => {
     if (!open) return;
+
+    menuRef.current
+      ?.querySelector<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])')
+      ?.focus();
 
     function handlePointerDown(event: PointerEvent) {
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
@@ -112,6 +117,32 @@ export function DocumentMoreActions({
     triggerRef.current?.focus();
   }, []);
 
+  function handleMenuKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+      return;
+    }
+
+    const items = Array.from(
+      menuRef.current?.querySelectorAll<HTMLElement>(
+        '[role="menuitem"]:not([aria-disabled="true"])',
+      ) ?? [],
+    );
+    if (items.length === 0) return;
+
+    event.preventDefault();
+    const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+    let nextIndex = currentIndex;
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = items.length - 1;
+    if (event.key === "ArrowDown") {
+      nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
+    }
+    if (event.key === "ArrowUp") {
+      nextIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
+    }
+    items[nextIndex]?.focus();
+  }
+
   return (
     <>
       <div ref={rootRef} className="relative">
@@ -125,20 +156,17 @@ export function DocumentMoreActions({
           }}
           aria-expanded={open}
           aria-controls={menuId}
-          aria-label="More document actions"
-          className="secondary-button inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-medium"
+          aria-haspopup="menu"
+          role="menuitem"
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              setOpen(true);
+            }
+          }}
+          className="inline-flex items-center rounded-sm px-2 py-1 text-sm hover:bg-[var(--surface-subtle)]"
         >
-          More
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 20 20"
-            className="size-3 fill-none stroke-current"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="m6 8 4 4 4-4" />
-          </svg>
+          File
         </button>
 
         <input
@@ -155,23 +183,19 @@ export function DocumentMoreActions({
 
         {open ? (
           <div
+            ref={menuRef}
             id={menuId}
-            className="app-panel absolute top-full left-0 z-30 mt-2 w-56 rounded-md p-2 text-xs"
+            role="menu"
+            aria-label="File"
+            onKeyDown={handleMenuKeyDown}
+            className="app-panel absolute top-full left-0 z-40 mt-1 w-64 rounded-md p-1.5 text-sm shadow-lg"
           >
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                window.print();
-              }}
-              className="block w-full rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)]"
-            >
-              Print
-            </button>
             {canImport ? (
               <button
                 type="button"
+                role="menuitem"
                 disabled={importing}
+                aria-disabled={importing}
                 onClick={() => inputRef.current?.click()}
                 className="block w-full rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)] disabled:cursor-wait disabled:opacity-60"
               >
@@ -181,6 +205,7 @@ export function DocumentMoreActions({
             {canViewHistory ? (
               <button
                 type="button"
+                role="menuitem"
                 onClick={() => {
                   setOpen(false);
                   setHistoryOpen(true);
@@ -190,6 +215,38 @@ export function DocumentMoreActions({
                 Version history
               </button>
             ) : null}
+            <div role="separator" className="my-1 border-t border-[var(--border)]" />
+            <p className="px-3 py-1 text-[11px] font-semibold tracking-wide text-[var(--muted)] uppercase">
+              Download
+            </p>
+            <a
+              role="menuitem"
+              href={`/api/documents/${documentId}/export/docx`}
+              className="block rounded-sm px-3 py-2 hover:bg-[var(--surface-subtle)]"
+              onClick={() => setOpen(false)}
+            >
+              Microsoft Word (.docx)
+            </a>
+            <a
+              role="menuitem"
+              href={`/api/documents/${documentId}/export/pdf`}
+              className="block rounded-sm px-3 py-2 hover:bg-[var(--surface-subtle)]"
+              onClick={() => setOpen(false)}
+            >
+              PDF document (.pdf)
+            </a>
+            <div role="separator" className="my-1 border-t border-[var(--border)]" />
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                window.print();
+              }}
+              className="block w-full rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)]"
+            >
+              Print
+            </button>
           </div>
         ) : null}
 

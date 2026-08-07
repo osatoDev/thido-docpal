@@ -1,47 +1,37 @@
 # Document action layout
 
-## Recommendation
+## Current recommendation
 
-Yes: the current **File** label should become **Download** if its main job is to offer Word and PDF downloads.
+Thido's document editor should follow the familiar Google Docs hierarchy without copying Google branding:
 
-The existing menu mixes two different intentions:
+1. A compact identity row contains the Thido home link, editable document title, save state, comments control, Share action, and account menu.
+2. A conventional menu bar contains only implemented categories: **File**, **Edit**, **View**, **Insert**, and **Format**.
+3. A compact formatting toolbar exposes frequent actions as recognizable icons or standard controls with accessible labels and tooltips.
+4. The document canvas begins below the editor chrome and expands when comments are hidden.
 
-- **Download Word** and **Download PDF** create copies of the current document.
-- **Import Word** replaces the current document.
+## File operations
 
-That makes **File** technically defensible, but vague. It also leaves **Print** outside the menu even though printing, exporting, and importing are closely related file operations.
+Standalone **Download** and **More** buttons are removed. The **File** menu contains:
 
-The controls should live in a deliberate document-action toolbar in the document header, rather than appearing as a row of equally weighted buttons beside the page. A full desktop-style menu bar such as **File / Edit / View / Insert** would be too heavy for the current feature set; Thido does not yet have enough actions in each category to justify that structure.
+- Import Word, when editing is allowed
+- Version history, when the viewer has editing access
+- Download as Microsoft Word
+- Download as PDF
+- Print
 
-## Current hierarchy
+This keeps downloads discoverable in the place users expect while avoiding an unconventional document-action cluster.
 
-Keep the document identity and collaboration action on the title row, then place file operations in a compact group at the conventional upper-left edge of the document workspace:
+## Formatting controls
 
-`[Document title] [Saved]                              [Share]`
+The toolbar uses icons for undo, redo, bold, italic, strikethrough, links, bulleted lists, numbered lists, checklists, and block quotes. It uses a standard paragraph-style selector for normal text and headings. Visible labels such as **List**, **Checkbox list**, **Insert image**, and **Table actions** do not occupy toolbar space; their accessible names and tooltips remain available.
 
-`[Download ▾] [More ▾]`
+Less-frequent insertion and formatting commands remain available through **Insert** and **Format**. Table cell operations also remain available through the table right-click menu.
 
-- **Share** remains the strongest, most visible action for users who can manage access.
-- **Download** is a clearly labelled dropdown containing **Word (.docx)** and **PDF**.
-- **More** contains lower-frequency document operations:
-  - Print
-  - Import Word, when the user can edit
-  - Version history, when the user can edit
+## Interaction and accessibility
 
-For view-only or comment-only users, hide unavailable actions rather than showing an incomplete menu. On narrow screens, keep the same left-aligned file group and retain Share beside the document identity where permitted.
-
-## Why this is clearer
-
-This arrangement:
-
-- names the visible action after the user's goal;
-- separates frequent collaboration from occasional file management;
-- reduces four adjacent, equally styled controls to a readable hierarchy;
-- puts familiar file and history operations where users conventionally scan first: the upper-left of the document workspace;
-- keeps collaboration visually distinct on the right;
-- scales to mobile without wrapping controls into an accidental second row;
-- avoids introducing a traditional menu bar before the product needs one.
-
-## Interaction details
-
-The dropdowns should close on outside click and `Escape`, return focus to their trigger, expose proper menu semantics, and support keyboard navigation. Import should retain its replacement warning. Download links should state their formats directly, and Print should continue to open the browser print dialog.
+- Menus close on outside click and Escape.
+- Opening a menu moves focus to its first action.
+- Arrow keys, Home, and End move between menu actions.
+- Every icon-only control has an accessible label and tooltip.
+- The comments control exposes its expanded state and uses the Google Docs-style discussion shortcut, `Ctrl/⌘ + Alt + Shift + A`.
+- Unavailable editing menus are omitted for viewers instead of presenting actions that cannot succeed.

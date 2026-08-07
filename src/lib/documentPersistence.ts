@@ -1,6 +1,16 @@
 export const DEFAULT_DOCUMENT_TITLE = "Untitled Document";
+const TIMESTAMPED_DEFAULT_TITLE =
+  /^Untitled Document — \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/;
 
-const MEANINGFUL_LEAF_NODES = new Set(["horizontalRule", "image"]);
+export function createDefaultDocumentTitle(date = new Date()) {
+  return `${DEFAULT_DOCUMENT_TITLE} — ${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+}
+
+export function isDefaultDocumentTitle(title: string) {
+  return title === DEFAULT_DOCUMENT_TITLE || TIMESTAMPED_DEFAULT_TITLE.test(title);
+}
+
+const MEANINGFUL_LEAF_NODES = new Set(["horizontalRule", "image", "table"]);
 
 function hasMeaningfulNode(value: unknown): boolean {
   if (Array.isArray(value)) {
@@ -42,7 +52,7 @@ export function shouldPromotePlaceholder({
   const hasCustomTitle =
     typeof title === "string" &&
     title.trim().length > 0 &&
-    title.trim() !== DEFAULT_DOCUMENT_TITLE;
+    !isDefaultDocumentTitle(title.trim());
 
   return hasCustomTitle || hasMeaningfulDocumentContent(content);
 }

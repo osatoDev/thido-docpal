@@ -122,7 +122,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Implement the limited guest-first drafting flow described in `docs/guest-document-flow.md`.
 - [x] Keep complete and partial guest input local and restore it after sign-in initiated through either **Generate** or the page navigation; require authentication before AI generation or permanent database storage.
 - [x] Let users switch between guided initial questions and a freeform prompt; retain tailored follow-ups for guided briefs and generate directly from freeform briefs.
-- [x] Make a blank `READY` document the default signed-in creation path, with AI-guided drafting and paste-existing flows available as explicit alternatives.
+- [x] Make a blank `READY` document the default signed-in creation path, give each fresh or reused blank placeholder a sortable UTC date-and-time title, and keep AI-guided drafting and paste-existing flows available as explicit alternatives.
 - [x] Keep untouched blank editor sessions as hidden, reusable placeholders and count them as documents only after a custom title or meaningful body content is saved.
 - [ ] Make AI-generated documents persist a meaningful document title instead of retaining `Untitled Document` when the generated body begins with a clear title.
 - [x] Show a clear `BETA` status badge beside the shared Thido wordmark across the application.
@@ -145,7 +145,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Lock document editing and new comments while a whole-document AI action is active, reject competing work across tabs, and expire abandoned locks after ten minutes.
 - [x] Let users expand a background comment response to see its real queued, processing, or failed state while it refreshes automatically.
 - [x] Move resolved comment threads into a collapsible archive and retain the ability to reopen or delete them.
-- [x] Let document viewers hide and restore the comments sidebar to reclaim document width, expose the state through an accessible toggle, support `Ctrl/⌘ + Alt + C`, and automatically reopen the sidebar when starting a comment.
+- [x] Let document viewers hide and restore the comments sidebar to reclaim document width, expose the state through an accessible toggle, support the Google Docs-style discussion shortcut `Ctrl/⌘ + Alt + Shift + A`, and automatically reopen the sidebar when starting a comment.
 - [ ] Deploy and browser-check additional user messages and contextual Thido responses inside open AI comment threads, including failure recovery and whole-document locking.
 - [x] Add Auto as the default AI edit mode, use the structured prompt decision to apply clear edit instructions while keeping questions and ambiguous requests as proposals, and retain explicit always-propose and always-apply overrides.
 - [x] Keep the AI model and edit-application preferences in Settings instead of duplicating them in each document editor.
@@ -156,7 +156,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Remove the default dashboard `READY` status column and show only non-ready document states inline with the title.
 - [ ] Define and communicate which pasted rich-text structures are preserved; treat importing Word/Google Docs comments and tracked changes as a separate feature.
 - [x] Implement the repository-backed Priority 0 foundations in the [Google Docs feature-gap analysis](./google-docs-feature-gap-analysis.md): bounded durable version history and restore, revision-based stale-write protection across user and AI changes, Word import/export, and server-generated PDF download.
-- [x] Consolidate document-level controls into the intentional header hierarchy in [the document action layout recommendation](./document-action-layout.md): keep **Download** and **More** at the expected upper-left of the document workspace, keep **Share** prominent on the right, and avoid a full desktop-style menu bar.
+- [x] Use the Google Docs-inspired hierarchy in [the document action layout recommendation](./document-action-layout.md): identity and collaboration controls on the first row, implemented **File / Edit / View / Insert / Format** menus below, and a compact icon formatting toolbar without standalone **Download**, **More**, or literal list buttons.
 - [x] Label the existing task-list formatting control explicitly as **Checkbox list** so the checkbox bullet option is discoverable without relying on its icon.
 - [x] Add a compact, Polymarket-inspired **How it works** home-navigation control that opens Thido's own accessible three-step walkthrough.
 - [x] Give every signed-in route a persistent one-click **New document** action that reuses the safe blank-placeholder creation flow.
@@ -223,7 +223,7 @@ This is the running source of truth for production-readiness work. Completed box
 
 - [ ] Validate the assumptions in [Can the current version of Thido support 100 users?](./can-thido-support-100-users.md) with an isolated staging load test at 10, 25, 50, and 100 concurrent virtual users before making a concurrent-capacity claim.
 - [x] Add automated unit tests for authentication input, password hashing, token helpers, rate limiting, and API auth responses.
-- [x] Confirm the current unit suite passes: 94 tests across twenty-nine files, including reviewed beta-seat allocation, private-image public-share URL coverage, safe links, persisted bullet/checklist/table structures, revision coalescing, import sanitization, Word/PDF generation, link-derived authorization, and AI comment conversation ordering.
+- [x] Confirm the current unit suite passes: 95 tests across twenty-nine files, including reviewed beta-seat allocation, timestamped reusable placeholders, private-image public-share URL coverage, safe links, persisted bullet/checklist/table structures, revision coalescing, import sanitization, Word/PDF generation, link-derived authorization, and AI comment conversation ordering.
 - [x] Apply all nineteen migrations to an isolated temporary PostgreSQL instance and browser-check visible full-access link controls, click-time authentication with action return, full editor access, link-access activity, immediate revocation, and an additional user/AI message pair in an existing whole-document comment thread.
 - [x] Browser-check the rendered connected-accounts Settings panel, empty admin approval waitlist, and editor image insertion control with no framework overlay or browser errors.
 - [x] Deploy the connected-accounts, private document-photo, post-cap waitlist, verified auth sender, and analytics-status changes to Vercel Production (`dpl_6tYbWWaY4rT5FdFEBrkyGRQRjjHd`) and smoke-check the live login and registration pages without browser errors.

@@ -65,13 +65,23 @@ export function LinkControl({ editor }: { editor: Editor }) {
         aria-label={linkState.active ? "Edit link" : "Insert link"}
         title={linkState.active ? "Edit link" : "Insert link"}
         onClick={openPanel}
-        className={`rounded-sm px-2 py-1 text-sm font-medium hover:bg-[var(--surface-subtle)] ${
+        className={`inline-flex size-8 shrink-0 items-center justify-center rounded-sm hover:bg-[var(--surface-subtle)] ${
           linkState.active
             ? "bg-[var(--foreground)] text-[var(--surface)]"
             : ""
         }`}
       >
-        Link
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className="size-4 fill-none stroke-current"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        >
+          <path d="M9.5 14.5 14.5 9.5" />
+          <path d="m7.75 16.25-1 1a3.18 3.18 0 0 1-4.5-4.5l3.5-3.5a3.18 3.18 0 0 1 4.5 0" />
+          <path d="m16.25 7.75 1-1a3.18 3.18 0 0 1 4.5 4.5l-3.5 3.5a3.18 3.18 0 0 1-4.5 0" />
+        </svg>
       </button>
       {open ? (
         <div

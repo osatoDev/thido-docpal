@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { EditorContent, useEditor, type JSONContent } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { getEditorExtensions } from "@/lib/editorExtensions";
@@ -20,8 +19,6 @@ import {
   type CollaboratorSummary,
 } from "@/components/documents/ShareDocumentControl";
 import { type RestoredDocument } from "@/components/documents/VersionHistoryControl";
-import { DocumentDownloadActions } from "@/components/documents/DocumentDownloadActions";
-import { DocumentMoreActions } from "@/components/documents/DocumentMoreActions";
 import { Brand } from "@/components/Brand";
 import type {
   CommentAiProgress,
@@ -177,8 +174,8 @@ export function TiptapEditor({
       if (
         !commandModifier ||
         !event.altKey ||
-        event.shiftKey ||
-        event.code !== "KeyC" ||
+        !event.shiftKey ||
+        event.code !== "KeyA" ||
         event.repeat
       ) {
         return;
@@ -731,62 +728,54 @@ export function TiptapEditor({
 
   return (
     <div className="print-document-layout flex min-h-0 flex-1 flex-col lg:flex-row">
-      <div className="print-document-layout flex w-full min-w-0 flex-1 flex-col gap-6 px-3 py-5 sm:px-5 sm:py-6 lg:px-6">
-        <header className="print-hidden flex flex-col gap-4 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-center sm:justify-between">
-          <Brand />
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href="/dashboard"
-              className="text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)]"
-            >
-              All documents
-            </Link>
-            <UserMenu user={currentUser} />
-          </div>
-        </header>
-        <div className="print-hidden mx-auto flex w-full max-w-6xl flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center sm:gap-4">
-          <div className="min-w-0 flex-1">
-            <input
-              value={title}
-              readOnly={!canEditNow}
-              onChange={(e) => {
-                if (!canEditNow) return;
-                setTitle(e.target.value);
-                scheduleSave({ title: e.target.value });
-              }}
-              aria-label="Document title"
-              className={`editor-title w-full border-none bg-transparent font-serif text-3xl font-normal tracking-[-0.035em] outline-none sm:text-4xl ${
-                canEditNow ? "" : "cursor-default"
-              }`}
-            />
-            <div className="mt-2 flex min-h-6 items-center gap-3">
-              <span className="text-xs text-[var(--muted-soft)]">
-                {documentAiLocked
-                  ? "Thido is revising…"
-                  : saveState === "saving"
-                    ? "Saving…"
-                    : saveState === "saved"
-                      ? "Saved"
-                      : saveState === "error"
-                        ? "Save failed"
-                        : null}
-              </span>
-              {!canEdit && (
-                <span className="rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)]">
-                  {canComment ? "Comment access" : "View only"}
+      <div className="print-document-layout flex w-full min-w-0 flex-1 flex-col gap-4 px-3 py-4 sm:px-5 lg:px-6">
+        <header className="print-hidden mx-auto flex w-full max-w-6xl flex-col gap-3 border-b border-[var(--border)] pb-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <Brand href="/dashboard" />
+            <div className="min-w-0 flex-1">
+              <input
+                value={title}
+                readOnly={!canEditNow}
+                onChange={(event) => {
+                  if (!canEditNow) return;
+                  setTitle(event.target.value);
+                  scheduleSave({ title: event.target.value });
+                }}
+                aria-label="Document title"
+                className={`w-full truncate rounded-sm border border-transparent bg-transparent px-1 py-0.5 text-lg font-medium tracking-tight outline-none hover:border-[var(--border)] focus:border-[var(--border-strong)] ${
+                  canEditNow ? "" : "cursor-default"
+                }`}
+              />
+              <div className="flex min-h-5 items-center gap-2 px-1">
+                <span className="text-[11px] text-[var(--muted-soft)]">
+                  {documentAiLocked
+                    ? "Thido is revising…"
+                    : saveState === "saving"
+                      ? "Saving…"
+                      : saveState === "saved"
+                        ? "Saved"
+                        : saveState === "error"
+                          ? "Save failed"
+                          : "All changes save automatically"}
                 </span>
-              )}
+                {!canEdit ? (
+                  <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] text-[var(--muted)]">
+                    {canComment ? "Comment access" : "View only"}
+                  </span>
+                ) : null}
+              </div>
             </div>
           </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <div className="flex shrink-0 items-center justify-end gap-2">
             <button
               type="button"
               aria-controls="document-comments-sidebar"
               aria-expanded={commentsSidebarOpen}
-              aria-keyshortcuts="Control+Alt+C Meta+Alt+C"
-              title={`${commentsSidebarOpen ? "Hide" : "Show"} comments (Ctrl/⌘ + Alt + C)`}
+              aria-keyshortcuts="Control+Alt+Shift+A Meta+Alt+Shift+A"
+              aria-label={`${commentsSidebarOpen ? "Hide" : "Show"} comments`}
+              title={`${commentsSidebarOpen ? "Hide" : "Show"} comments (Ctrl/⌘ + Alt + Shift + A)`}
               onClick={() => setCommentsSidebarOpen((open) => !open)}
-              className={`secondary-button flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium ${
+              className={`secondary-button inline-flex size-10 items-center justify-center rounded-full ${
                 commentsSidebarOpen ? "bg-[var(--surface-subtle)]" : ""
               }`}
             >
@@ -796,15 +785,11 @@ export function TiptapEditor({
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="1.75"
-                className="h-4 w-4"
+                className="h-5 w-5"
               >
                 <rect x="3.5" y="4" width="17" height="16" rx="1.5" />
                 <path d="M15.5 4v16M7 8h5M7 12h5" />
               </svg>
-              <span>{commentsSidebarOpen ? "Hide comments" : "Show comments"}</span>
-              <kbd className="hidden rounded border border-[var(--border)] px-1.5 py-0.5 font-sans text-[10px] font-normal text-[var(--muted)] xl:inline">
-                Ctrl/⌘ + Alt + C
-              </kbd>
             </button>
             {canManage && (
               <ShareDocumentControl
@@ -815,25 +800,24 @@ export function TiptapEditor({
                 initialCollaborators={initialCollaborators}
               />
             )}
+            <UserMenu user={currentUser} />
           </div>
-        </div>
+        </header>
 
-        <div className="print-hidden mx-auto -mt-3 flex w-full max-w-6xl justify-start">
-          <div
-            role="group"
-            aria-label="Document file actions"
-            className="flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--surface)] p-1"
-          >
-            <DocumentDownloadActions documentId={documentId} />
-            <DocumentMoreActions
-              documentId={documentId}
-              currentRevision={revision}
-              canImport={canEditNow}
-              canViewHistory={canEdit}
-              onImport={handleDocumentRestored}
-              onConflict={handleDocumentConflict}
-            />
-          </div>
+        <div className="print-hidden mx-auto w-full max-w-6xl">
+          <Toolbar
+            editor={editor}
+            documentId={documentId}
+            currentRevision={revision}
+            canEdit={canEditNow}
+            canViewHistory={canEdit}
+            commentsOpen={commentsSidebarOpen}
+            onToggleComments={() =>
+              setCommentsSidebarOpen((open) => !open)
+            }
+            onImport={handleDocumentRestored}
+            onConflict={handleDocumentConflict}
+          />
         </div>
 
         <h1 className="print-document-title editor-title hidden font-serif text-4xl font-normal tracking-[-0.035em]">
@@ -891,11 +875,6 @@ export function TiptapEditor({
           className="print-document-panel app-panel mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-hidden rounded-sm"
           aria-busy={documentAiLocked}
         >
-          {canEditNow && (
-            <div className="print-hidden">
-              <Toolbar editor={editor} documentId={documentId} />
-            </div>
-          )}
           {editor && canCommentNow && (
             <BubbleMenu editor={editor}>
               <div className="print-hidden app-panel flex items-center gap-1 rounded-sm p-1">

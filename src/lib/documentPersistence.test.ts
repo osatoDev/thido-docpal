@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createDefaultDocumentTitle,
   DEFAULT_DOCUMENT_TITLE,
   hasMeaningfulDocumentContent,
+  isDefaultDocumentTitle,
   shouldPromotePlaceholder,
 } from "@/lib/documentPersistence";
 
@@ -17,6 +19,16 @@ describe("document persistence", () => {
         },
       }),
     ).toBe(false);
+  });
+
+  it("creates a sortable UTC timestamp for a new blank document", () => {
+    const title = createDefaultDocumentTitle(
+      new Date("2026-08-07T08:42:31.000Z"),
+    );
+
+    expect(title).toBe("Untitled Document — 2026-08-07 08:42 UTC");
+    expect(isDefaultDocumentTitle(title)).toBe(true);
+    expect(shouldPromotePlaceholder({ title })).toBe(false);
   });
 
   it("ignores whitespace-only text and empty structural nodes", () => {
@@ -57,6 +69,12 @@ describe("document persistence", () => {
       hasMeaningfulDocumentContent({
         type: "doc",
         content: [{ type: "horizontalRule" }],
+      }),
+    ).toBe(true);
+    expect(
+      hasMeaningfulDocumentContent({
+        type: "doc",
+        content: [{ type: "table", content: [] }],
       }),
     ).toBe(true);
   });
