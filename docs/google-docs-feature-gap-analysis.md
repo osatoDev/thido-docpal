@@ -216,6 +216,9 @@ Recommended initial scope:
 
 ### 5. Find and replace, word count, and writing review
 
+**Repository status:** Find and replace and document/selection counts are
+implemented. The language and spelling policy remains future work.
+
 Google Docs provides editor-aware find and replace, including replace-all and
 case-sensitive matching ([find and replace](https://support.google.com/docs/answer/62754)).
 It also exposes word and character counts, including a count while typing
@@ -223,14 +226,15 @@ It also exposes word and character counts, including a count while typing
 and grammar review workflow
 ([spelling and grammar](https://support.google.com/docs/answer/57859)).
 
-Thido should add:
+Current scope:
 
-- Find, Replace, and Replace all with visible match count and keyboard shortcuts;
-- document and selection word/character counts;
+- **Done:** Find, Replace, and Replace all with visible match count,
+  case-sensitive matching, and keyboard access;
+- **Done:** document and selection word/character counts;
 - an explicit language setting;
 - a consistent spellcheck policy, even if the first version deliberately relies
   on browser spellcheck;
-- accessibility announcements for match navigation and replacement results.
+- **Done:** accessible status announcements for match counts and navigation.
 
 These utilities are especially important for long AI-generated drafts, where a
 user may need to check length, terminology, names, or repeated phrases quickly.

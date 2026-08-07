@@ -156,7 +156,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Remove the default dashboard `READY` status column and show only non-ready document states inline with the title.
 - [ ] Define and communicate which pasted rich-text structures are preserved; treat importing Word/Google Docs comments and tracked changes as a separate feature.
 - [x] Implement the repository-backed Priority 0 foundations in the [Google Docs feature-gap analysis](./google-docs-feature-gap-analysis.md): bounded durable version history and restore, revision-based stale-write protection across user and AI changes, Word import/export, and server-generated PDF download.
-- [x] Use the Google Docs-inspired hierarchy in [the document action layout recommendation](./document-action-layout.md): identity and collaboration controls on the first row, implemented **File / Edit / View / Insert / Format** menus below, and a compact icon formatting toolbar without standalone **Download**, **More**, or literal list buttons.
+- [x] Use the Google Docs-inspired hierarchy in [the document action layout recommendation](./document-action-layout.md): identity and collaboration controls on the first row, implemented **File / Edit / View / Insert / Format / Tools** menus below, and a compact icon formatting toolbar without standalone **Download**, **More**, or literal list buttons.
 - [x] Label the existing task-list formatting control explicitly as **Checkbox list** so the checkbox bullet option is discoverable without relying on its icon.
 - [x] Add a compact, Polymarket-inspired **How it works** home-navigation control that opens Thido's own accessible three-step walkthrough.
 - [x] Give every signed-in route a persistent one-click **New document** action that reuses the safe blank-placeholder creation flow.
@@ -168,7 +168,10 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Add first-class safe HTTP(S)/email links, checklists, and small accessible tables with row/column controls, shared-schema rendering, and supported Word/PDF conversion.
 - [x] Let editable-document users right-click a table cell to add or delete rows and columns, toggle the header row, or delete the table, while retaining the toolbar control for keyboard and touch access.
 - [ ] Browser-check link editing, checklist toggling, table row/column controls, public rendering, printing, and representative Word/PDF output.
-- [ ] Add editor-aware find/replace, word and character counts, and a documented spelling/language experience.
+- [x] Add editor-aware Find, Replace, and Replace all with case-sensitive matching and accessible result counts; add document and selection word/character counts through the **Tools** menu.
+- [x] Add the P0 menu commands **Insert link**, **Horizontal line**, and **Clear formatting**, with familiar keyboard access where applicable.
+- [x] Browser-check the P0 menu set on desktop and a 390 px mobile viewport: verify Find and replace, document counts, link-control access, horizontal-line insertion, clear formatting, menu fit, and absence of a framework error overlay.
+- [ ] Define and document Thido's spelling, grammar, and document-language experience.
 - [ ] Add heading-based document navigation, internal links, a table of contents, page breaks, and footnotes before pursuing advanced page-layout controls.
 - [ ] Add a human suggestion mode that shares a coherent accept/reject and history model with AI proposals.
 - [ ] Add collaborator mentions, comment assignments, notification preferences, and filters for work needing a user's response.
@@ -223,7 +226,7 @@ This is the running source of truth for production-readiness work. Completed box
 
 - [ ] Validate the assumptions in [Can the current version of Thido support 100 users?](./can-thido-support-100-users.md) with an isolated staging load test at 10, 25, 50, and 100 concurrent virtual users before making a concurrent-capacity claim.
 - [x] Add automated unit tests for authentication input, password hashing, token helpers, rate limiting, and API auth responses.
-- [x] Confirm the current unit suite passes: 95 tests across twenty-nine files, including reviewed beta-seat allocation, timestamped reusable placeholders, private-image public-share URL coverage, safe links, persisted bullet/checklist/table structures, revision coalescing, import sanitization, Word/PDF generation, link-derived authorization, and AI comment conversation ordering.
+- [x] Confirm the current unit suite passes: 97 tests across thirty files, including editor text search/counting, reviewed beta-seat allocation, timestamped reusable placeholders, private-image public-share URL coverage, safe links, persisted bullet/checklist/table structures, revision coalescing, import sanitization, Word/PDF generation, link-derived authorization, and AI comment conversation ordering.
 - [x] Apply all nineteen migrations to an isolated temporary PostgreSQL instance and browser-check visible full-access link controls, click-time authentication with action return, full editor access, link-access activity, immediate revocation, and an additional user/AI message pair in an existing whole-document comment thread.
 - [x] Browser-check the rendered connected-accounts Settings panel, empty admin approval waitlist, and editor image insertion control with no framework overlay or browser errors.
 - [x] Deploy the connected-accounts, private document-photo, post-cap waitlist, verified auth sender, and analytics-status changes to Vercel Production (`dpl_6tYbWWaY4rT5FdFEBrkyGRQRjjHd`) and smoke-check the live login and registration pages without browser errors.

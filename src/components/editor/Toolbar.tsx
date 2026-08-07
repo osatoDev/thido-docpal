@@ -5,7 +5,9 @@ import type { Editor } from "@tiptap/react";
 
 import { DocumentFileMenu } from "@/components/documents/DocumentMoreActions";
 import type { RestoredDocument } from "@/components/documents/VersionHistoryControl";
+import { FindReplaceDialog } from "./FindReplaceDialog";
 import { LinkControl } from "./LinkControl";
+import { WordCountDialog } from "./WordCountDialog";
 import {
   BULLET_STYLES,
   isBulletStyle,
@@ -208,8 +210,11 @@ export function Toolbar({
   onConflict: (message: string) => void;
 }) {
   const imageInputId = useId();
+  const linkControlId = useId();
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [findReplaceOpen, setFindReplaceOpen] = useState(false);
+  const [wordCountOpen, setWordCountOpen] = useState(false);
   const activeBulletStyle =
     editor && isBulletStyle(editor.getAttributes("bulletList").bulletStyle)
       ? (editor.getAttributes("bulletList").bulletStyle as BulletStyle)
@@ -221,6 +226,48 @@ export function Toolbar({
       : editor?.isActive("heading", { level: 3 })
         ? "heading-3"
         : "paragraph";
+
+  useEffect(() => {
+    if (!editor) return;
+    const currentEditor = editor;
+
+    function handleDocumentShortcut(event: KeyboardEvent) {
+      if ((event.target as Element | null)?.closest('[role="dialog"]')) return;
+      const key = event.key.toLowerCase();
+      const findAndReplace =
+        (event.ctrlKey && !event.metaKey && !event.shiftKey && key === "h") ||
+        (event.metaKey && event.shiftKey && key === "h");
+      const wordCount =
+        (event.ctrlKey || event.metaKey) && event.shiftKey && key === "c";
+      const insertLink =
+        canEdit &&
+        (event.ctrlKey || event.metaKey) &&
+        !event.shiftKey &&
+        key === "k";
+      const clearFormatting =
+        canEdit &&
+        (event.ctrlKey || event.metaKey) &&
+        !event.shiftKey &&
+        key === "\\";
+
+      if (findAndReplace && canEdit) {
+        event.preventDefault();
+        setFindReplaceOpen(true);
+      } else if (wordCount) {
+        event.preventDefault();
+        setWordCountOpen(true);
+      } else if (insertLink) {
+        event.preventDefault();
+        document.getElementById(linkControlId)?.click();
+      } else if (clearFormatting) {
+        event.preventDefault();
+        currentEditor.chain().focus().unsetAllMarks().clearNodes().run();
+      }
+    }
+
+    document.addEventListener("keydown", handleDocumentShortcut);
+    return () => document.removeEventListener("keydown", handleDocumentShortcut);
+  }, [canEdit, editor, linkControlId]);
 
   function handleMenuBarKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
     if (
@@ -328,9 +375,27 @@ export function Toolbar({
                 onSelect: () => editor.chain().focus().redo().run(),
               },
             ],
+            [
+              {
+                label: "Find and replace…",
+                shortcut: "Ctrl + H / ⌘ + Shift + H",
+                onSelect: () => setFindReplaceOpen(true),
+              },
+            ],
           ],
           insert: [
             [
+              {
+                label: "Link…",
+                shortcut: "Ctrl/⌘ + K",
+                onSelect: () =>
+                  document.getElementById(linkControlId)?.click(),
+              },
+              {
+                label: "Horizontal line",
+                onSelect: () =>
+                  editor.chain().focus().setHorizontalRule().run(),
+              },
               {
                 label: "Table (3 × 3)",
                 onSelect: () =>
@@ -377,12 +442,21 @@ export function Toolbar({
                 onSelect: () => editor.chain().focus().toggleBlockquote().run(),
               },
             ],
+            [
+              {
+                label: "Clear formatting",
+                shortcut: "Ctrl/⌘ + \\",
+                onSelect: () =>
+                  editor.chain().focus().unsetAllMarks().clearNodes().run(),
+              },
+            ],
           ],
         }
       : null;
 
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+    <>
+      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-sm">
       <div
         role="menubar"
         aria-label="Document menus"
@@ -417,6 +491,20 @@ export function Toolbar({
             <EditorMenu label="Insert" groups={editingMenus.insert} />
             <EditorMenu label="Format" groups={editingMenus.format} />
           </>
+        ) : null}
+        {editor ? (
+          <EditorMenu
+            label="Tools"
+            groups={[
+              [
+                {
+                  label: "Word count",
+                  shortcut: "Ctrl/⌘ + Shift + C",
+                  onSelect: () => setWordCountOpen(true),
+                },
+              ],
+            ]}
+          />
         ) : null}
       </div>
 
@@ -490,7 +578,7 @@ export function Toolbar({
             <span className="line-through">S</span>
           </ToolbarButton>
           <ToolbarSeparator />
-          <LinkControl editor={editor} />
+          <LinkControl editor={editor} triggerId={linkControlId} />
           <ToolbarSeparator />
           <ToolbarButton
             label="Bulleted list"
@@ -549,6 +637,19 @@ export function Toolbar({
           ) : null}
         </div>
       ) : null}
-    </div>
+      </div>
+      {findReplaceOpen && editor ? (
+        <FindReplaceDialog
+          editor={editor}
+          onClose={() => setFindReplaceOpen(false)}
+        />
+      ) : null}
+      {wordCountOpen && editor ? (
+        <WordCountDialog
+          editor={editor}
+          onClose={() => setWordCountOpen(false)}
+        />
+      ) : null}
+    </>
   );
 }

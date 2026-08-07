@@ -5,7 +5,13 @@ import { useEditorState, type Editor } from "@tiptap/react";
 
 import { normalizeDocumentLink } from "@/lib/documentLinks";
 
-export function LinkControl({ editor }: { editor: Editor }) {
+export function LinkControl({
+  editor,
+  triggerId,
+}: {
+  editor: Editor;
+  triggerId?: string;
+}) {
   const panelId = useId();
   const linkState = useEditorState({
     editor,
@@ -59,6 +65,7 @@ export function LinkControl({ editor }: { editor: Editor }) {
   return (
     <div className="relative">
       <button
+        id={triggerId}
         type="button"
         aria-expanded={open}
         aria-controls={panelId}
