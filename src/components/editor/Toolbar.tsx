@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
 
 import { DocumentFileMenu } from "@/components/documents/DocumentMoreActions";
@@ -19,6 +19,7 @@ const bulletStyleLabels: Record<BulletStyle, string> = {
   circle: "○ Circle",
   square: "■ Square",
 };
+const DOCUMENT_ZOOM_OPTIONS = [75, 100, 125, 150] as const;
 
 type MenuItem = {
   label: string;
@@ -35,6 +36,7 @@ function EditorMenu({
   groups: readonly (readonly MenuItem[])[];
 }) {
   const [open, setOpen] = useState(false);
+  const [menuOffset, setMenuOffset] = useState(0);
   const menuId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -64,6 +66,31 @@ function EditorMenu({
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [open]);
+
+  useLayoutEffect(() => {
+    if (!open || !menuRef.current) return;
+
+    function keepMenuInViewport() {
+      const bounds = menuRef.current?.getBoundingClientRect();
+      if (!bounds) return;
+
+      const viewportGutter = 8;
+      const naturalLeft = bounds.left - menuOffset;
+      const naturalRight = bounds.right - menuOffset;
+      let nextOffset = 0;
+      if (naturalRight > window.innerWidth - viewportGutter) {
+        nextOffset = window.innerWidth - viewportGutter - naturalRight;
+      }
+      if (naturalLeft + nextOffset < viewportGutter) {
+        nextOffset += viewportGutter - (naturalLeft + nextOffset);
+      }
+      setMenuOffset(nextOffset);
+    }
+
+    keepMenuInViewport();
+    window.addEventListener("resize", keepMenuInViewport);
+    return () => window.removeEventListener("resize", keepMenuInViewport);
+  }, [menuOffset, open]);
 
   function handleMenuKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
     if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
@@ -120,7 +147,8 @@ function EditorMenu({
           role="menu"
           aria-label={label}
           onKeyDown={handleMenuKeyDown}
-          className="app-panel absolute top-full left-0 z-40 mt-1 w-64 rounded-md p-1.5 text-sm shadow-lg"
+          className="app-panel absolute top-full left-0 z-40 mt-1 max-h-[min(70vh,32rem)] w-64 max-w-[calc(100vw-1rem)] overflow-y-auto rounded-md p-1.5 text-sm shadow-lg"
+          style={{ transform: `translateX(${menuOffset}px)` }}
         >
           {groups.map((group, groupIndex) => (
             <div key={`${label}-${groupIndex}`}>
@@ -137,8 +165,8 @@ function EditorMenu({
                   role="menuitem"
                   disabled={item.disabled}
                   onClick={() => {
-                    item.onSelect();
                     setOpen(false);
+                    item.onSelect();
                   }}
                   className="flex w-full items-center justify-between gap-4 rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)] disabled:cursor-not-allowed disabled:opacity-45"
                 >
@@ -195,7 +223,9 @@ export function Toolbar({
   canEdit,
   canViewHistory,
   commentsOpen,
+  zoom,
   onToggleComments,
+  onZoomChange,
   onImport,
   onConflict,
 }: {
@@ -205,7 +235,9 @@ export function Toolbar({
   canEdit: boolean;
   canViewHistory: boolean;
   commentsOpen: boolean;
+  zoom: number;
   onToggleComments: () => void;
+  onZoomChange: (zoom: number) => void;
   onImport: (document: RestoredDocument) => void;
   onConflict: (message: string) => void;
 }) {
@@ -381,6 +413,16 @@ export function Toolbar({
                 shortcut: "Ctrl + H / ⌘ + Shift + H",
                 onSelect: () => setFindReplaceOpen(true),
               },
+              {
+                label: "Select all",
+                shortcut: "Ctrl/⌘ + A",
+                onSelect: () => {
+                  // Dispatch the all-document selection before focusing. TipTap's
+                  // focus command restores a non-text selection asynchronously.
+                  editor.commands.selectAll();
+                  editor.commands.focus();
+                },
+              },
             ],
           ],
           insert: [
@@ -395,6 +437,11 @@ export function Toolbar({
                 label: "Horizontal line",
                 onSelect: () =>
                   editor.chain().focus().setHorizontalRule().run(),
+              },
+              {
+                label: "Page break",
+                shortcut: "Ctrl/⌘ + Enter",
+                onSelect: () => editor.chain().focus().setPageBreak().run(),
               },
               {
                 label: "Table (3 × 3)",
@@ -413,6 +460,48 @@ export function Toolbar({
             ],
           ],
           format: [
+            [
+              {
+                label: "Bold",
+                shortcut: "Ctrl/⌘ + B",
+                onSelect: () => editor.chain().focus().toggleBold().run(),
+              },
+              {
+                label: "Italic",
+                shortcut: "Ctrl/⌘ + I",
+                onSelect: () => editor.chain().focus().toggleItalic().run(),
+              },
+              {
+                label: "Underline",
+                shortcut: "Ctrl/⌘ + U",
+                onSelect: () => editor.chain().focus().toggleUnderline().run(),
+              },
+              {
+                label: "Strikethrough",
+                onSelect: () => editor.chain().focus().toggleStrike().run(),
+              },
+              {
+                label: "Highlight",
+                onSelect: () => editor.chain().focus().toggleHighlight().run(),
+              },
+              {
+                label: "Inline code",
+                shortcut: "Ctrl/⌘ + E",
+                onSelect: () => editor.chain().focus().toggleCode().run(),
+              },
+              {
+                label: "Superscript",
+                shortcut: "Ctrl/⌘ + .",
+                onSelect: () =>
+                  editor.chain().focus().toggleSuperscript().run(),
+              },
+              {
+                label: "Subscript",
+                shortcut: "Ctrl/⌘ + ,",
+                onSelect: () =>
+                  editor.chain().focus().toggleSubscript().run(),
+              },
+            ],
             [
               {
                 label: "Normal text",
@@ -440,6 +529,50 @@ export function Toolbar({
               {
                 label: "Block quote",
                 onSelect: () => editor.chain().focus().toggleBlockquote().run(),
+              },
+              {
+                label: "Code block",
+                onSelect: () => editor.chain().focus().toggleCodeBlock().run(),
+              },
+            ],
+            [
+              {
+                label: "Align left",
+                shortcut: "Ctrl/⌘ + Shift + L",
+                onSelect: () =>
+                  editor.chain().focus().setTextAlign("left").run(),
+              },
+              {
+                label: "Align center",
+                shortcut: "Ctrl/⌘ + Shift + E",
+                onSelect: () =>
+                  editor.chain().focus().setTextAlign("center").run(),
+              },
+              {
+                label: "Align right",
+                shortcut: "Ctrl/⌘ + Shift + R",
+                onSelect: () =>
+                  editor.chain().focus().setTextAlign("right").run(),
+              },
+              {
+                label: "Justify",
+                shortcut: "Ctrl/⌘ + Shift + J",
+                onSelect: () =>
+                  editor.chain().focus().setTextAlign("justify").run(),
+              },
+            ],
+            [
+              {
+                label: "Increase indent",
+                shortcut: "Ctrl/⌘ + ]",
+                onSelect: () =>
+                  editor.chain().focus().increaseTextIndent().run(),
+              },
+              {
+                label: "Decrease indent",
+                shortcut: "Ctrl/⌘ + [",
+                onSelect: () =>
+                  editor.chain().focus().decreaseTextIndent().run(),
               },
             ],
             [
@@ -484,6 +617,10 @@ export function Toolbar({
                 onSelect: onToggleComments,
               },
             ],
+            DOCUMENT_ZOOM_OPTIONS.map((nextZoom) => ({
+              label: `${nextZoom}% zoom${zoom === nextZoom ? " ✓" : ""}`,
+              onSelect: () => onZoomChange(nextZoom),
+            })),
           ]}
         />
         {editingMenus ? (
@@ -555,6 +692,19 @@ export function Toolbar({
             <option value="heading-2">Heading 2</option>
             <option value="heading-3">Heading 3</option>
           </select>
+          <select
+            value={zoom}
+            onChange={(event) => onZoomChange(Number(event.target.value))}
+            aria-label="Document zoom"
+            title="Document zoom"
+            className="app-input h-8 w-20 shrink-0 rounded-sm px-2 text-sm outline-none"
+          >
+            {DOCUMENT_ZOOM_OPTIONS.map((zoomOption) => (
+              <option key={zoomOption} value={zoomOption}>
+                {zoomOption}%
+              </option>
+            ))}
+          </select>
           <ToolbarSeparator />
           <ToolbarButton
             label="Bold"
@@ -569,6 +719,13 @@ export function Toolbar({
             onClick={() => editor.chain().focus().toggleItalic().run()}
           >
             <span className="italic">I</span>
+          </ToolbarButton>
+          <ToolbarButton
+            label="Underline"
+            isActive={editor.isActive("underline")}
+            onClick={() => editor.chain().focus().toggleUnderline().run()}
+          >
+            <span className="underline underline-offset-2">U</span>
           </ToolbarButton>
           <ToolbarButton
             label="Strikethrough"

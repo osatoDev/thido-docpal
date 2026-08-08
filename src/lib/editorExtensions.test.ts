@@ -85,4 +85,49 @@ describe("priority-one document structures", () => {
     expect(html).toContain("<th");
     expect(html).toContain("<td");
   });
+
+  it("round-trips expanded formatting, alignment, indentation, and page breaks", () => {
+    const content: JSONContent = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          attrs: { textAlign: "center", textIndent: 2 },
+          content: [
+            { type: "text", text: "Under", marks: [{ type: "underline" }] },
+            { type: "text", text: " mark", marks: [{ type: "highlight" }] },
+            { type: "text", text: " x", marks: [{ type: "superscript" }] },
+            { type: "text", text: " 2", marks: [{ type: "subscript" }] },
+            { type: "text", text: " code", marks: [{ type: "code" }] },
+          ],
+        },
+        {
+          type: "codeBlock",
+          attrs: { language: null },
+          content: [{ type: "text", text: "const ready = true;" }],
+        },
+        { type: "pageBreak" },
+        { type: "paragraph" },
+      ],
+    };
+
+    const html = generateHTML(content, getEditorExtensions());
+    const parsed = generateJSON(html, getEditorExtensions());
+
+    expect(html).toContain("text-align: center");
+    expect(html).toContain('data-text-indent="2"');
+    expect(html).toContain("margin-left: 4rem");
+    expect(html).toContain("<u>Under</u>");
+    expect(html).toContain("<mark> mark</mark>");
+    expect(html).toContain("<sup> x</sup>");
+    expect(html).toContain("<sub> 2</sub>");
+    expect(html).toContain("<code> code</code>");
+    expect(html).toContain("<pre><code>const ready = true;</code></pre>");
+    expect(html).toContain('data-type="page-break"');
+    expect(parsed.content?.[0].attrs).toMatchObject({
+      textAlign: "center",
+      textIndent: 2,
+    });
+    expect(parsed.content?.[2].type).toBe("pageBreak");
+  });
 });

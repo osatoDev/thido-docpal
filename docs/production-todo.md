@@ -171,8 +171,11 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Add editor-aware Find, Replace, and Replace all with case-sensitive matching and accessible result counts; add document and selection word/character counts through the **Tools** menu.
 - [x] Add the P0 menu commands **Insert link**, **Horizontal line**, and **Clear formatting**, with familiar keyboard access where applicable.
 - [x] Browser-check the P0 menu set on desktop and a 390 px mobile viewport: verify Find and replace, document counts, link-control access, horizontal-line insertion, clear formatting, menu fit, and absence of a framework error overlay.
+- [x] Add a second Google Docs-inspired P0 bundle with Select all; 75/100/125/150% zoom; page breaks; underline; highlight; inline code; superscript; subscript; code blocks; four-way alignment; and paragraph indent/outdent.
+- [x] Browser-check the second P0 bundle on desktop and at 390 px: verify full-document selection with restored editor focus, underline/highlight/subscript/code formatting, page-break insertion, alignment, indent/outdent, zoom, scrollable viewport-contained menus, and no browser errors or horizontal page overflow.
+- [x] Preserve the compatible expanded formatting, alignment, indentation, and page-break structures in shared-schema HTML and Word/PDF export, with explicit PDF fallbacks documented for highlight and superscript/subscript.
 - [ ] Define and document Thido's spelling, grammar, and document-language experience.
-- [ ] Add heading-based document navigation, internal links, a table of contents, page breaks, and footnotes before pursuing advanced page-layout controls.
+- [ ] Add heading-based document navigation, internal links, a table of contents, and footnotes before pursuing advanced page-layout controls.
 - [ ] Add a human suggestion mode that shares a coherent accept/reject and history model with AI proposals.
 - [ ] Add collaborator mentions, comment assignments, notification preferences, and filters for work needing a user's response.
 - [ ] Defer offline editing until version history and conflict-safe synchronization are proven.
@@ -226,7 +229,7 @@ This is the running source of truth for production-readiness work. Completed box
 
 - [ ] Validate the assumptions in [Can the current version of Thido support 100 users?](./can-thido-support-100-users.md) with an isolated staging load test at 10, 25, 50, and 100 concurrent virtual users before making a concurrent-capacity claim.
 - [x] Add automated unit tests for authentication input, password hashing, token helpers, rate limiting, and API auth responses.
-- [x] Confirm the current unit suite passes: 97 tests across thirty files, including editor text search/counting, reviewed beta-seat allocation, timestamped reusable placeholders, private-image public-share URL coverage, safe links, persisted bullet/checklist/table structures, revision coalescing, import sanitization, Word/PDF generation, link-derived authorization, and AI comment conversation ordering.
+- [x] Confirm the current unit suite passes: 98 tests across thirty files, including expanded editor formatting/schema round trips, editor text search/counting, reviewed beta-seat allocation, timestamped reusable placeholders, private-image public-share URL coverage, safe links, persisted bullet/checklist/table structures, revision coalescing, import sanitization, Word/PDF generation, link-derived authorization, and AI comment conversation ordering.
 - [x] Apply all nineteen migrations to an isolated temporary PostgreSQL instance and browser-check visible full-access link controls, click-time authentication with action return, full editor access, link-access activity, immediate revocation, and an additional user/AI message pair in an existing whole-document comment thread.
 - [x] Browser-check the rendered connected-accounts Settings panel, empty admin approval waitlist, and editor image insertion control with no framework overlay or browser errors.
 - [x] Deploy the connected-accounts, private document-photo, post-cap waitlist, verified auth sender, and analytics-status changes to Vercel Production (`dpl_6tYbWWaY4rT5FdFEBrkyGRQRjjHd`) and smoke-check the live login and registration pages without browser errors.
@@ -243,7 +246,6 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Add automated billing tests for offer gating, authenticated Checkout and duplicate-subscription prevention, webhook signature rejection and idempotency, subscription-state transitions, and Customer Portal authorization; current status is summarized in [the paid-plan implementation status](./paid-plan-implementation-status.md).
 - [ ] Create a separate test database and ensure tests can never target production credentials.
 - [ ] Add accessibility checks for authentication, editor, settings, and admin pages.
-- [ ] Review and resolve the seven dependency audit findings reported after adding Vercel Blob and TipTap Image (five high and two critical) without applying an unreviewed breaking upgrade.
 - [ ] Define a release smoke-test checklist for production deployments.
 
 ## Monitoring and operations
@@ -270,7 +272,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Upgrade Next.js from 16.2.10 to a patched 16.2.12 or newer compatible release and verify the current `sharp` and `postcss` advisories are resolved.
 - [ ] Upgrade `next-auth` and `@auth/prisma-adapter` to releases containing the July 2026 Auth.js authorization, token-validation, email-normalization, and OAuth-cookie fixes, then rerun the authentication test matrix.
 - [ ] Add Dependabot or Renovate for dependency update pull requests.
-- [ ] Audit the 15 vulnerabilities currently reported by `npm install` (13 high and 2 critical), identify which are production-reachable, and upgrade affected dependencies without using a blind force-fix.
+- [ ] Audit the eight vulnerabilities currently reported by `npm audit` (six high and two critical), identify which are production-reachable, and upgrade affected dependencies without using a blind force-fix.
 - [ ] Add a Content Security Policy and review other security headers.
 - [ ] Confirm secrets are only stored in Vercel/GitHub secret stores and never committed.
 - [ ] Rotate any secret that may have appeared in terminal output, screenshots, chat, or repository history.

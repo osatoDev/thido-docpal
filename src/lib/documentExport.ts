@@ -3,9 +3,11 @@ import {
   Document as WordDocument,
   ExternalHyperlink,
   HeadingLevel,
+  HighlightColor,
   ImageRun,
   LevelFormat,
   Packer,
+  PageBreak as WordPageBreak,
   Paragraph,
   Table as WordTable,
   TableCell as WordTableCell,
@@ -27,25 +29,31 @@ const bulletGlyphs: Record<BulletStyle, string> = {
   square: "▪",
 };
 
-function textRuns(node: JSONContent): ParagraphChild[] {
+function textRuns(node: JSONContent, forceCode = false): ParagraphChild[] {
   if (node.type === "hardBreak") return [new TextRun({ break: 1 })];
   if (node.type === "text") {
     const markTypes = new Set(node.marks?.map((mark) => mark.type));
+    const href = node.marks?.find((mark) => mark.type === "link")?.attrs?.href;
     const run = new TextRun({
       text: node.text ?? "",
       bold: markTypes.has("bold"),
       italics: markTypes.has("italic"),
       strike: markTypes.has("strike"),
-      font: markTypes.has("code") ? "Courier New" : undefined,
+      font: forceCode || markTypes.has("code") ? "Courier New" : undefined,
       color: markTypes.has("link") ? "1A5FB4" : undefined,
-      underline: markTypes.has("link") ? {} : undefined,
+      underline:
+        markTypes.has("link") || markTypes.has("underline") ? {} : undefined,
+      highlight: markTypes.has("highlight")
+        ? HighlightColor.YELLOW
+        : undefined,
+      subScript: markTypes.has("subscript"),
+      superScript: markTypes.has("superscript"),
     });
-    const href = node.marks?.find((mark) => mark.type === "link")?.attrs?.href;
     return typeof href === "string" && isSafeDocumentLink(href)
       ? [new ExternalHyperlink({ link: href, children: [run] })]
       : [run];
   }
-  return node.content?.flatMap(textRuns) ?? [];
+  return node.content?.flatMap((child) => textRuns(child, forceCode)) ?? [];
 }
 
 function headingLevel(level: unknown) {
@@ -53,6 +61,13 @@ function headingLevel(level: unknown) {
   if (level === 2) return HeadingLevel.HEADING_2;
   if (level === 3) return HeadingLevel.HEADING_3;
   return undefined;
+}
+
+function wordAlignment(value: unknown) {
+  if (value === "center") return AlignmentType.CENTER;
+  if (value === "right") return AlignmentType.RIGHT;
+  if (value === "justify") return AlignmentType.JUSTIFIED;
+  return value === "left" ? AlignmentType.LEFT : undefined;
 }
 
 async function wordParagraph(
@@ -85,16 +100,23 @@ async function wordParagraph(
         );
       }
     } else {
-      children.push(...textRuns(child));
+      children.push(...textRuns(child, node.type === "codeBlock"));
     }
   }
+
+  const textIndent = Math.min(
+    8,
+    Math.max(0, Number(node.attrs?.textIndent) || 0),
+  );
+  const leftIndent = (options.blockquote ? 720 : 0) + textIndent * 480;
 
   return new Paragraph({
     children,
     heading:
       node.type === "heading" ? headingLevel(node.attrs?.level) : undefined,
+    alignment: wordAlignment(node.attrs?.textAlign),
     numbering: options.numbering,
-    indent: options.blockquote ? { left: 720 } : undefined,
+    indent: leftIndent > 0 ? { left: leftIndent } : undefined,
     spacing: { after: node.type === "heading" ? 160 : 120 },
   });
 }
@@ -197,6 +219,12 @@ async function wordBlocks(
       paragraphs.push(new Paragraph({ text: "────────────────────" }));
       continue;
     }
+    if (node.type === "pageBreak") {
+      paragraphs.push(
+        new Paragraph({ children: [new WordPageBreak()], spacing: { after: 0 } }),
+      );
+      continue;
+    }
     if (node.type === "image") {
       paragraphs.push(
         await wordParagraph(documentId, { type: "paragraph", content: [node] }),
@@ -260,12 +288,24 @@ type PdfRun = {
   text: string;
   bold: boolean;
   italic: boolean;
+  code: boolean;
+  strike: boolean;
+  underline: boolean;
   href?: string;
 };
 
-function pdfRuns(node: JSONContent): PdfRun[] {
+function pdfRuns(node: JSONContent, forceCode = false): PdfRun[] {
   if (node.type === "hardBreak") {
-    return [{ text: "\n", bold: false, italic: false }];
+    return [
+      {
+        text: "\n",
+        bold: false,
+        italic: false,
+        code: forceCode,
+        strike: false,
+        underline: false,
+      },
+    ];
   }
   if (node.type === "text") {
     const marks = new Set(node.marks?.map((mark) => mark.type));
@@ -276,6 +316,9 @@ function pdfRuns(node: JSONContent): PdfRun[] {
         text: node.text ?? "",
         bold: marks.has("bold"),
         italic: marks.has("italic"),
+        code: forceCode || marks.has("code"),
+        strike: marks.has("strike"),
+        underline: marks.has("underline"),
         href:
           typeof linkHref === "string" && isSafeDocumentLink(linkHref)
             ? linkHref
@@ -283,10 +326,16 @@ function pdfRuns(node: JSONContent): PdfRun[] {
       },
     ];
   }
-  return node.content?.flatMap(pdfRuns) ?? [];
+  return node.content?.flatMap((child) => pdfRuns(child, forceCode)) ?? [];
 }
 
 function pdfFont(run: PdfRun) {
+  if (run.code) {
+    if (run.bold && run.italic) return "Courier-BoldOblique";
+    if (run.bold) return "Courier-Bold";
+    if (run.italic) return "Courier-Oblique";
+    return "Courier";
+  }
   if (run.bold && run.italic) return "Times-BoldItalic";
   if (run.bold) return "Times-Bold";
   if (run.italic) return "Times-Italic";
@@ -310,10 +359,29 @@ function renderPdfRuns(
         ...options,
         continued: index < runs.length - 1,
         link: run.href,
-        underline: Boolean(run.href),
+        strike: run.strike,
+        underline: Boolean(run.href) || run.underline,
       });
   });
   pdf.fillColor("#161916");
+}
+
+function pdfBlockOptions(node: JSONContent) {
+  const alignment = node.attrs?.textAlign;
+  const textIndent = Math.min(
+    8,
+    Math.max(0, Number(node.attrs?.textIndent) || 0),
+  );
+  return {
+    align:
+      alignment === "left" ||
+      alignment === "center" ||
+      alignment === "right" ||
+      alignment === "justify"
+        ? alignment
+        : undefined,
+    indent: textIndent > 0 ? textIndent * 24 : undefined,
+  } satisfies PDFKit.Mixins.TextOptions;
 }
 
 function plainText(node: JSONContent): string {
@@ -451,14 +519,18 @@ async function renderPdfBlocks(
     if (node.type === "heading") {
       const levelValue = Number(node.attrs?.level) || 1;
       pdf.fontSize(levelValue === 1 ? 20 : levelValue === 2 ? 16 : 13);
-      renderPdfRuns(pdf, pdfRuns(node));
+      renderPdfRuns(pdf, pdfRuns(node), pdfBlockOptions(node));
       pdf.moveDown(0.45);
       continue;
     }
     if (node.type === "blockquote") {
       for (const child of node.content ?? []) {
         pdf.fontSize(11).font("Times-Italic");
-        renderPdfRuns(pdf, pdfRuns(child), { indent: 22 });
+        const childOptions = pdfBlockOptions(child);
+        renderPdfRuns(pdf, pdfRuns(child), {
+          ...childOptions,
+          indent: 22 + (childOptions.indent ?? 0),
+        });
         pdf.moveDown(0.4);
       }
       continue;
@@ -472,8 +544,18 @@ async function renderPdfBlocks(
       pdf.moveDown(0.8);
       continue;
     }
+    if (node.type === "pageBreak") {
+      pdf.addPage();
+      continue;
+    }
+    if (node.type === "codeBlock") {
+      pdf.fontSize(10);
+      renderPdfRuns(pdf, pdfRuns(node, true), pdfBlockOptions(node));
+      pdf.moveDown(0.45);
+      continue;
+    }
     pdf.fontSize(11);
-    renderPdfRuns(pdf, pdfRuns(node));
+    renderPdfRuns(pdf, pdfRuns(node), pdfBlockOptions(node));
     pdf.moveDown(0.45);
   }
 }

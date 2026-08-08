@@ -71,7 +71,7 @@ basic once a draft becomes important or collaborative.
 | --- | --- | --- |
 | Autosave | Present | Core content and title changes are saved automatically. |
 | Undo and redo | Partial | Available in the active editor session, but not as durable recovery after closing or overwriting a document. |
-| Basic rich text and headings | Present | Covers short, primarily textual drafts. |
+| Rich text, alignment, and headings | Present | Includes common inline marks, code, four-way alignment, indentation, lists, and headings 1–3. |
 | Images | Present | Images can be inserted and rendered in private and public views. |
 | Printing | Present | A print-specific layout is available, including browser PDF output. |
 | Sharing permissions | Present | Direct view, comment, edit, and full access plus public read-only links are supported. |
@@ -83,10 +83,10 @@ basic once a draft becomes important or collaborative.
 | PDF export | Present | Users can download a server-generated PDF or use the browser print workflow. |
 | Links and bookmarks | Partial | Safe HTTP(S) and email links can be added, edited, opened, copied, removed, pasted, and exported. Internal bookmarks remain unavailable. |
 | Tables and checklists | Present for the initial scope | Users can create checklists and small resizable tables, then add or delete rows and columns. Advanced table styling and semantic Word checklist round trips remain future work. |
-| Find and replace | Missing | Browser Find may locate visible text, but Thido has no editor-aware replace workflow. |
-| Spelling, grammar, and word count | Missing as product features | Browser-native behavior may vary, but Thido offers no consistent review or count UI. |
+| Find and replace | Present | Editor-aware search supports navigation, case matching, replace, and replace all. |
+| Spelling, grammar, and word count | Partial | Document and selection counts are present; spelling, grammar, and language behavior still needs a defined product policy. |
 | Outline and table of contents | Missing | Headings exist, but there is no navigable structural view or generated contents list. |
-| Page layout and references | Missing | No margins, page breaks, headers, footers, page numbers, sections, or footnotes. |
+| Page layout and references | Partial | Page breaks persist and print/export correctly; margins, headers, footers, page numbers, sections, and footnotes remain unavailable. |
 | Offline editing | Missing | Documents require an online application and server persistence. |
 | Document tabs and smart building blocks | Missing | Advanced organization and Workspace-style integrations are not present. |
 
@@ -258,6 +258,10 @@ Recommended Thido scope:
 
 ### 7. Page structure and references
 
+**Repository status:** Persistent page breaks are implemented in the editor,
+browser print layout, Word export, and PDF export. The remaining page-reference
+features are future work.
+
 Google Docs supports paged and pageless modes. In paged documents, users can add
 headers, footers, page numbers, section-specific variants, and footnotes
 ([page elements and footnotes](https://support.google.com/docs/answer/86629)).
@@ -268,7 +272,7 @@ formal proposals.
 
 Recommended order:
 
-1. page breaks and footnotes;
+1. **Done:** page breaks; add footnotes next;
 2. predictable print/PDF pagination;
 3. headers, footers, and page numbers;
 4. margin, paper-size, and orientation controls only if user demand warrants
@@ -358,14 +362,14 @@ investments unless target-user research identifies them as essential.
 - durable version history with AI checkpoints and restore;
 - explicit Word and PDF downloads;
 - links (done);
-- find/replace and word count.
+- find/replace and word count (done).
 
 ### Authoring release
 
 - `.docx` import with a fidelity preview;
 - tables and checklists (done for the initial scope);
 - outline, internal links, and table of contents;
-- page breaks and footnotes;
+- footnotes (page breaks are done);
 - consistent spellcheck/language behavior.
 
 ### Collaboration release

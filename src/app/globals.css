@@ -320,6 +320,63 @@ select {
   text-underline-offset: 0.15em;
 }
 
+.ProseMirror mark {
+  padding: 0.05em 0.12em;
+  border-radius: 0.15em;
+  background: #ffe58a;
+  color: #242014;
+}
+
+.ProseMirror code {
+  border-radius: 0.2em;
+  background: var(--surface-subtle);
+  padding: 0.12em 0.3em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.88em;
+}
+
+.ProseMirror pre {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  background: var(--surface-subtle);
+  padding: 1rem;
+  color: var(--foreground);
+}
+
+.ProseMirror pre code {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.ProseMirror .page-break {
+  position: relative;
+  height: 1.75rem;
+  margin: 2rem 0;
+  border-top: 1px dashed var(--border-strong);
+}
+
+.ProseMirror .page-break::after {
+  position: absolute;
+  top: -0.8em;
+  left: 50%;
+  padding: 0 0.6rem;
+  transform: translateX(-50%);
+  background: var(--surface);
+  color: var(--muted-soft);
+  content: "Page break";
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ProseMirror .page-break.ProseMirror-selectednode {
+  border-color: #1a5fb4;
+}
+
 .ProseMirror ul[data-type="taskList"] {
   margin: 1rem 0;
   padding: 0;
@@ -493,6 +550,10 @@ select {
     padding: 0 !important;
   }
 
+  .editor-zoom {
+    zoom: 1 !important;
+  }
+
   .print-document-panel .ProseMirror {
     min-height: 0 !important;
   }
@@ -504,6 +565,17 @@ select {
 
   .ProseMirror img {
     break-inside: avoid;
+  }
+
+  .ProseMirror .page-break {
+    height: 0;
+    margin: 0;
+    border: 0;
+    break-after: page;
+  }
+
+  .ProseMirror .page-break::after {
+    display: none;
   }
 
   .ProseMirror .tableWrapper {

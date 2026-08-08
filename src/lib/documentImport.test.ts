@@ -5,11 +5,15 @@ import { sanitizeImportedWordHtml } from "@/lib/documentImport";
 describe("Word import sanitization", () => {
   it("keeps supported document markup and Thido-owned images", () => {
     const html = sanitizeImportedWordHtml(
-      '<h2>Heading</h2><p><strong>Safe</strong> <a href="https://example.com">link</a></p><table><tr><th>Name</th></tr><tr><td>Draft</td></tr></table><img src="/api/document-images/image-1" alt="Diagram">',
+      '<h2>Heading</h2><p><strong>Safe</strong> <u>underlined</u> <mark>highlighted</mark> x<sup>2</sup> H<sub>2</sub>O <a href="https://example.com">link</a></p><table><tr><th>Name</th></tr><tr><td>Draft</td></tr></table><img src="/api/document-images/image-1" alt="Diagram">',
     );
 
     expect(html).toContain("<h2>Heading</h2>");
     expect(html).toContain("<strong>Safe</strong>");
+    expect(html).toContain("<u>underlined</u>");
+    expect(html).toContain("<mark>highlighted</mark>");
+    expect(html).toContain("<sup>2</sup>");
+    expect(html).toContain("<sub>2</sub>");
     expect(html).toContain('<a href="https://example.com">link</a>');
     expect(html).toContain("<table>");
     expect(html).toContain("<th>Name</th>");

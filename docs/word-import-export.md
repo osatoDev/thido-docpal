@@ -19,8 +19,8 @@ Thido preserves structures that exist in its current TipTap schema:
 
 - paragraphs and empty paragraphs;
 - headings 1–3;
-- bold, italic, strikethrough, and code-style text where Word exposes equivalent
-  semantic markup;
+- bold, italic, underline, highlight, strikethrough, superscript, subscript, and
+  code-style text where Word exposes equivalent semantic markup;
 - safe HTTP(S) and email links;
 - unordered and ordered lists;
 - small tables, including basic merged-cell spans;
@@ -51,17 +51,19 @@ those notes after a successful import so loss is not silent.
 ## Export fidelity contract
 
 Word export preserves the Thido structures listed as supported above, including
-safe links, basic tables, disc/circle/square unordered-list markers, and stored
-document images. Thido checklist items are represented with checked or unchecked
-box characters; importing that Word file again retains their text but does not
-reconstruct semantic checklist state. The Thido document title is written as
-Word file metadata and used for the filename; it is not duplicated as a body
-heading.
+safe links, basic tables, disc/circle/square unordered-list markers, stored
+document images, text alignment, paragraph indentation, and page breaks. Thido
+checklist items are represented with checked or unchecked box characters;
+importing that Word file again retains their text but does not reconstruct
+semantic checklist state. The Thido document title is written as Word file
+metadata and used for the filename; it is not duplicated as a body heading.
 
-PDF export renders the document title, supported text formatting, clickable
-links, lists, checklist markers, basic tables, blockquotes, horizontal rules,
-and stored images onto A4 pages. It is intended as a stable reading copy.
-Browser printing remains available when a user needs printer-specific controls.
+PDF export renders the document title, bold, italic, underline, strikethrough,
+code-style text, alignment, indentation, page breaks, clickable links, lists,
+checklist markers, basic tables, blockquotes, horizontal rules, and stored images
+onto A4 pages. Highlight and superscript/subscript remain visible in the editor
+and Word export but currently fall back to plain text in PDF. Browser printing
+remains available when a user needs printer-specific controls.
 
 Comments, private comment anchors, AI metadata, collaborator details, and
 version history are excluded from both export formats.

@@ -23,7 +23,7 @@ This keeps downloads discoverable in the place users expect while avoiding an un
 
 ## Formatting controls
 
-The toolbar uses icons for undo, redo, bold, italic, strikethrough, links, bulleted lists, numbered lists, checklists, and block quotes. It uses a standard paragraph-style selector for normal text and headings. Visible labels such as **List**, **Checkbox list**, **Insert image**, and **Table actions** do not occupy toolbar space; their accessible names and tooltips remain available.
+The toolbar uses icons for undo, redo, bold, italic, underline, strikethrough, links, bulleted lists, numbered lists, checklists, and block quotes. It uses standard paragraph-style and zoom selectors. Visible labels such as **List**, **Checkbox list**, **Insert image**, and **Table actions** do not occupy toolbar space; their accessible names and tooltips remain available.
 
 Less-frequent insertion and formatting commands remain available through **Insert** and **Format**. Table cell operations also remain available through the table right-click menu.
 
@@ -38,6 +38,17 @@ The first expansion beyond the original menu bar adds high-frequency document ut
 - **Tools → Word count** reports words, characters, and characters excluding spaces for the full document and for the current selection when one exists.
 
 This is intentionally a P0 set: every visible command is implemented and useful in ordinary editing. Spelling and language controls remain out of the menu until Thido has an explicit, documented behavior for them.
+
+## Priority 0 expansion
+
+The next expansion adds sixteen implemented commands while retaining the same six-menu hierarchy:
+
+- **Edit:** Select all.
+- **View:** 75%, 100%, 125%, and 150% document zoom.
+- **Insert:** Page break.
+- **Format:** Underline, highlight, inline code, superscript, subscript, code block, align left, align center, align right, justify, increase indent, and decrease indent.
+
+Underline is also present in the compact toolbar, while zoom uses a compact selector. The longer **Format** menu is viewport-bounded and scrollable so it remains usable on smaller screens.
 
 ## Interaction and accessibility
 

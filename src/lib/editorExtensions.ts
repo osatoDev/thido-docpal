@@ -1,12 +1,25 @@
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
+import Highlight from "@tiptap/extension-highlight";
 import { TableKit } from "@tiptap/extension-table";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
+import Subscript from "@tiptap/extension-subscript";
+import Superscript from "@tiptap/extension-superscript";
+import TextAlign from "@tiptap/extension-text-align";
 import type { Extensions } from "@tiptap/core";
 import { CommentMark } from "@/components/editor/extensions/CommentMark";
+import { PageBreak } from "@/components/editor/extensions/PageBreak";
 import { StyledBulletList } from "@/components/editor/extensions/StyledBulletList";
+import { TextIndent } from "@/components/editor/extensions/TextIndent";
 import { isSafeDocumentLink } from "@/lib/documentLinks";
+
+const ExclusiveSuperscript = Superscript.extend({
+  excludes: "subscript",
+});
+const ExclusiveSubscript = Subscript.extend({
+  excludes: "superscript",
+});
 
 /**
  * Shared extension list used by both the client-side editor and the
@@ -57,6 +70,14 @@ export function getEditorExtensions(): Extensions {
       allowBase64: false,
       inline: false,
     }),
+    TextAlign.configure({
+      types: ["heading", "paragraph"],
+    }),
+    Highlight,
+    ExclusiveSuperscript,
+    ExclusiveSubscript,
+    TextIndent,
+    PageBreak,
     CommentMark,
   ];
 }

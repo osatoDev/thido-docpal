@@ -91,6 +91,7 @@ export function TiptapEditor({
   const [comments, setComments] = useState<CommentWithReplies[]>(initialComments);
   const [activeComposer, setActiveComposer] = useState<ActiveComposer | null>(null);
   const [commentsSidebarOpen, setCommentsSidebarOpen] = useState(true);
+  const [editorZoom, setEditorZoom] = useState(100);
   const [pendingCommentIds, setPendingCommentIds] = useState<Set<string>>(() => {
     return new Set(
       Object.entries(initialCommentProgress).flatMap(([commentId, progress]) =>
@@ -812,9 +813,11 @@ export function TiptapEditor({
             canEdit={canEditNow}
             canViewHistory={canEdit}
             commentsOpen={commentsSidebarOpen}
+            zoom={editorZoom}
             onToggleComments={() =>
               setCommentsSidebarOpen((open) => !open)
             }
+            onZoomChange={setEditorZoom}
             onImport={handleDocumentRestored}
             onConflict={handleDocumentConflict}
           />
@@ -889,13 +892,19 @@ export function TiptapEditor({
             </BubbleMenu>
           )}
           <div className="print-document-content flex-1 overflow-y-auto px-4 py-7 sm:px-7 sm:py-10 lg:px-8">
-            {editor && canEditNow ? (
-              <TableContextMenu editor={editor}>
+            <div
+              className="editor-zoom"
+              style={{ zoom: editorZoom / 100 }}
+              data-zoom={`${editorZoom}%`}
+            >
+              {editor && canEditNow ? (
+                <TableContextMenu editor={editor}>
+                  <EditorContent editor={editor} />
+                </TableContextMenu>
+              ) : (
                 <EditorContent editor={editor} />
-              </TableContextMenu>
-            ) : (
-              <EditorContent editor={editor} />
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
