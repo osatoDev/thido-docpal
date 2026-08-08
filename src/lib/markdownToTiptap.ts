@@ -13,3 +13,27 @@ export async function markdownToTiptapJSON(markdown: string): Promise<JSONConten
   const html = await marked.parse(markdown);
   return generateJSON(html, getEditorExtensions()) as JSONContent;
 }
+
+/**
+ * Whole-document AI rewrites operate on user-visible Markdown, so editor-only
+ * preferences are carried forward explicitly instead of being silently reset.
+ */
+export function preserveDocumentPreferences(
+  currentContent: JSONContent | null,
+  replacementContent: JSONContent,
+): JSONContent {
+  const preferences = currentContent?.content?.find(
+    (node) => node.type === "documentPreferences",
+  );
+  if (!preferences) return replacementContent;
+
+  return {
+    ...replacementContent,
+    content: [
+      preferences,
+      ...(replacementContent.content ?? []).filter(
+        (node) => node.type !== "documentPreferences",
+      ),
+    ],
+  };
+}

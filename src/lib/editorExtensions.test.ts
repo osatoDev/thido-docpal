@@ -5,6 +5,7 @@ import type { JSONContent } from "@tiptap/core";
 import { transformTextCase } from "@/components/editor/extensions/TextCase";
 import { slugifyHeading } from "@/components/editor/extensions/HeadingAnchors";
 import { getEditorExtensions } from "@/lib/editorExtensions";
+import { preserveDocumentPreferences } from "@/lib/markdownToTiptap";
 
 describe("styled bullet lists", () => {
   it("renders a saved bullet style into document HTML", () => {
@@ -213,6 +214,7 @@ describe("priority-one document structures", () => {
             language: "de-DE",
             spellcheck: false,
             direction: "rtl",
+            appearance: "editorial",
           },
         },
         {
@@ -254,6 +256,7 @@ describe("priority-one document structures", () => {
 
     expect(html).toContain('data-language="de-DE"');
     expect(html).toContain('data-direction="rtl"');
+    expect(html).toContain('data-appearance="editorial"');
     expect(html).toContain('id="uberblick"');
     expect(html).toContain('data-type="table-of-contents"');
     expect(html).not.toContain(' entries="');
@@ -271,6 +274,7 @@ describe("priority-one document structures", () => {
             language: "de-DE",
             spellcheck: false,
             direction: "rtl",
+            appearance: "editorial",
           }),
         }),
         expect.objectContaining({
@@ -283,6 +287,39 @@ describe("priority-one document structures", () => {
         }),
       ]),
     );
+  });
+
+  it("keeps page style and document preferences through an AI rewrite", () => {
+    const rewritten = preserveDocumentPreferences(
+      {
+        type: "doc",
+        content: [
+          {
+            type: "documentPreferences",
+            attrs: {
+              language: "en-GB",
+              spellcheck: true,
+              direction: "ltr",
+              appearance: "warm",
+            },
+          },
+          { type: "paragraph", content: [{ type: "text", text: "Old" }] },
+        ],
+      },
+      {
+        type: "doc",
+        content: [
+          { type: "paragraph", content: [{ type: "text", text: "New" }] },
+        ],
+      },
+    );
+
+    expect(rewritten.content?.[0]).toMatchObject({
+      type: "documentPreferences",
+      attrs: { appearance: "warm", language: "en-GB" },
+    });
+    expect(rewritten.content?.[1]?.textContent).toBeUndefined();
+    expect(rewritten.content?.[1]?.content?.[0]?.text).toBe("New");
   });
 
   it("round-trips named bookmarks as safe internal destinations", () => {

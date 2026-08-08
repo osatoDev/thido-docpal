@@ -16,7 +16,6 @@ import {
 } from "@/lib/ai/telemetry";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import {
-  getDocumentText,
   getCommentPromptContext,
   replaceCommentMarkText,
 } from "@/lib/documentMarks";
@@ -24,7 +23,10 @@ import {
   isDocumentWideCommentRequest,
   shouldApplyCommentSuggestion,
 } from "@/lib/commentProcessing";
-import { markdownToTiptapJSON } from "@/lib/markdownToTiptap";
+import {
+  markdownToTiptapJSON,
+  preserveDocumentPreferences,
+} from "@/lib/markdownToTiptap";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { unauthorizedResponse } from "@/lib/apiResponses";
 import { getEditorExtensions } from "@/lib/editorExtensions";
@@ -323,7 +325,6 @@ async function generateAiResponse({
       latestDocument?.content && typeof latestDocument.content === "object"
         ? (latestDocument.content as JSONContent)
         : null;
-    const documentText = latestContent ? getDocumentText(latestContent) : "";
     const documentHtml = latestContent
       ? generateHTML(latestContent, getEditorExtensions())
       : "";
@@ -334,9 +335,6 @@ async function generateAiResponse({
             anchorMarkId,
           )
         : null;
-    if (scope === "DOCUMENT" && !documentText) {
-      throw new Error("The document has no text to review");
-    }
     if (scope === "SELECTION" && (!anchorMarkId || !quotedText)) {
       throw new Error("The selected comment target is missing");
     }
@@ -377,7 +375,10 @@ async function generateAiResponse({
             "does not ask you to change. The document is supplied as HTML so " +
             "its structure is unambiguous; return the revised document as " +
             "clean Markdown suitable for conversion back into the editor. " +
-            "Do not reproduce editor-only data attributes."
+            "The document may be empty when the user asks you to add its first " +
+            "content. If the user explicitly asks to remove all content, an " +
+            "empty proposed_text is valid. Do not reproduce editor-only data " +
+            "attributes."
           : "You are an editorial assistant embedded in a document editor. A " +
             "user has commented on an editable target span. The target may be " +
             "their exact original selection or a deliberately expanded paragraph " +
@@ -404,7 +405,7 @@ async function generateAiResponse({
           role: "user",
           content:
             scope === "DOCUMENT"
-              ? `ENTIRE DOCUMENT HTML:\n"""${documentHtml}"""\n\nCOMMENT:\n${commentBody}`
+              ? `ENTIRE DOCUMENT HTML:\n"""${documentHtml || "(empty document)"}"""\n\nINSTRUCTION OR QUESTION:\n${commentBody}`
               : `TARGET TEXT:\n"""${quotedText}"""\n\n` +
                 `COMMENT:\n${commentBody}\n\n` +
                 `CONTAINING BLOCK:\n"""${promptContext?.blockText || quotedText}"""\n\n` +
@@ -447,13 +448,17 @@ async function generateAiResponse({
         },
       });
 
-      if (parsed.intent === "change_request" && parsed.proposed_text) {
+      if (
+        parsed.intent === "change_request" &&
+        typeof parsed.proposed_text === "string"
+      ) {
         if (autoApply) {
           const appliedDocument =
             scope === "DOCUMENT"
               ? await applyDocumentReplacementWithoutClobbering({
                   documentId,
                   expectedRevision: latestDocument?.revision,
+                  currentContent: latestContent,
                   proposedText: parsed.proposed_text,
                   actorId: userId,
                 })
@@ -527,16 +532,22 @@ async function finishCommentAiJob(
 async function applyDocumentReplacementWithoutClobbering({
   documentId,
   expectedRevision,
+  currentContent,
   proposedText,
   actorId,
 }: {
   documentId: string;
   expectedRevision?: number;
+  currentContent: JSONContent | null;
   proposedText: string;
   actorId: string;
 }): Promise<{ content: JSONContent; revision: number } | null> {
   if (expectedRevision === undefined) return null;
-  const updatedContent = await markdownToTiptapJSON(proposedText);
+  const replacementContent = await markdownToTiptapJSON(proposedText);
+  const updatedContent = preserveDocumentPreferences(
+    currentContent,
+    replacementContent,
+  );
   return prisma.$transaction(async (transaction) => {
     const update = await transaction.document.updateMany({
       where: { id: documentId, revision: expectedRevision },

@@ -78,10 +78,10 @@ export function CommentSidebar({
               <path d="M6.75 3.75h7.5l3 3v13.5H6.75z" />
               <path d="M14.25 3.75v3h3M9.5 11h5M9.5 14h5" />
             </svg>
-            Comment on whole document
+            Edit document with Thido
           </button>
           <p className="mt-1.5 text-xs leading-5 text-[var(--muted-soft)]">
-            For feedback or changes that apply across the entire draft.
+            Ask a question, or tell Thido what to add, remove, or rewrite.
           </p>
         </div>
       )}
@@ -102,9 +102,9 @@ export function CommentSidebar({
       {comments.length === 0 && foregroundCommentCount === 0 ? (
         <p className="text-xs leading-5 text-[var(--muted-soft)]">
           {documentComposerOpen
-            ? "Submit your whole-document comment above."
+            ? "Send your document instruction to Thido above."
             : canCreateComments
-              ? "Select text and choose “Comment on selected text” for a specific passage, or use the whole-document action above."
+              ? "Select text and choose “Edit or ask Thido” for a specific passage, or use the whole-document action above."
               : "No comments yet."}
         </p>
       ) : openComments.length === 0 && foregroundCommentCount === 0 ? (

@@ -1,6 +1,10 @@
 import { Extension } from "@tiptap/core";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
-import { TextSelection, type EditorState } from "@tiptap/pm/state";
+import {
+  NodeSelection,
+  TextSelection,
+  type EditorState,
+} from "@tiptap/pm/state";
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -10,6 +14,10 @@ declare module "@tiptap/core" {
       moveCurrentBlockDown: () => ReturnType;
       insertParagraphAbove: () => ReturnType;
       insertParagraphBelow: () => ReturnType;
+      selectCurrentBlock: () => ReturnType;
+      deleteCurrentBlock: () => ReturnType;
+      mergeCurrentBlockWithPrevious: () => ReturnType;
+      mergeCurrentBlockWithNext: () => ReturnType;
     };
   }
 }
@@ -125,6 +133,92 @@ export const BlockOperations = Extension.create({
           const insertPosition = block.position + block.node.nodeSize;
           tr.insert(insertPosition, paragraph.create());
           tr.setSelection(TextSelection.create(tr.doc, insertPosition + 1));
+          if (dispatch) dispatch(tr.scrollIntoView());
+          return true;
+        },
+      selectCurrentBlock:
+        () =>
+        ({ state, tr, dispatch }) => {
+          const block = currentBlock(state);
+          if (!block) return false;
+          tr.setSelection(NodeSelection.create(tr.doc, block.position));
+          if (dispatch) dispatch(tr.scrollIntoView());
+          return true;
+        },
+      deleteCurrentBlock:
+        () =>
+        ({ state, tr, dispatch }) => {
+          const block = currentBlock(state);
+          const paragraph = state.schema.nodes.paragraph;
+          if (!block || !paragraph) return false;
+          tr.delete(block.position, block.position + block.node.nodeSize);
+          const remainingContentBlocks = Array.from(
+            { length: tr.doc.childCount },
+            (_, index) => tr.doc.child(index),
+          ).filter((node) => node.type.name !== "documentPreferences");
+          if (remainingContentBlocks.length === 0) {
+            tr.insert(tr.doc.content.size, paragraph.create());
+          }
+          tr.setSelection(
+            TextSelection.near(
+              tr.doc.resolve(Math.min(block.position + 1, tr.doc.content.size)),
+            ),
+          );
+          if (dispatch) dispatch(tr.scrollIntoView());
+          return true;
+        },
+      mergeCurrentBlockWithPrevious:
+        () =>
+        ({ state, tr, dispatch }) => {
+          const block = currentBlock(state);
+          if (!block || block.index === 0 || !block.node.isTextblock) {
+            return false;
+          }
+          const previous = state.doc.child(block.index - 1);
+          if (!previous.isTextblock || previous.type !== block.node.type) {
+            return false;
+          }
+          const previousPosition = block.position - previous.nodeSize;
+          const merged = previous.copy(
+            previous.content.append(block.node.content),
+          );
+          tr.replaceWith(
+            previousPosition,
+            block.position + block.node.nodeSize,
+            merged,
+          );
+          tr.setSelection(
+            TextSelection.near(
+              tr.doc.resolve(previousPosition + previous.nodeSize - 1),
+            ),
+          );
+          if (dispatch) dispatch(tr.scrollIntoView());
+          return true;
+        },
+      mergeCurrentBlockWithNext:
+        () =>
+        ({ state, tr, dispatch }) => {
+          const block = currentBlock(state);
+          if (
+            !block ||
+            !block.node.isTextblock ||
+            block.index >= state.doc.childCount - 1
+          ) {
+            return false;
+          }
+          const next = state.doc.child(block.index + 1);
+          if (!next.isTextblock || next.type !== block.node.type) return false;
+          const merged = block.node.copy(block.node.content.append(next.content));
+          tr.replaceWith(
+            block.position,
+            block.position + block.node.nodeSize + next.nodeSize,
+            merged,
+          );
+          tr.setSelection(
+            TextSelection.near(
+              tr.doc.resolve(block.position + block.node.nodeSize - 1),
+            ),
+          );
           if (dispatch) dispatch(tr.scrollIntoView());
           return true;
         },

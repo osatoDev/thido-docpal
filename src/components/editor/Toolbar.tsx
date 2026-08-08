@@ -11,8 +11,10 @@ import { FootnoteDialog } from "./FootnoteDialog";
 import { LinkControl } from "./LinkControl";
 import { WordCountDialog } from "./WordCountDialog";
 import {
+  DOCUMENT_APPEARANCE_OPTIONS,
   DOCUMENT_LANGUAGE_OPTIONS,
   getDocumentPreferences,
+  type DocumentAppearance,
 } from "./extensions/DocumentPreferences";
 import { LINE_HEIGHT_OPTIONS } from "./extensions/ParagraphFormatting";
 import {
@@ -255,6 +257,7 @@ export function Toolbar({
   zoom,
   onToggleComments,
   onToggleOutline,
+  onEditWithAi,
   onZoomChange,
   onImport,
   onConflict,
@@ -269,6 +272,7 @@ export function Toolbar({
   zoom: number;
   onToggleComments: () => void;
   onToggleOutline: () => void;
+  onEditWithAi: () => void;
   onZoomChange: (zoom: number) => void;
   onImport: (document: RestoredDocument) => void;
   onConflict: (message: string) => void;
@@ -281,6 +285,7 @@ export function Toolbar({
   const [bookmarkOpen, setBookmarkOpen] = useState(false);
   const [footnoteOpen, setFootnoteOpen] = useState(false);
   const [wordCountOpen, setWordCountOpen] = useState(false);
+  const [, setEditorVersion] = useState(0);
   const activeBulletStyle =
     editor && isBulletStyle(editor.getAttributes("bulletList").bulletStyle)
       ? (editor.getAttributes("bulletList").bulletStyle as BulletStyle)
@@ -341,6 +346,16 @@ export function Toolbar({
     document.addEventListener("keydown", handleDocumentShortcut);
     return () => document.removeEventListener("keydown", handleDocumentShortcut);
   }, [canEdit, editor, linkControlId]);
+
+  useEffect(() => {
+    if (!editor) return;
+    const refreshToolbar = () =>
+      setEditorVersion((version) => version + 1);
+    editor.on("transaction", refreshToolbar);
+    return () => {
+      editor.off("transaction", refreshToolbar);
+    };
+  }, [editor]);
 
   function handleMenuBarKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
     if (
@@ -516,6 +531,30 @@ export function Toolbar({
                 label: "Insert paragraph below",
                 onSelect: () =>
                   editor.chain().focus().insertParagraphBelow().run(),
+              },
+            ],
+            [
+              {
+                label: "Select current block",
+                onSelect: () =>
+                  editor.chain().focus().selectCurrentBlock().run(),
+              },
+              {
+                label: "Delete current block",
+                onSelect: () =>
+                  editor.chain().focus().deleteCurrentBlock().run(),
+              },
+              {
+                label: "Merge with previous block",
+                disabled: !editor.can().mergeCurrentBlockWithPrevious(),
+                onSelect: () =>
+                  editor.chain().focus().mergeCurrentBlockWithPrevious().run(),
+              },
+              {
+                label: "Merge with next block",
+                disabled: !editor.can().mergeCurrentBlockWithNext(),
+                onSelect: () =>
+                  editor.chain().focus().mergeCurrentBlockWithNext().run(),
               },
             ],
           ],
@@ -736,6 +775,11 @@ export function Toolbar({
                 onSelect: () => editor.commands.setDocumentDirection("rtl"),
               },
             ],
+            DOCUMENT_APPEARANCE_OPTIONS.map((option) => ({
+              label: `${option.label} page style${documentPreferences?.appearance === option.value ? " ✓" : ""}`,
+              onSelect: () =>
+                editor.commands.setDocumentAppearance(option.value),
+            })),
             [
               ...LINE_HEIGHT_OPTIONS.map((lineHeight) => ({
                 label: `${lineHeight === 1 ? "Single" : lineHeight} line spacing${activeBlockAttributes?.lineHeight === lineHeight ? " ✓" : ""}`,
@@ -817,8 +861,14 @@ export function Toolbar({
           currentRevision={currentRevision}
           canImport={canEdit}
           canViewHistory={canViewHistory}
+          canChangeLanguage={canEdit && !!documentPreferences}
+          documentLanguage={documentPreferences?.language ?? "en-US"}
+          languageOptions={DOCUMENT_LANGUAGE_OPTIONS}
           onImport={onImport}
           onConflict={onConflict}
+          onLanguageChange={(language) =>
+            editor?.commands.setDocumentLanguage(language)
+          }
         />
         {editingMenus ? (
           <EditorMenu label="Edit" groups={editingMenus.edit} />
@@ -846,6 +896,16 @@ export function Toolbar({
             editor
               ? [
                   {
+                    label: "Document start",
+                    shortcut: "Ctrl/⌘ + Home",
+                    onSelect: () => editor.commands.goToDocumentStart(),
+                  },
+                  {
+                    label: "Document end",
+                    shortcut: "Ctrl/⌘ + End",
+                    onSelect: () => editor.commands.goToDocumentEnd(),
+                  },
+                  {
                     label: "Previous heading",
                     shortcut: "Alt + Shift + Page Up",
                     disabled: !editor.can().goToPreviousHeading(),
@@ -856,6 +916,26 @@ export function Toolbar({
                     shortcut: "Alt + Shift + Page Down",
                     disabled: !editor.can().goToNextHeading(),
                     onSelect: () => editor.commands.goToNextHeading(),
+                  },
+                  {
+                    label: "Previous paragraph",
+                    disabled: !editor.can().goToPreviousParagraph(),
+                    onSelect: () => editor.commands.goToPreviousParagraph(),
+                  },
+                  {
+                    label: "Next paragraph",
+                    disabled: !editor.can().goToNextParagraph(),
+                    onSelect: () => editor.commands.goToNextParagraph(),
+                  },
+                  {
+                    label: "Previous table",
+                    disabled: !editor.can().goToPreviousTable(),
+                    onSelect: () => editor.commands.goToPreviousTable(),
+                  },
+                  {
+                    label: "Next table",
+                    disabled: !editor.can().goToNextTable(),
+                    onSelect: () => editor.commands.goToNextTable(),
                   },
                 ]
               : [],
@@ -872,6 +952,14 @@ export function Toolbar({
             label="Tools"
             groups={[
               [
+                ...(canEdit
+                  ? [
+                      {
+                        label: "Edit with Thido",
+                        onSelect: onEditWithAi,
+                      },
+                    ]
+                  : []),
                 {
                   label: "Document statistics",
                   shortcut: "Ctrl/⌘ + Shift + C",
@@ -889,12 +977,67 @@ export function Toolbar({
                     },
                   ]
                 : [],
-              canEdit && documentPreferences
-                ? DOCUMENT_LANGUAGE_OPTIONS.map((option) => ({
-                    label: `${option.label}${documentPreferences.language === option.value ? " ✓" : ""}`,
-                    onSelect: () =>
-                      editor.commands.setDocumentLanguage(option.value),
-                  }))
+              canEdit
+                ? [
+                    {
+                      label: "Collapse repeated spaces",
+                      onSelect: () =>
+                        editor.chain().focus().cleanUpText("collapseSpaces").run(),
+                    },
+                    {
+                      label: "Convert tabs to spaces",
+                      onSelect: () =>
+                        editor.chain().focus().cleanUpText("tabsToSpaces").run(),
+                    },
+                    {
+                      label: "Remove zero-width characters",
+                      onSelect: () =>
+                        editor.chain().focus().cleanUpText("removeZeroWidth").run(),
+                    },
+                    {
+                      label: "Remove soft hyphens",
+                      onSelect: () =>
+                        editor.chain().focus().cleanUpText("removeSoftHyphens").run(),
+                    },
+                    {
+                      label: "Replace non-breaking spaces",
+                      onSelect: () =>
+                        editor
+                          .chain()
+                          .focus()
+                          .cleanUpText("replaceNonBreakingSpaces")
+                          .run(),
+                    },
+                    {
+                      label: "Normalize Unicode spaces",
+                      onSelect: () =>
+                        editor
+                          .chain()
+                          .focus()
+                          .cleanUpText("normalizeUnicodeSpaces")
+                          .run(),
+                    },
+                    {
+                      label: "Convert to smart quotes",
+                      onSelect: () =>
+                        editor.chain().focus().cleanUpText("smartQuotes").run(),
+                    },
+                    {
+                      label: "Convert to straight quotes",
+                      onSelect: () =>
+                        editor.chain().focus().cleanUpText("straightQuotes").run(),
+                    },
+                    {
+                      label: "Convert double hyphens to em dashes",
+                      onSelect: () =>
+                        editor.chain().focus().cleanUpText("normalizeDashes").run(),
+                    },
+                    {
+                      label: "Convert three periods to ellipses",
+                      onSelect: () =>
+                        editor.chain().focus().cleanUpText("normalizeEllipses").run(),
+                    },
+                  ]
                 : [],
             ]}
           />
@@ -919,6 +1062,26 @@ export function Toolbar({
           aria-label="Formatting toolbar"
           className="flex items-center gap-0.5 overflow-x-auto px-2 py-1.5"
         >
+          <button
+            type="button"
+            onClick={onEditWithAi}
+            className="mr-1 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-[var(--foreground)] px-3 text-xs font-semibold text-[var(--background)] transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-strong)]"
+            aria-label="Edit with Thido"
+            title="Ask Thido to add, remove, or rewrite document content"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              className="size-4"
+            >
+              <path d="m12 3 1.4 4.1L17.5 8.5l-4.1 1.4L12 14l-1.4-4.1-4.1-1.4 4.1-1.4L12 3Z" />
+              <path d="m18.5 14 .8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z" />
+            </svg>
+            Edit with Thido
+          </button>
           <ToolbarButton
             label="Undo"
             onClick={() => editor.chain().focus().undo().run()}
@@ -999,6 +1162,27 @@ export function Toolbar({
             {DOCUMENT_ZOOM_OPTIONS.map((zoomOption) => (
               <option key={zoomOption} value={zoomOption}>
                 {zoomOption}%
+              </option>
+            ))}
+          </select>
+          <select
+            value={documentPreferences?.appearance ?? "classic"}
+            onChange={(event) =>
+              editor.commands.setDocumentAppearance(
+                event.target.value as DocumentAppearance,
+              )
+            }
+            aria-label="Page style"
+            title={
+              DOCUMENT_APPEARANCE_OPTIONS.find(
+                (option) => option.value === documentPreferences?.appearance,
+              )?.description ?? "Choose a page style"
+            }
+            className="app-input h-8 w-28 shrink-0 rounded-sm px-2 text-sm outline-none"
+          >
+            {DOCUMENT_APPEARANCE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </select>

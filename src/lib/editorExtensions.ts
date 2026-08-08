@@ -34,6 +34,7 @@ import {
 import { RichTextStyle } from "@/components/editor/extensions/RichTextStyle";
 import { StyledBulletList } from "@/components/editor/extensions/StyledBulletList";
 import { TextCase } from "@/components/editor/extensions/TextCase";
+import { TextCleanup } from "@/components/editor/extensions/TextCleanup";
 import { TextIndent } from "@/components/editor/extensions/TextIndent";
 import {
   TableOfContents,
@@ -122,6 +123,7 @@ export function getEditorExtensions(): Extensions {
     RichTextStyle,
     ParagraphFormatting,
     TextCase,
+    TextCleanup,
     TextIndent,
     PageBreak,
     CommentMark,

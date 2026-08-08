@@ -7,28 +7,45 @@ import {
   VersionHistoryDialog,
 } from "@/components/documents/VersionHistoryControl";
 
+type DocumentLanguageOption = {
+  label: string;
+  value: string;
+};
+
 export function DocumentFileMenu({
   documentId,
   currentRevision,
   canImport,
   canViewHistory,
+  canChangeLanguage,
+  documentLanguage,
+  languageOptions,
   onImport,
   onConflict,
+  onLanguageChange,
 }: {
   documentId: string;
   currentRevision: number;
   canImport: boolean;
   canViewHistory: boolean;
+  canChangeLanguage: boolean;
+  documentLanguage: string;
+  languageOptions: readonly DocumentLanguageOption[];
   onImport: (document: RestoredDocument) => void;
   onConflict: (message: string) => void;
+  onLanguageChange: (language: string) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
+  const languageTitleId = useId();
+  const languageDescriptionId = useId();
   const [open, setOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [languageOpen, setLanguageOpen] = useState(false);
+  const [languageDraft, setLanguageDraft] = useState(documentLanguage);
   const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +74,19 @@ export function DocumentFileMenu({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [open]);
+
+  useEffect(() => {
+    if (!languageOpen) return;
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setLanguageOpen(false);
+      triggerRef.current?.focus();
+    }
+
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [languageOpen]);
 
   async function importWordFile(file: File) {
     if (
@@ -116,6 +146,11 @@ export function DocumentFileMenu({
     setHistoryOpen(false);
     triggerRef.current?.focus();
   }, []);
+
+  function closeLanguage() {
+    setLanguageOpen(false);
+    window.setTimeout(() => triggerRef.current?.focus(), 0);
+  }
 
   function handleMenuKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
     if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
@@ -215,6 +250,31 @@ export function DocumentFileMenu({
                 Version history
               </button>
             ) : null}
+            {canChangeLanguage ? (
+              <>
+                <div
+                  role="separator"
+                  className="my-1 border-t border-[var(--border)]"
+                />
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setLanguageDraft(documentLanguage);
+                    setOpen(false);
+                    setLanguageOpen(true);
+                  }}
+                  className="flex w-full items-center justify-between gap-4 rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)]"
+                >
+                  <span>Language</span>
+                  <span className="truncate text-xs text-[var(--muted)]">
+                    {languageOptions.find(
+                      (option) => option.value === documentLanguage,
+                    )?.label ?? documentLanguage}
+                  </span>
+                </button>
+              </>
+            ) : null}
             <div role="separator" className="my-1 border-t border-[var(--border)]" />
             <p className="px-3 py-1 text-[11px] font-semibold tracking-wide text-[var(--muted)] uppercase">
               Download
@@ -276,6 +336,83 @@ export function DocumentFileMenu({
           onRestore={onImport}
           onConflict={onConflict}
         />
+      ) : null}
+      {languageOpen ? (
+        <div
+          className="fixed inset-0 z-[80] flex items-start justify-center bg-black/45 p-4 pt-[12vh]"
+          onPointerDown={(event) => {
+            if (event.target === event.currentTarget) closeLanguage();
+          }}
+        >
+          <form
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={languageTitleId}
+            aria-describedby={languageDescriptionId}
+            className="app-panel max-h-[80vh] w-full max-w-sm overflow-y-auto rounded-xl p-5 shadow-xl"
+            onSubmit={(event) => {
+              event.preventDefault();
+              onLanguageChange(languageDraft);
+              closeLanguage();
+            }}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <h2 id={languageTitleId} className="text-base font-semibold">
+                Document language
+              </h2>
+              <button
+                type="button"
+                aria-label="Close document language"
+                title="Close"
+                onClick={closeLanguage}
+                className="app-button-secondary inline-flex size-8 items-center justify-center p-0 text-lg"
+              >
+                ×
+              </button>
+            </div>
+            <p
+              id={languageDescriptionId}
+              className="mt-2 text-sm leading-6 text-[var(--muted)]"
+            >
+              Sets the language used by browser spelling suggestions for this
+              document. It does not translate the text.
+            </p>
+            <fieldset className="mt-4 space-y-1">
+              <legend className="sr-only">Choose a document language</legend>
+              {languageOptions.map((option) => (
+                <label
+                  key={option.value}
+                  className="flex cursor-pointer items-center gap-3 rounded-sm px-3 py-2 text-sm hover:bg-[var(--surface-subtle)]"
+                >
+                  <input
+                    type="radio"
+                    name="document-language"
+                    value={option.value}
+                    checked={languageDraft === option.value}
+                    autoFocus={option.value === documentLanguage}
+                    onChange={() => setLanguageDraft(option.value)}
+                  />
+                  <span>{option.label}</span>
+                </label>
+              ))}
+            </fieldset>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeLanguage}
+                className="secondary-button rounded-sm px-3 py-2 text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="primary-button rounded-sm px-3 py-2 text-sm font-medium"
+              >
+                Save language
+              </button>
+            </div>
+          </form>
+        </div>
       ) : null}
     </>
   );

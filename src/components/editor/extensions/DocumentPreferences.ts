@@ -11,17 +11,49 @@ export const DOCUMENT_LANGUAGE_OPTIONS = [
   { label: "Spanish", value: "es-ES" },
 ] as const;
 
+export const DOCUMENT_APPEARANCE_OPTIONS = [
+  {
+    label: "Classic",
+    value: "classic",
+    description: "Traditional serif typography with comfortable spacing.",
+  },
+  {
+    label: "Clean",
+    value: "clean",
+    description: "Crisp sans-serif typography for practical documents.",
+  },
+  {
+    label: "Editorial",
+    value: "editorial",
+    description: "Publication-inspired typography with expressive headings.",
+  },
+  {
+    label: "Warm",
+    value: "warm",
+    description: "A softer paper tone and relaxed reading rhythm.",
+  },
+  {
+    label: "Bold",
+    value: "bold",
+    description: "High-contrast headings for pitches and presentations.",
+  },
+] as const;
+
 export type DocumentDirection = "ltr" | "rtl";
+export type DocumentAppearance =
+  (typeof DOCUMENT_APPEARANCE_OPTIONS)[number]["value"];
 export type DocumentPreferencesValue = {
   language: string;
   spellcheck: boolean;
   direction: DocumentDirection;
+  appearance: DocumentAppearance;
 };
 
 const DEFAULT_PREFERENCES: DocumentPreferencesValue = {
   language: "en-US",
   spellcheck: true,
   direction: "ltr",
+  appearance: "classic",
 };
 
 declare module "@tiptap/core" {
@@ -30,6 +62,7 @@ declare module "@tiptap/core" {
       setDocumentLanguage: (language: string) => ReturnType;
       setDocumentSpellcheck: (enabled: boolean) => ReturnType;
       setDocumentDirection: (direction: DocumentDirection) => ReturnType;
+      setDocumentAppearance: (appearance: DocumentAppearance) => ReturnType;
     };
   }
 }
@@ -44,6 +77,12 @@ function normalizeDirection(value: unknown): DocumentDirection {
   return value === "rtl" ? "rtl" : "ltr";
 }
 
+function normalizeAppearance(value: unknown): DocumentAppearance {
+  return DOCUMENT_APPEARANCE_OPTIONS.some((option) => option.value === value)
+    ? (value as DocumentAppearance)
+    : DEFAULT_PREFERENCES.appearance;
+}
+
 export function getDocumentPreferences(
   doc: ProseMirrorNode,
 ): DocumentPreferencesValue {
@@ -54,6 +93,7 @@ export function getDocumentPreferences(
       language: normalizeLanguage(node.attrs.language),
       spellcheck: node.attrs.spellcheck !== false,
       direction: normalizeDirection(node.attrs.direction),
+      appearance: normalizeAppearance(node.attrs.appearance),
     };
     return false;
   });
@@ -73,6 +113,7 @@ function updatePreferences(
         language: normalizeLanguage(node.attrs.language),
         spellcheck: node.attrs.spellcheck !== false,
         direction: normalizeDirection(node.attrs.direction),
+        appearance: normalizeAppearance(node.attrs.appearance),
       };
       return false;
     });
@@ -97,6 +138,7 @@ function applyPreferencesToEditor(view: EditorView) {
   editor.dir = preferences.direction;
   editor.spellcheck = preferences.spellcheck;
   editor.setAttribute("data-document-language", preferences.language);
+  editor.setAttribute("data-document-appearance", preferences.appearance);
 }
 
 export const DocumentPreferencesNode = Node.create({
@@ -122,6 +164,11 @@ export const DocumentPreferencesNode = Node.create({
         parseHTML: (element: HTMLElement) =>
           normalizeDirection(element.getAttribute("data-direction")),
       },
+      appearance: {
+        default: DEFAULT_PREFERENCES.appearance,
+        parseHTML: (element: HTMLElement) =>
+          normalizeAppearance(element.getAttribute("data-appearance")),
+      },
     };
   },
 
@@ -134,6 +181,7 @@ export const DocumentPreferencesNode = Node.create({
       language: normalizeLanguage(node.attrs.language),
       spellcheck: node.attrs.spellcheck !== false,
       direction: normalizeDirection(node.attrs.direction),
+      appearance: normalizeAppearance(node.attrs.appearance),
     };
     return [
       "div",
@@ -142,6 +190,7 @@ export const DocumentPreferencesNode = Node.create({
         "data-language": preferences.language,
         "data-spellcheck": String(preferences.spellcheck),
         "data-direction": preferences.direction,
+        "data-appearance": preferences.appearance,
         hidden: "hidden",
       },
     ];
@@ -159,6 +208,8 @@ export const DocumentPreferences = Extension.create({
         updatePreferences({ spellcheck }),
       setDocumentDirection: (direction) =>
         updatePreferences({ direction: normalizeDirection(direction) }),
+      setDocumentAppearance: (appearance) =>
+        updatePreferences({ appearance: normalizeAppearance(appearance) }),
     };
   },
 
