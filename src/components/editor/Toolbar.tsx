@@ -8,6 +8,11 @@ import type { RestoredDocument } from "@/components/documents/VersionHistoryCont
 import { FindReplaceDialog } from "./FindReplaceDialog";
 import { LinkControl } from "./LinkControl";
 import { WordCountDialog } from "./WordCountDialog";
+import { LINE_HEIGHT_OPTIONS } from "./extensions/ParagraphFormatting";
+import {
+  FONT_FAMILY_OPTIONS,
+  FONT_SIZE_OPTIONS,
+} from "./extensions/RichTextStyle";
 import {
   BULLET_STYLES,
   isBulletStyle,
@@ -20,6 +25,22 @@ const bulletStyleLabels: Record<BulletStyle, string> = {
   square: "■ Square",
 };
 const DOCUMENT_ZOOM_OPTIONS = [75, 100, 125, 150] as const;
+const HEADING_LEVELS = [1, 2, 3, 4, 5, 6] as const;
+const TEXT_COLOR_OPTIONS = [
+  { label: "Default color", value: "" },
+  { label: "Black", value: "#161916" },
+  { label: "Red", value: "#b42318" },
+  { label: "Blue", value: "#175cd3" },
+  { label: "Green", value: "#067647" },
+  { label: "Purple", value: "#6941c6" },
+] as const;
+const HIGHLIGHT_COLOR_OPTIONS = [
+  { label: "No highlight", value: "" },
+  { label: "Yellow highlight", value: "#fde68a" },
+  { label: "Green highlight", value: "#bbf7d0" },
+  { label: "Blue highlight", value: "#bfdbfe" },
+  { label: "Pink highlight", value: "#fbcfe8" },
+] as const;
 
 type MenuItem = {
   label: string;
@@ -223,8 +244,10 @@ export function Toolbar({
   canEdit,
   canViewHistory,
   commentsOpen,
+  outlineOpen,
   zoom,
   onToggleComments,
+  onToggleOutline,
   onZoomChange,
   onImport,
   onConflict,
@@ -235,8 +258,10 @@ export function Toolbar({
   canEdit: boolean;
   canViewHistory: boolean;
   commentsOpen: boolean;
+  outlineOpen: boolean;
   zoom: number;
   onToggleComments: () => void;
+  onToggleOutline: () => void;
   onZoomChange: (zoom: number) => void;
   onImport: (document: RestoredDocument) => void;
   onConflict: (message: string) => void;
@@ -251,13 +276,17 @@ export function Toolbar({
     editor && isBulletStyle(editor.getAttributes("bulletList").bulletStyle)
       ? (editor.getAttributes("bulletList").bulletStyle as BulletStyle)
       : "disc";
-  const activeBlockStyle = editor?.isActive("heading", { level: 1 })
-    ? "heading-1"
-    : editor?.isActive("heading", { level: 2 })
-      ? "heading-2"
-      : editor?.isActive("heading", { level: 3 })
-        ? "heading-3"
-        : "paragraph";
+  const activeHeadingLevel = HEADING_LEVELS.find((level) =>
+    editor?.isActive("heading", { level }),
+  );
+  const activeBlockStyle = activeHeadingLevel
+    ? `heading-${activeHeadingLevel}`
+    : "paragraph";
+  const activeBlockAttributes = editor?.getAttributes(
+    activeHeadingLevel ? "heading" : "paragraph",
+  );
+  const activeTextStyle = editor?.getAttributes("richTextStyle") ?? {};
+  const activeHighlight = editor?.getAttributes("highlight") ?? {};
 
   useEffect(() => {
     if (!editor) return;
@@ -345,8 +374,30 @@ export function Toolbar({
       editor.chain().focus().setParagraph().run();
       return;
     }
-    const level = Number(value.slice(-1)) as 1 | 2 | 3;
+    const level = Number(value.slice(-1)) as
+      | 1
+      | 2
+      | 3
+      | 4
+      | 5
+      | 6;
     editor.chain().focus().setHeading({ level }).run();
+  }
+
+  function changeSelectionCase(mode: "uppercase" | "lowercase" | "title") {
+    if (!editor) return;
+    editor.commands.changeTextCase(mode);
+    window.setTimeout(() => {
+      if (!editor.isDestroyed) editor.view.focus();
+    }, 0);
+  }
+
+  function insertLocalizedText(text: string) {
+    if (!editor) return;
+    editor.commands.insertContent(text);
+    window.setTimeout(() => {
+      if (!editor.isDestroyed) editor.view.focus();
+    }, 0);
   }
 
   function chooseImage() {
@@ -458,6 +509,26 @@ export function Toolbar({
                 onSelect: chooseImage,
               },
             ],
+            [
+              {
+                label: "Current date",
+                onSelect: () =>
+                  insertLocalizedText(
+                    new Intl.DateTimeFormat(undefined, {
+                      dateStyle: "long",
+                    }).format(new Date()),
+                  ),
+              },
+              {
+                label: "Current time",
+                onSelect: () =>
+                  insertLocalizedText(
+                    new Intl.DateTimeFormat(undefined, {
+                      timeStyle: "short",
+                    }).format(new Date()),
+                  ),
+              },
+            ],
           ],
           format: [
             [
@@ -507,7 +578,7 @@ export function Toolbar({
                 label: "Normal text",
                 onSelect: () => editor.chain().focus().setParagraph().run(),
               },
-              ...([1, 2, 3] as const).map((level) => ({
+              ...HEADING_LEVELS.map((level) => ({
                 label: `Heading ${level}`,
                 onSelect: () =>
                   editor.chain().focus().setHeading({ level }).run(),
@@ -576,6 +647,53 @@ export function Toolbar({
               },
             ],
             [
+              ...LINE_HEIGHT_OPTIONS.map((lineHeight) => ({
+                label: `${lineHeight === 1 ? "Single" : lineHeight} line spacing${activeBlockAttributes?.lineHeight === lineHeight ? " ✓" : ""}`,
+                onSelect: () =>
+                  editor
+                    .chain()
+                    .focus()
+                    .setParagraphLineHeight(lineHeight)
+                    .run(),
+              })),
+              {
+                label: `${Number(activeBlockAttributes?.spaceBefore) > 0 ? "Remove" : "Add"} space before paragraph`,
+                onSelect: () =>
+                  editor
+                    .chain()
+                    .focus()
+                    .setParagraphSpaceBefore(
+                      Number(activeBlockAttributes?.spaceBefore) > 0 ? 0 : 0.75,
+                    )
+                    .run(),
+              },
+              {
+                label: `${Number(activeBlockAttributes?.spaceAfter) > 0 ? "Remove" : "Add"} space after paragraph`,
+                onSelect: () =>
+                  editor
+                    .chain()
+                    .focus()
+                    .setParagraphSpaceAfter(
+                      Number(activeBlockAttributes?.spaceAfter) > 0 ? 0 : 0.75,
+                    )
+                    .run(),
+              },
+            ],
+            [
+              {
+                label: "UPPERCASE",
+                onSelect: () => changeSelectionCase("uppercase"),
+              },
+              {
+                label: "lowercase",
+                onSelect: () => changeSelectionCase("lowercase"),
+              },
+              {
+                label: "Title Case",
+                onSelect: () => changeSelectionCase("title"),
+              },
+            ],
+            [
               {
                 label: "Clear formatting",
                 shortcut: "Ctrl/⌘ + \\",
@@ -615,6 +733,12 @@ export function Toolbar({
                 label: commentsOpen ? "Hide comments" : "Show comments",
                 shortcut: "Ctrl/⌘ + Alt + Shift + A",
                 onSelect: onToggleComments,
+              },
+              {
+                label: outlineOpen
+                  ? "Hide document outline"
+                  : "Show document outline",
+                onSelect: onToggleOutline,
               },
             ],
             DOCUMENT_ZOOM_OPTIONS.map((nextZoom) => ({
@@ -688,9 +812,50 @@ export function Toolbar({
             className="app-input h-8 w-32 shrink-0 rounded-sm px-2 text-sm outline-none"
           >
             <option value="paragraph">Normal text</option>
-            <option value="heading-1">Heading 1</option>
-            <option value="heading-2">Heading 2</option>
-            <option value="heading-3">Heading 3</option>
+            {HEADING_LEVELS.map((level) => (
+              <option key={level} value={`heading-${level}`}>
+                Heading {level}
+              </option>
+            ))}
+          </select>
+          <select
+            value={String(activeTextStyle.fontFamily ?? "")}
+            onChange={(event) =>
+              editor
+                .chain()
+                .focus()
+                .setFontFamily(event.target.value || null)
+                .run()
+            }
+            aria-label="Font family"
+            title="Font family"
+            className="app-input h-8 w-28 shrink-0 rounded-sm px-2 text-sm outline-none"
+          >
+            {FONT_FAMILY_OPTIONS.map((option) => (
+              <option key={option.label} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={String(activeTextStyle.fontSize ?? "")}
+            onChange={(event) =>
+              editor
+                .chain()
+                .focus()
+                .setFontSize(event.target.value ? Number(event.target.value) : null)
+                .run()
+            }
+            aria-label="Font size"
+            title="Font size"
+            className="app-input h-8 w-20 shrink-0 rounded-sm px-2 text-sm outline-none"
+          >
+            <option value="">Default</option>
+            {FONT_SIZE_OPTIONS.map((fontSize) => (
+              <option key={fontSize} value={fontSize}>
+                {fontSize} pt
+              </option>
+            ))}
           </select>
           <select
             value={zoom}
@@ -702,6 +867,44 @@ export function Toolbar({
             {DOCUMENT_ZOOM_OPTIONS.map((zoomOption) => (
               <option key={zoomOption} value={zoomOption}>
                 {zoomOption}%
+              </option>
+            ))}
+          </select>
+          <ToolbarSeparator />
+          <select
+            value={String(activeTextStyle.color ?? "")}
+            onChange={(event) =>
+              editor
+                .chain()
+                .focus()
+                .setTextColor(event.target.value || null)
+                .run()
+            }
+            aria-label="Text color"
+            title="Text color"
+            className="app-input h-8 w-24 shrink-0 rounded-sm px-2 text-sm outline-none"
+          >
+            {TEXT_COLOR_OPTIONS.map((option) => (
+              <option key={option.label} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={String(activeHighlight.color ?? "")}
+            onChange={(event) => {
+              const color = event.target.value;
+              const chain = editor.chain().focus();
+              if (color) chain.setHighlight({ color }).run();
+              else chain.unsetHighlight().run();
+            }}
+            aria-label="Highlight color"
+            title="Highlight color"
+            className="app-input h-8 w-28 shrink-0 rounded-sm px-2 text-sm outline-none"
+          >
+            {HIGHLIGHT_COLOR_OPTIONS.map((option) => (
+              <option key={option.label} value={option.value}>
+                {option.label}
               </option>
             ))}
           </select>

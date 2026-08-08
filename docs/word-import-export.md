@@ -18,7 +18,7 @@ document after the import began.
 Thido preserves structures that exist in its current TipTap schema:
 
 - paragraphs and empty paragraphs;
-- headings 1–3;
+- headings 1–6;
 - bold, italic, underline, highlight, strikethrough, superscript, subscript, and
   code-style text where Word exposes equivalent semantic markup;
 - safe HTTP(S) and email links;
@@ -32,7 +32,6 @@ The following Word structures are not represented faithfully yet:
 
 - advanced table layout, exact column widths, borders, cell colors, and other
   decorative table styling are simplified;
-- heading levels below level 3 lose their distinct level;
 - headers, footers, page numbers, columns, sections, page setup, bookmarks,
   citations, equations, drawings, charts, text boxes, footnotes, and endnotes do
   not retain their original document semantics;
@@ -52,17 +51,20 @@ those notes after a successful import so loss is not silent.
 
 Word export preserves the Thido structures listed as supported above, including
 safe links, basic tables, disc/circle/square unordered-list markers, stored
-document images, text alignment, paragraph indentation, and page breaks. Thido
+document images, headings 1–6, text alignment, paragraph indentation, font
+family, font size, text color, highlight color, line spacing, paragraph spacing,
+and page breaks. Thido
 checklist items are represented with checked or unchecked box characters;
 importing that Word file again retains their text but does not reconstruct
 semantic checklist state. The Thido document title is written as Word file
 metadata and used for the filename; it is not duplicated as a body heading.
 
-PDF export renders the document title, bold, italic, underline, strikethrough,
-code-style text, alignment, indentation, page breaks, clickable links, lists,
-checklist markers, basic tables, blockquotes, horizontal rules, and stored images
-onto A4 pages. Highlight and superscript/subscript remain visible in the editor
-and Word export but currently fall back to plain text in PDF. Browser printing
+PDF export renders the document title, headings 1–6, bold, italic, underline,
+strikethrough, font family, font size, text color, code-style text, alignment,
+indentation, line spacing, paragraph spacing, page breaks, clickable links,
+lists, checklist markers, basic tables, blockquotes, horizontal rules, and
+stored images onto A4 pages. Highlight and superscript/subscript remain visible
+in the editor and Word export but currently fall back to plain text in PDF. Browser printing
 remains available when a user needs printer-specific controls.
 
 Comments, private comment anchors, AI metadata, collaborator details, and

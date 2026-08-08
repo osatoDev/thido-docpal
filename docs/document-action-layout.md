@@ -50,6 +50,17 @@ The next expansion adds sixteen implemented commands while retaining the same si
 
 Underline is also present in the compact toolbar, while zoom uses a compact selector. The longer **Format** menu is viewport-bounded and scrollable so it remains usable on smaller screens.
 
+## Authoring expansion
+
+The next implemented authoring bundle extends the familiar controls without adding new top-level menus:
+
+- **View:** a collapsible heading-derived document outline with click-to-navigate entries.
+- **Insert:** localized current-date and current-time insertion.
+- **Format:** Heading 4–6, four line-spacing presets, paragraph space before/after, and uppercase, lowercase, and title-case conversion for the selection.
+- **Toolbar:** font family, font size, text color, and multi-color highlight selectors.
+
+Typography, color, highlight, line spacing, paragraph spacing, and deeper headings persist in the shared editor schema and public document rendering. Compatible styling is also carried into Word and PDF export; Word re-import may flatten decorative styling because the import conversion intentionally prioritizes semantic structure.
+
 ## Interaction and accessibility
 
 - Menus close on outside click and Escape.
@@ -58,4 +69,5 @@ Underline is also present in the compact toolbar, while zoom uses a compact sele
 - Every icon-only control has an accessible label and tooltip.
 - Find and replace, link insertion, clear formatting, and word count support the displayed keyboard shortcuts.
 - The comments control exposes its expanded state and uses the Google Docs-style discussion shortcut, `Ctrl/⌘ + Alt + Shift + A`.
+- The document outline is labelled as navigation, has a dedicated close control, and uses ordinary buttons so it remains keyboard accessible.
 - Unavailable editing menus are omitted for viewers instead of presenting actions that cannot succeed.

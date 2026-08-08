@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { generateHTML, generateJSON } from "@tiptap/html/server";
 import type { JSONContent } from "@tiptap/core";
 
+import { transformTextCase } from "@/components/editor/extensions/TextCase";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 
 describe("styled bullet lists", () => {
@@ -129,5 +130,89 @@ describe("priority-one document structures", () => {
       textIndent: 2,
     });
     expect(parsed.content?.[2].type).toBe("pageBreak");
+  });
+
+  it("round-trips advanced text styles, paragraph spacing, and deeper headings", () => {
+    const content: JSONContent = {
+      type: "doc",
+      content: [
+        {
+          type: "heading",
+          attrs: {
+            level: 6,
+            lineHeight: 1.5,
+            spaceBefore: 0.75,
+            spaceAfter: 0,
+          },
+          content: [
+            {
+              type: "text",
+              text: "Styled heading",
+              marks: [
+                {
+                  type: "richTextStyle",
+                  attrs: {
+                    fontFamily: "Arial, sans-serif",
+                    fontSize: 14,
+                    color: "#175cd3",
+                  },
+                },
+                { type: "highlight", attrs: { color: "#bbf7d0" } },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const html = generateHTML(content, getEditorExtensions());
+    const parsed = generateJSON(html, getEditorExtensions());
+
+    expect(html).toContain("<h6");
+    expect(html).toContain("line-height: 1.5");
+    expect(html).toContain("margin-top: 0.75rem");
+    expect(html).toContain("font-family: Arial, sans-serif");
+    expect(html).toContain("font-size: 14pt");
+    expect(html).toContain("color: #175cd3");
+    expect(html).toContain("background-color: #bbf7d0");
+    expect(parsed.content?.[0]).toMatchObject({
+      type: "heading",
+      attrs: {
+        level: 6,
+        lineHeight: 1.5,
+        spaceBefore: 0.75,
+        spaceAfter: 0,
+      },
+    });
+    expect(parsed.content?.[0].content?.[0].marks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "richTextStyle",
+          attrs: {
+            fontFamily: "Arial, sans-serif",
+            fontSize: 14,
+            color: "#175cd3",
+          },
+        }),
+        expect.objectContaining({
+          type: "highlight",
+          attrs: { color: "#bbf7d0" },
+        }),
+      ]),
+    );
+  });
+});
+
+describe("capitalization commands", () => {
+  it("supports upper, lower, and title case", () => {
+    expect(transformTextCase("Thido drafts", "uppercase")).toBe(
+      "THIDO DRAFTS",
+    );
+    expect(transformTextCase("Thido DRAFTS", "lowercase")).toBe(
+      "thido drafts",
+    );
+    expect(transformTextCase("a BETTER client's draft", "title")).toBe(
+      "A Better Client's Draft",
+    );
   });
 });

@@ -10,7 +10,14 @@ import TextAlign from "@tiptap/extension-text-align";
 import type { Extensions } from "@tiptap/core";
 import { CommentMark } from "@/components/editor/extensions/CommentMark";
 import { PageBreak } from "@/components/editor/extensions/PageBreak";
+import {
+  FormattedHeading,
+  FormattedParagraph,
+  ParagraphFormatting,
+} from "@/components/editor/extensions/ParagraphFormatting";
+import { RichTextStyle } from "@/components/editor/extensions/RichTextStyle";
 import { StyledBulletList } from "@/components/editor/extensions/StyledBulletList";
+import { TextCase } from "@/components/editor/extensions/TextCase";
 import { TextIndent } from "@/components/editor/extensions/TextIndent";
 import { isSafeDocumentLink } from "@/lib/documentLinks";
 
@@ -33,6 +40,8 @@ export function getEditorExtensions(): Extensions {
   return [
     StarterKit.configure({
       bulletList: false,
+      heading: false,
+      paragraph: false,
       link: {
         autolink: true,
         enableClickSelection: true,
@@ -47,6 +56,8 @@ export function getEditorExtensions(): Extensions {
         shouldAutoLink: isSafeDocumentLink,
       },
     }),
+    FormattedParagraph,
+    FormattedHeading.configure({ levels: [1, 2, 3, 4, 5, 6] }),
     StyledBulletList,
     TaskList,
     TaskItem.configure({
@@ -73,9 +84,12 @@ export function getEditorExtensions(): Extensions {
     TextAlign.configure({
       types: ["heading", "paragraph"],
     }),
-    Highlight,
+    Highlight.configure({ multicolor: true }),
     ExclusiveSuperscript,
     ExclusiveSubscript,
+    RichTextStyle,
+    ParagraphFormatting,
+    TextCase,
     TextIndent,
     PageBreak,
     CommentMark,

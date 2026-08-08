@@ -174,8 +174,11 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Add a second Google Docs-inspired P0 bundle with Select all; 75/100/125/150% zoom; page breaks; underline; highlight; inline code; superscript; subscript; code blocks; four-way alignment; and paragraph indent/outdent.
 - [x] Browser-check the second P0 bundle on desktop and at 390 px: verify full-document selection with restored editor focus, underline/highlight/subscript/code formatting, page-break insertion, alignment, indent/outdent, zoom, scrollable viewport-contained menus, and no browser errors or horizontal page overflow.
 - [x] Preserve the compatible expanded formatting, alignment, indentation, and page-break structures in shared-schema HTML and Word/PDF export, with explicit PDF fallbacks documented for highlight and superscript/subscript.
+- [x] Add the next authoring bundle: a collapsible heading outline with navigation; Heading 4–6; font family, font size, text color, and highlight-color controls; line and paragraph spacing; uppercase/lowercase/title case; and localized date/time insertion.
+- [x] Preserve deeper headings, typography, text color, and paragraph spacing in shared-schema HTML and compatible Word/PDF export, while retaining the documented PDF and Word re-import fallbacks.
+- [x] Browser-check the authoring bundle on desktop and at 390 px, including live outline updates/navigation, toolbar horizontal scrolling, viewport-contained menus, formatting and Heading 6 persistence after reopening, localized date/time insertion, capitalization focus restoration, and absence of browser errors or page overflow.
 - [ ] Define and document Thido's spelling, grammar, and document-language experience.
-- [ ] Add heading-based document navigation, internal links, a table of contents, and footnotes before pursuing advanced page-layout controls.
+- [ ] Add stable internal heading links, a table of contents, and footnotes before pursuing advanced page-layout controls; heading-based outline navigation is implemented.
 - [ ] Add a human suggestion mode that shares a coherent accept/reject and history model with AI proposals.
 - [ ] Add collaborator mentions, comment assignments, notification preferences, and filters for work needing a user's response.
 - [ ] Defer offline editing until version history and conflict-safe synchronization are proven.
@@ -229,7 +232,7 @@ This is the running source of truth for production-readiness work. Completed box
 
 - [ ] Validate the assumptions in [Can the current version of Thido support 100 users?](./can-thido-support-100-users.md) with an isolated staging load test at 10, 25, 50, and 100 concurrent virtual users before making a concurrent-capacity claim.
 - [x] Add automated unit tests for authentication input, password hashing, token helpers, rate limiting, and API auth responses.
-- [x] Confirm the current unit suite passes: 98 tests across thirty files, including expanded editor formatting/schema round trips, editor text search/counting, reviewed beta-seat allocation, timestamped reusable placeholders, private-image public-share URL coverage, safe links, persisted bullet/checklist/table structures, revision coalescing, import sanitization, Word/PDF generation, link-derived authorization, and AI comment conversation ordering.
+- [x] Confirm the current unit suite passes: 100 tests across thirty files, including advanced editor typography/spacing/deeper-heading schema round trips and capitalization, editor text search/counting, reviewed beta-seat allocation, timestamped reusable placeholders, private-image public-share URL coverage, safe links, persisted bullet/checklist/table structures, revision coalescing, import sanitization, Word/PDF generation, link-derived authorization, and AI comment conversation ordering.
 - [x] Apply all nineteen migrations to an isolated temporary PostgreSQL instance and browser-check visible full-access link controls, click-time authentication with action return, full editor access, link-access activity, immediate revocation, and an additional user/AI message pair in an existing whole-document comment thread.
 - [x] Browser-check the rendered connected-accounts Settings panel, empty admin approval waitlist, and editor image insertion control with no framework overlay or browser errors.
 - [x] Deploy the connected-accounts, private document-photo, post-cap waitlist, verified auth sender, and analytics-status changes to Vercel Production (`dpl_6tYbWWaY4rT5FdFEBrkyGRQRjjHd`) and smoke-check the live login and registration pages without browser errors.
@@ -272,7 +275,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Upgrade Next.js from 16.2.10 to a patched 16.2.12 or newer compatible release and verify the current `sharp` and `postcss` advisories are resolved.
 - [ ] Upgrade `next-auth` and `@auth/prisma-adapter` to releases containing the July 2026 Auth.js authorization, token-validation, email-normalization, and OAuth-cookie fixes, then rerun the authentication test matrix.
 - [ ] Add Dependabot or Renovate for dependency update pull requests.
-- [ ] Audit the eight vulnerabilities currently reported by `npm audit` (six high and two critical), identify which are production-reachable, and upgrade affected dependencies without using a blind force-fix.
+- [ ] Audit the nine vulnerabilities currently reported by `npm audit` (seven high and two critical), identify which are production-reachable, and upgrade affected dependencies without using a blind force-fix.
 - [ ] Add a Content Security Policy and review other security headers.
 - [ ] Confirm secrets are only stored in Vercel/GitHub secret stores and never committed.
 - [ ] Rotate any secret that may have appeared in terminal output, screenshots, chat, or repository history.

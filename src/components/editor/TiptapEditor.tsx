@@ -5,6 +5,7 @@ import { EditorContent, useEditor, type JSONContent } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { Toolbar } from "./Toolbar";
+import { DocumentOutline } from "./DocumentOutline";
 import { TableContextMenu } from "./TableContextMenu";
 import { CommentSidebar } from "@/components/comments/CommentSidebar";
 import { CommentComposer } from "@/components/comments/CommentComposer";
@@ -91,6 +92,7 @@ export function TiptapEditor({
   const [comments, setComments] = useState<CommentWithReplies[]>(initialComments);
   const [activeComposer, setActiveComposer] = useState<ActiveComposer | null>(null);
   const [commentsSidebarOpen, setCommentsSidebarOpen] = useState(true);
+  const [documentOutlineOpen, setDocumentOutlineOpen] = useState(false);
   const [editorZoom, setEditorZoom] = useState(100);
   const [pendingCommentIds, setPendingCommentIds] = useState<Set<string>>(() => {
     return new Set(
@@ -813,9 +815,13 @@ export function TiptapEditor({
             canEdit={canEditNow}
             canViewHistory={canEdit}
             commentsOpen={commentsSidebarOpen}
+            outlineOpen={documentOutlineOpen}
             zoom={editorZoom}
             onToggleComments={() =>
               setCommentsSidebarOpen((open) => !open)
+            }
+            onToggleOutline={() =>
+              setDocumentOutlineOpen((open) => !open)
             }
             onZoomChange={setEditorZoom}
             onImport={handleDocumentRestored}
@@ -891,19 +897,27 @@ export function TiptapEditor({
               </div>
             </BubbleMenu>
           )}
-          <div className="print-document-content flex-1 overflow-y-auto px-4 py-7 sm:px-7 sm:py-10 lg:px-8">
-            <div
-              className="editor-zoom"
-              style={{ zoom: editorZoom / 100 }}
-              data-zoom={`${editorZoom}%`}
-            >
-              {editor && canEditNow ? (
-                <TableContextMenu editor={editor}>
+          <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+            {documentOutlineOpen && editor ? (
+              <DocumentOutline
+                editor={editor}
+                onClose={() => setDocumentOutlineOpen(false)}
+              />
+            ) : null}
+            <div className="print-document-content min-w-0 flex-1 overflow-y-auto px-4 py-7 sm:px-7 sm:py-10 lg:px-8">
+              <div
+                className="editor-zoom"
+                style={{ zoom: editorZoom / 100 }}
+                data-zoom={`${editorZoom}%`}
+              >
+                {editor && canEditNow ? (
+                  <TableContextMenu editor={editor}>
+                    <EditorContent editor={editor} />
+                  </TableContextMenu>
+                ) : (
                   <EditorContent editor={editor} />
-                </TableContextMenu>
-              ) : (
-                <EditorContent editor={editor} />
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>

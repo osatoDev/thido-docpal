@@ -29,22 +29,51 @@ const bulletGlyphs: Record<BulletStyle, string> = {
   square: "▪",
 };
 
+const wordHighlightColors: Record<string, (typeof HighlightColor)[keyof typeof HighlightColor]> = {
+  "#fde68a": HighlightColor.YELLOW,
+  "#bbf7d0": HighlightColor.GREEN,
+  "#bfdbfe": HighlightColor.CYAN,
+  "#fbcfe8": HighlightColor.MAGENTA,
+};
+
+function wordFontFamily(value: unknown) {
+  if (value === "sans-serif" || value === "Arial, sans-serif") return "Arial";
+  if (value === "monospace") return "Courier New";
+  if (value === "serif") return "Times New Roman";
+  return undefined;
+}
+
 function textRuns(node: JSONContent, forceCode = false): ParagraphChild[] {
   if (node.type === "hardBreak") return [new TextRun({ break: 1 })];
   if (node.type === "text") {
     const markTypes = new Set(node.marks?.map((mark) => mark.type));
     const href = node.marks?.find((mark) => mark.type === "link")?.attrs?.href;
+    const highlight = node.marks?.find((mark) => mark.type === "highlight");
+    const textStyle = node.marks?.find(
+      (mark) => mark.type === "richTextStyle",
+    );
+    const fontSize = Number(textStyle?.attrs?.fontSize);
+    const textColor = textStyle?.attrs?.color;
     const run = new TextRun({
       text: node.text ?? "",
       bold: markTypes.has("bold"),
       italics: markTypes.has("italic"),
       strike: markTypes.has("strike"),
-      font: forceCode || markTypes.has("code") ? "Courier New" : undefined,
-      color: markTypes.has("link") ? "1A5FB4" : undefined,
+      font:
+        forceCode || markTypes.has("code")
+          ? "Courier New"
+          : wordFontFamily(textStyle?.attrs?.fontFamily),
+      size: Number.isFinite(fontSize) && fontSize > 0 ? fontSize * 2 : undefined,
+      color: markTypes.has("link")
+        ? "1A5FB4"
+        : typeof textColor === "string"
+          ? textColor.replace("#", "").toUpperCase()
+          : undefined,
       underline:
         markTypes.has("link") || markTypes.has("underline") ? {} : undefined,
       highlight: markTypes.has("highlight")
-        ? HighlightColor.YELLOW
+        ? wordHighlightColors[String(highlight?.attrs?.color)] ??
+          HighlightColor.YELLOW
         : undefined,
       subScript: markTypes.has("subscript"),
       superScript: markTypes.has("superscript"),
@@ -60,6 +89,9 @@ function headingLevel(level: unknown) {
   if (level === 1) return HeadingLevel.HEADING_1;
   if (level === 2) return HeadingLevel.HEADING_2;
   if (level === 3) return HeadingLevel.HEADING_3;
+  if (level === 4) return HeadingLevel.HEADING_4;
+  if (level === 5) return HeadingLevel.HEADING_5;
+  if (level === 6) return HeadingLevel.HEADING_6;
   return undefined;
 }
 
@@ -109,6 +141,11 @@ async function wordParagraph(
     Math.max(0, Number(node.attrs?.textIndent) || 0),
   );
   const leftIndent = (options.blockquote ? 720 : 0) + textIndent * 480;
+  const lineHeight = Number(node.attrs?.lineHeight);
+  const hasSpaceBefore = node.attrs?.spaceBefore !== null && node.attrs?.spaceBefore !== undefined;
+  const hasSpaceAfter = node.attrs?.spaceAfter !== null && node.attrs?.spaceAfter !== undefined;
+  const spaceBefore = Number(node.attrs?.spaceBefore);
+  const spaceAfter = Number(node.attrs?.spaceAfter);
 
   return new Paragraph({
     children,
@@ -117,7 +154,22 @@ async function wordParagraph(
     alignment: wordAlignment(node.attrs?.textAlign),
     numbering: options.numbering,
     indent: leftIndent > 0 ? { left: leftIndent } : undefined,
-    spacing: { after: node.type === "heading" ? 160 : 120 },
+    spacing: {
+      before:
+        hasSpaceBefore && Number.isFinite(spaceBefore)
+          ? Math.max(0, Math.round(spaceBefore * 240))
+          : undefined,
+      after:
+        hasSpaceAfter && Number.isFinite(spaceAfter)
+          ? Math.max(0, Math.round(spaceAfter * 240))
+          : node.type === "heading"
+            ? 160
+            : 120,
+      line:
+        Number.isFinite(lineHeight) && lineHeight > 0
+          ? Math.round(lineHeight * 240)
+          : undefined,
+    },
   });
 }
 
@@ -291,6 +343,9 @@ type PdfRun = {
   code: boolean;
   strike: boolean;
   underline: boolean;
+  color?: string;
+  fontFamily?: string;
+  fontSize?: number;
   href?: string;
 };
 
@@ -311,6 +366,10 @@ function pdfRuns(node: JSONContent, forceCode = false): PdfRun[] {
     const marks = new Set(node.marks?.map((mark) => mark.type));
     const linkHref = node.marks?.find((mark) => mark.type === "link")?.attrs
       ?.href;
+    const textStyle = node.marks?.find(
+      (mark) => mark.type === "richTextStyle",
+    );
+    const fontSize = Number(textStyle?.attrs?.fontSize);
     return [
       {
         text: node.text ?? "",
@@ -319,6 +378,16 @@ function pdfRuns(node: JSONContent, forceCode = false): PdfRun[] {
         code: forceCode || marks.has("code"),
         strike: marks.has("strike"),
         underline: marks.has("underline"),
+        color:
+          typeof textStyle?.attrs?.color === "string"
+            ? textStyle.attrs.color
+            : undefined,
+        fontFamily:
+          typeof textStyle?.attrs?.fontFamily === "string"
+            ? textStyle.attrs.fontFamily
+            : undefined,
+        fontSize:
+          Number.isFinite(fontSize) && fontSize > 0 ? fontSize : undefined,
         href:
           typeof linkHref === "string" && isSafeDocumentLink(linkHref)
             ? linkHref
@@ -330,11 +399,24 @@ function pdfRuns(node: JSONContent, forceCode = false): PdfRun[] {
 }
 
 function pdfFont(run: PdfRun) {
-  if (run.code) {
+  const family = run.code
+    ? "monospace"
+    : run.fontFamily === "sans-serif" || run.fontFamily === "Arial, sans-serif"
+      ? "sans-serif"
+      : run.fontFamily === "monospace"
+        ? "monospace"
+        : "serif";
+  if (family === "monospace") {
     if (run.bold && run.italic) return "Courier-BoldOblique";
     if (run.bold) return "Courier-Bold";
     if (run.italic) return "Courier-Oblique";
     return "Courier";
+  }
+  if (family === "sans-serif") {
+    if (run.bold && run.italic) return "Helvetica-BoldOblique";
+    if (run.bold) return "Helvetica-Bold";
+    if (run.italic) return "Helvetica-Oblique";
+    return "Helvetica";
   }
   if (run.bold && run.italic) return "Times-BoldItalic";
   if (run.bold) return "Times-Bold";
@@ -346,6 +428,7 @@ function renderPdfRuns(
   pdf: PDFKit.PDFDocument,
   runs: PdfRun[],
   options: PDFKit.Mixins.TextOptions = {},
+  defaultFontSize = 11,
 ) {
   if (runs.length === 0) {
     pdf.text(" ", options);
@@ -354,7 +437,8 @@ function renderPdfRuns(
   runs.forEach((run, index) => {
     pdf
       .font(pdfFont(run))
-      .fillColor(run.href ? "#1a5fb4" : "#161916")
+      .fontSize(run.fontSize ?? defaultFontSize)
+      .fillColor(run.href ? "#1a5fb4" : run.color ?? "#161916")
       .text(run.text, {
         ...options,
         continued: index < runs.length - 1,
@@ -381,7 +465,26 @@ function pdfBlockOptions(node: JSONContent) {
         ? alignment
         : undefined,
     indent: textIndent > 0 ? textIndent * 24 : undefined,
+    lineGap:
+      Number.isFinite(Number(node.attrs?.lineHeight)) &&
+      Number(node.attrs?.lineHeight) > 0
+        ? Math.max(0, (Number(node.attrs?.lineHeight) - 1) * 11)
+        : undefined,
   } satisfies PDFKit.Mixins.TextOptions;
+}
+
+function pdfSpaceBefore(pdf: PDFKit.PDFDocument, node: JSONContent) {
+  const spaceBefore = Number(node.attrs?.spaceBefore);
+  if (node.attrs?.spaceBefore !== null && Number.isFinite(spaceBefore) && spaceBefore > 0) {
+    pdf.moveDown(spaceBefore);
+  }
+}
+
+function pdfSpaceAfter(node: JSONContent, fallback: number) {
+  const spaceAfter = Number(node.attrs?.spaceAfter);
+  return node.attrs?.spaceAfter !== null && Number.isFinite(spaceAfter)
+    ? Math.max(0, spaceAfter)
+    : fallback;
 }
 
 function plainText(node: JSONContent): string {
@@ -518,9 +621,19 @@ async function renderPdfBlocks(
     }
     if (node.type === "heading") {
       const levelValue = Number(node.attrs?.level) || 1;
-      pdf.fontSize(levelValue === 1 ? 20 : levelValue === 2 ? 16 : 13);
-      renderPdfRuns(pdf, pdfRuns(node), pdfBlockOptions(node));
-      pdf.moveDown(0.45);
+      const headingSize =
+        levelValue === 1
+          ? 20
+          : levelValue === 2
+            ? 16
+            : levelValue === 3
+              ? 13
+              : levelValue === 4
+                ? 12
+                : 11;
+      pdfSpaceBefore(pdf, node);
+      renderPdfRuns(pdf, pdfRuns(node), pdfBlockOptions(node), headingSize);
+      pdf.moveDown(pdfSpaceAfter(node, 0.45));
       continue;
     }
     if (node.type === "blockquote") {
@@ -549,14 +662,14 @@ async function renderPdfBlocks(
       continue;
     }
     if (node.type === "codeBlock") {
-      pdf.fontSize(10);
-      renderPdfRuns(pdf, pdfRuns(node, true), pdfBlockOptions(node));
-      pdf.moveDown(0.45);
+      pdfSpaceBefore(pdf, node);
+      renderPdfRuns(pdf, pdfRuns(node, true), pdfBlockOptions(node), 10);
+      pdf.moveDown(pdfSpaceAfter(node, 0.45));
       continue;
     }
-    pdf.fontSize(11);
+    pdfSpaceBefore(pdf, node);
     renderPdfRuns(pdf, pdfRuns(node), pdfBlockOptions(node));
-    pdf.moveDown(0.45);
+    pdf.moveDown(pdfSpaceAfter(node, 0.45));
   }
 }
 

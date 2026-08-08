@@ -71,7 +71,7 @@ basic once a draft becomes important or collaborative.
 | --- | --- | --- |
 | Autosave | Present | Core content and title changes are saved automatically. |
 | Undo and redo | Partial | Available in the active editor session, but not as durable recovery after closing or overwriting a document. |
-| Rich text, alignment, and headings | Present | Includes common inline marks, code, four-way alignment, indentation, lists, and headings 1–3. |
+| Rich text, alignment, and headings | Present | Includes common inline marks, typography and color controls, code, four-way alignment, indentation, paragraph spacing, lists, and headings 1–6. |
 | Images | Present | Images can be inserted and rendered in private and public views. |
 | Printing | Present | A print-specific layout is available, including browser PDF output. |
 | Sharing permissions | Present | Direct view, comment, edit, and full access plus public read-only links are supported. |
@@ -85,7 +85,7 @@ basic once a draft becomes important or collaborative.
 | Tables and checklists | Present for the initial scope | Users can create checklists and small resizable tables, then add or delete rows and columns. Advanced table styling and semantic Word checklist round trips remain future work. |
 | Find and replace | Present | Editor-aware search supports navigation, case matching, replace, and replace all. |
 | Spelling, grammar, and word count | Partial | Document and selection counts are present; spelling, grammar, and language behavior still needs a defined product policy. |
-| Outline and table of contents | Missing | Headings exist, but there is no navigable structural view or generated contents list. |
+| Outline and table of contents | Partial | A collapsible heading outline provides click-to-navigate structure; stable section links, bookmarks, and an insertable table of contents remain unavailable. |
 | Page layout and references | Partial | Page breaks persist and print/export correctly; margins, headers, footers, page numbers, sections, and footnotes remain unavailable. |
 | Offline editing | Missing | Documents require an online application and server persistence. |
 | Document tabs and smart building blocks | Missing | Advanced organization and Workspace-style integrations are not present. |
@@ -241,6 +241,8 @@ user may need to check length, terminology, names, or repeated phrases quickly.
 
 ### 6. Outline, table of contents, and internal navigation
 
+**Repository status:** The collapsible heading outline and click-to-scroll navigation are implemented for headings 1–6. Stable heading IDs, internal section links, bookmarks, and an insertable table of contents remain future work.
+
 Thido supports headings but does not use them as navigation. Google Docs derives
 a document outline from headings and lets users jump between sections
 ([document outline](https://support.google.com/docs/answer/6367684)). It also
@@ -249,7 +251,7 @@ supports document tabs and nested subtabs for larger documents
 
 Recommended Thido scope:
 
-- a collapsible heading outline with click-to-scroll;
+- **Done:** a collapsible heading outline with click-to-scroll;
 - heading IDs that remain stable enough for internal links;
 - insertable table of contents with refresh behavior;
 - bookmarks or copyable links to a section;

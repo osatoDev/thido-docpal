@@ -103,7 +103,13 @@ describe("document comment marks", () => {
       content: [
         {
           type: "paragraph",
-          attrs: { textAlign: null, textIndent: 0 },
+          attrs: {
+            textAlign: null,
+            textIndent: 0,
+            lineHeight: null,
+            spaceBefore: null,
+            spaceAfter: null,
+          },
           content: [{ type: "text", text: "Intro rewritten outro" }],
         },
       ],
@@ -169,7 +175,13 @@ describe("document comment marks", () => {
       content: [
         {
           type: "paragraph",
-          attrs: { textAlign: null, textIndent: 0 },
+          attrs: {
+            textAlign: null,
+            textIndent: 0,
+            lineHeight: null,
+            spaceBefore: null,
+            spaceAfter: null,
+          },
           content: [
             { type: "text", text: "Before " },
             {
