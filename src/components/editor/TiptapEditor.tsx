@@ -876,8 +876,8 @@ export function TiptapEditor({
           <div className="print-hidden mx-auto w-full max-w-6xl border-l-2 border-[var(--warm)] pl-4">
             <p className="text-sm font-medium">Paste your document below.</p>
             <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-              When it is saved, highlight any passage and choose Comment to
-              ask Thido a question or request a change.
+              When it is saved, highlight any passage and choose Comment on
+              selected text to ask Thido a question or request a change.
             </p>
           </div>
         )}
@@ -894,7 +894,7 @@ export function TiptapEditor({
                   onClick={startComment}
                   className="rounded-sm px-2 py-1 text-xs font-medium hover:bg-[var(--surface-subtle)]"
                 >
-                  Comment
+                  Comment on selected text
                 </button>
               </div>
             </BubbleMenu>
@@ -903,6 +903,7 @@ export function TiptapEditor({
             {documentOutlineOpen && editor ? (
               <DocumentOutline
                 editor={editor}
+                canEdit={canEditNow}
                 onClose={() => setDocumentOutlineOpen(false)}
               />
             ) : null}

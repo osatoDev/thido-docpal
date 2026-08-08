@@ -3,7 +3,11 @@
 import { useEffect, useId, useState } from "react";
 import type { Editor } from "@tiptap/react";
 
-import { countText, getDocumentText } from "@/lib/editorText";
+import {
+  countText,
+  getDocumentInsights,
+  getDocumentText,
+} from "@/lib/editorText";
 
 function CountRows({
   label,
@@ -59,6 +63,7 @@ export function WordCountDialog({
 
   const { doc, selection } = editor.state;
   const documentCounts = countText(getDocumentText(doc));
+  const insights = getDocumentInsights(doc);
   const hasSelection = !selection.empty;
   const selectionCounts = hasSelection
     ? countText(getDocumentText(doc, selection.from, selection.to))
@@ -75,16 +80,16 @@ export function WordCountDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="app-panel w-full max-w-sm rounded-xl p-5 shadow-xl"
+        className="app-panel max-h-[80vh] w-full max-w-sm overflow-y-auto rounded-xl p-5 shadow-xl"
       >
         <div className="flex items-center justify-between gap-3">
           <h2 id={titleId} className="text-base font-semibold">
-            Word count
+            Document statistics
           </h2>
           <button
             type="button"
             autoFocus
-            aria-label="Close word count"
+            aria-label="Close document statistics"
             title="Close"
             onClick={onClose}
             className="app-button-secondary inline-flex size-8 items-center justify-center p-0 text-lg"
@@ -94,6 +99,27 @@ export function WordCountDialog({
         </div>
         <div className="mt-4 space-y-5">
           <CountRows label="Document" counts={documentCounts} />
+          <div className="border-t border-[var(--border)] pt-4">
+            <h3 className="text-sm font-semibold">Structure and reading</h3>
+            <dl className="mt-2 grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 text-sm">
+              <dt>Sentences</dt>
+              <dd className="tabular-nums">{insights.sentences.toLocaleString()}</dd>
+              <dt>Paragraphs</dt>
+              <dd className="tabular-nums">{insights.paragraphs.toLocaleString()}</dd>
+              <dt>Headings</dt>
+              <dd className="tabular-nums">{insights.headings.toLocaleString()}</dd>
+              <dt>Tables</dt>
+              <dd className="tabular-nums">{insights.tables.toLocaleString()}</dd>
+              <dt>Images</dt>
+              <dd className="tabular-nums">{insights.images.toLocaleString()}</dd>
+              <dt>Estimated reading time</dt>
+              <dd className="tabular-nums">
+                {insights.estimatedReadingMinutes} min
+              </dd>
+              <dt>Estimated pages</dt>
+              <dd className="tabular-nums">{insights.estimatedPages}</dd>
+            </dl>
+          </div>
           {selectionCounts ? (
             <div className="border-t border-[var(--border)] pt-4">
               <CountRows label="Selection" counts={selectionCounts} />

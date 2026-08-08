@@ -29,6 +29,10 @@ const content: JSONContent = {
           text: "a link",
           marks: [{ type: "link", attrs: { href: "https://example.com" } }],
         },
+        {
+          type: "bookmark",
+          attrs: { bookmarkId: "mark-1", label: "Export destination" },
+        },
         { type: "text", text: "." },
       ],
     },

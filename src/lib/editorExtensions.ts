@@ -8,6 +8,11 @@ import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
 import TextAlign from "@tiptap/extension-text-align";
 import type { Extensions } from "@tiptap/core";
+import {
+  Bookmark,
+  Bookmarks,
+} from "@/components/editor/extensions/Bookmarks";
+import { BlockOperations } from "@/components/editor/extensions/BlockOperations";
 import { CommentMark } from "@/components/editor/extensions/CommentMark";
 import {
   DocumentPreferences,
@@ -19,6 +24,7 @@ import {
   Footnotes,
 } from "@/components/editor/extensions/Footnotes";
 import { HeadingAnchors } from "@/components/editor/extensions/HeadingAnchors";
+import { DocumentNavigation } from "@/components/editor/extensions/DocumentNavigation";
 import { PageBreak } from "@/components/editor/extensions/PageBreak";
 import {
   FormattedHeading,
@@ -73,6 +79,10 @@ export function getEditorExtensions(): Extensions {
     FormattedParagraph,
     FormattedHeading.configure({ levels: [1, 2, 3, 4, 5, 6] }),
     HeadingAnchors,
+    DocumentNavigation,
+    BlockOperations,
+    Bookmark,
+    Bookmarks,
     DocumentPreferencesNode,
     DocumentPreferences,
     TableOfContents,

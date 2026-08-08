@@ -284,6 +284,37 @@ describe("priority-one document structures", () => {
       ]),
     );
   });
+
+  it("round-trips named bookmarks as safe internal destinations", () => {
+    const content: JSONContent = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "Start " },
+            {
+              type: "bookmark",
+              attrs: { bookmarkId: "mark-3", label: "Key decision" },
+            },
+            { type: "text", text: " here" },
+          ],
+        },
+      ],
+    };
+
+    const html = generateHTML(content, getEditorExtensions());
+    const parsed = generateJSON(html, getEditorExtensions());
+
+    expect(html).toContain('data-type="bookmark"');
+    expect(html).toContain('data-bookmark-id="mark-3"');
+    expect(html).toContain('id="bookmark-mark-3"');
+    expect(html).toContain('data-label="Key decision"');
+    expect(parsed.content?.[0].content?.[1]).toMatchObject({
+      type: "bookmark",
+      attrs: { bookmarkId: "mark-3", label: "Key decision" },
+    });
+  });
 });
 
 describe("heading anchors", () => {
@@ -305,5 +336,9 @@ describe("capitalization commands", () => {
     expect(transformTextCase("a BETTER client's draft", "title")).toBe(
       "A Better Client's Draft",
     );
+    expect(transformTextCase("hELLO WORLD. nEXT STEP!", "sentence")).toBe(
+      "Hello world. Next step!",
+    );
+    expect(transformTextCase("Thido 2.0", "toggle")).toBe("tHIDO 2.0");
   });
 });

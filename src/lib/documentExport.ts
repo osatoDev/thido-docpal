@@ -1,5 +1,6 @@
 import {
   AlignmentType,
+  Bookmark as WordBookmark,
   Document as WordDocument,
   ExternalHyperlink,
   HeadingLevel,
@@ -45,6 +46,16 @@ function wordFontFamily(value: unknown) {
 
 function textRuns(node: JSONContent, forceCode = false): ParagraphChild[] {
   if (node.type === "hardBreak") return [new TextRun({ break: 1 })];
+  if (node.type === "bookmark") {
+    const bookmarkId = String(node.attrs?.bookmarkId ?? "");
+    if (!/^mark-[1-9][0-9]*$/.test(bookmarkId)) return [];
+    return [
+      new WordBookmark({
+        id: `thido_${bookmarkId.replaceAll("-", "_")}`,
+        children: [],
+      }),
+    ];
+  }
   if (node.type === "footnoteReference") {
     return [
       new TextRun({

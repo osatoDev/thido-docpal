@@ -104,7 +104,7 @@ export function CommentSidebar({
           {documentComposerOpen
             ? "Submit your whole-document comment above."
             : canCreateComments
-              ? "Select text and choose “Comment” for a specific passage, or use the whole-document action above."
+              ? "Select text and choose “Comment on selected text” for a specific passage, or use the whole-document action above."
               : "No comments yet."}
         </p>
       ) : openComments.length === 0 && foregroundCommentCount === 0 ? (

@@ -5,6 +5,7 @@ import { getEditorExtensions } from "@/lib/editorExtensions";
 import {
   countText,
   findDocumentTextMatches,
+  getDocumentInsights,
   getDocumentText,
 } from "@/lib/editorText";
 
@@ -57,5 +58,52 @@ describe("editor text utilities", () => {
       charactersWithoutSpaces: 11,
     });
     expect(countText(getDocumentText(doc, 1, 8))).toMatchObject({ words: 2 });
+  });
+
+  it("summarizes document structure and reading estimates", () => {
+    const doc = schema.nodeFromJSON({
+      type: "doc",
+      content: [
+        {
+          type: "heading",
+          attrs: { level: 1 },
+          content: [{ type: "text", text: "Overview" }],
+        },
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "First sentence. Second sentence!" },
+          ],
+        },
+        {
+          type: "table",
+          content: [
+            {
+              type: "tableRow",
+              content: [
+                {
+                  type: "tableCell",
+                  content: [{ type: "paragraph" }],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          type: "image",
+          attrs: { src: "/api/document-images/image-id", alt: "Chart" },
+        },
+      ],
+    });
+
+    expect(getDocumentInsights(doc)).toEqual({
+      sentences: 2,
+      paragraphs: 2,
+      headings: 1,
+      tables: 1,
+      images: 1,
+      estimatedReadingMinutes: 1,
+      estimatedPages: 1,
+    });
   });
 });

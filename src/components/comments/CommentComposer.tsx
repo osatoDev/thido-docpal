@@ -69,7 +69,9 @@ export function CommentComposer({
           disabled={!body.trim()}
           className="primary-button rounded-sm px-3 py-1.5 text-xs font-medium disabled:opacity-50"
         >
-          {scope === "DOCUMENT" ? "Comment on document" : "Comment"}
+          {scope === "DOCUMENT"
+            ? "Comment on document"
+            : "Comment on selected text"}
         </button>
       </div>
     </form>

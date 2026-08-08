@@ -1,6 +1,6 @@
 # Thido production checklist
 
-Last reviewed: 7 August 2026
+Last reviewed: 8 August 2026
 
 This is the running source of truth for production-readiness work. Completed boxes indicate repository evidence or a verified check. External configuration remains unchecked until it is explicitly verified.
 
@@ -177,6 +177,10 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Add the next authoring bundle: a collapsible heading outline with navigation; Heading 4–6; font family, font size, text color, and highlight-color controls; line and paragraph spacing; uppercase/lowercase/title case; and localized date/time insertion.
 - [x] Preserve deeper headings, typography, text color, and paragraph spacing in shared-schema HTML and compatible Word/PDF export, while retaining the documented PDF and Word re-import fallbacks.
 - [x] Browser-check the authoring bundle on desktop and at 390 px, including live outline updates/navigation, toolbar horizontal scrolling, viewport-contained menus, formatting and Heading 6 persistence after reopening, localized date/time insertion, capitalization focus restoration, and absence of browser errors or page overflow.
+- [x] Add a long-document productivity bundle with insertable named bookmarks and outline navigation/link management; previous/next-heading navigation; duplicate, reorder, and adjacent-paragraph block actions; sentence/toggle case; and expanded document statistics.
+- [x] Browser-check the long-document productivity bundle on desktop and at 390 px, including bookmark insert/copy/navigate/rename/delete with undo, persisted and public bookmark rendering, previous/next-heading shortcuts, duplicate/reorder/adjacent-paragraph actions, sentence/toggle case, responsive statistics, viewport-contained menus, and no framework overlay or horizontal overflow.
+- [x] Rename the selection-level comment action and its supporting guidance to **Comment on selected text** so its scope is explicit.
+- [ ] Move the existing document-language control from **Tools** to a labeled **File → Language** flow, retain spelling-suggestion controls under **Tools**, and explain that language selects browser spelling context rather than translating text.
 - [x] Define and implement Thido's initial writing-language policy: persist an explicit document language and text direction, allow browser spelling suggestions to be disabled per document, and make clear that a dedicated grammar engine is not included.
 - [x] Add stable internal heading links, copyable section URLs, hash navigation, insertable auto-refreshing tables of contents, and linked automatically numbered footnotes with backlinks.
 - [x] Add quick insertion for em dashes, en dashes, ellipses, and non-breaking spaces through the **Insert** menu.
@@ -235,7 +239,7 @@ This is the running source of truth for production-readiness work. Completed box
 
 - [ ] Validate the assumptions in [Can the current version of Thido support 100 users?](./can-thido-support-100-users.md) with an isolated staging load test at 10, 25, 50, and 100 concurrent virtual users before making a concurrent-capacity claim.
 - [x] Add automated unit tests for authentication input, password hashing, token helpers, rate limiting, and API auth responses.
-- [x] Confirm the current unit suite passes: 102 tests across thirty files, including document preferences, stable anchors, table-of-contents and footnote schema round trips, advanced editor typography/spacing/deeper-heading schema round trips and capitalization, editor text search/counting, reviewed beta-seat allocation, timestamped reusable placeholders, private-image public-share URL coverage, safe links, persisted bullet/checklist/table structures, revision coalescing, import sanitization, Word/PDF generation, link-derived authorization, and AI comment conversation ordering.
+- [x] Confirm the current unit suite passes: 108 tests across thirty-one files, including document preferences, stable heading and bookmark anchors, table-of-contents and footnote schema round trips, advanced editor typography/spacing/deeper-heading schema round trips and capitalization, editor text search/statistics, block and heading-navigation commands, reviewed beta-seat allocation, timestamped reusable placeholders, private-image public-share URL coverage, safe links, persisted bullet/checklist/table structures, revision coalescing, import sanitization, Word/PDF generation, link-derived authorization, and AI comment conversation ordering.
 - [x] Apply all nineteen migrations to an isolated temporary PostgreSQL instance and browser-check visible full-access link controls, click-time authentication with action return, full editor access, link-access activity, immediate revocation, and an additional user/AI message pair in an existing whole-document comment thread.
 - [x] Browser-check the rendered connected-accounts Settings panel, empty admin approval waitlist, and editor image insertion control with no framework overlay or browser errors.
 - [x] Deploy the connected-accounts, private document-photo, post-cap waitlist, verified auth sender, and analytics-status changes to Vercel Production (`dpl_6tYbWWaY4rT5FdFEBrkyGRQRjjHd`) and smoke-check the live login and registration pages without browser errors.

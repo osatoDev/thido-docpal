@@ -33,8 +33,8 @@ The most consequential gaps identified in the initial audit were:
    users can import and export Word files and download server-generated PDFs;
    imports report unsupported structures.
 4. **Everyday document structures.** Safe links, small tables, checklists,
-   document outlines, stable section links, tables of contents, and footnotes
-   are implemented. Bookmarks and advanced page elements remain missing.
+   document outlines, stable section links, named bookmarks, tables of contents,
+   and footnotes are implemented. Advanced page elements remain missing.
 5. **Everyday writing utilities.** Find and replace, word counts, explicit
    document language, browser spelling suggestions, and text direction are
    implemented. A product-level grammar review remains future work.
@@ -82,11 +82,11 @@ basic once a draft becomes important or collaborative.
 | Simultaneous editing | Safeguarded, live merging deferred | Revision preconditions prevent silent stale overwrites and provide a reload path. Live presence, shared cursors, and operation-level merging are outside the current scope. |
 | Word import/export | Present for the supported schema | Users can import `.docx` with fidelity warnings and download editable Word files. Unsupported Word structures are reported rather than presented as fully preserved. |
 | PDF export | Present | Users can download a server-generated PDF or use the browser print workflow. |
-| Links and bookmarks | Partial | Safe HTTP(S) and email links can be added, edited, opened, copied, removed, pasted, and exported. Headings receive stable anchors with copyable section URLs; arbitrary internal bookmarks remain unavailable. |
+| Links and bookmarks | Present for the initial scope | Safe HTTP(S) and email links can be added, edited, opened, copied, removed, pasted, and exported. Headings receive stable anchors with copyable section URLs; named inline bookmarks can be inserted, navigated, linked, renamed, deleted, shared, and exported to Word. |
 | Tables and checklists | Present for the initial scope | Users can create checklists and small resizable tables, then add or delete rows and columns. Advanced table styling and semantic Word checklist round trips remain future work. |
 | Find and replace | Present | Editor-aware search supports navigation, case matching, replace, and replace all. |
-| Spelling, grammar, and word count | Partial | Document and selection counts, explicit language, writing direction, and a persisted browser-spellcheck toggle are present. A dedicated grammar-review service is not. |
-| Outline and table of contents | Present for the initial scope | A collapsible outline navigates to stable heading anchors, copies section URLs, and supports insertable tables of contents that refresh when headings change. Arbitrary bookmarks and document tabs remain future work. |
+| Spelling, grammar, and word count | Partial | Document and selection counts, expanded structure and reading-time statistics, explicit language, writing direction, and a persisted browser-spellcheck toggle are present. A dedicated grammar-review service is not. |
+| Outline and table of contents | Present for the initial scope | A collapsible outline navigates to stable heading and named bookmark anchors, manages copyable links, and supports insertable tables of contents that refresh when headings change. Document tabs remain future work. |
 | Page layout and references | Partial | Page breaks and linked, automatically numbered footnotes persist and render in sharing and export; margins, headers, footers, page numbers, and sections remain unavailable. |
 | Offline editing | Missing | Documents require an online application and server persistence. |
 | Document tabs and smart building blocks | Missing | Advanced organization and Workspace-style integrations are not present. |
@@ -191,13 +191,15 @@ Recommended sequence:
 **Repository status:** Implemented for the recommended initial scope. The
 shared editor schema now preserves safe links, task lists, and tables across
 editing, read-only/public rendering, print, and supported import/export paths.
-Bookmarks and advanced table layout remain future work.
+Named bookmarks are supported for internal navigation. Advanced table layout
+remains future work.
 
 Links are among the most basic expectations of a web document. Google Docs also
 supports internal bookmarks for navigation
-([links and bookmarks](https://support.google.com/docs/answer/45893)). Thido's
-editor schema currently disables TipTap's link mark, so pasted or generated
-links cannot be represented reliably.
+([links and bookmarks](https://support.google.com/docs/answer/45893)). Thido
+supports safe external links, heading anchors, and named inline bookmarks;
+native Word bookmarks are exported, while importing arbitrary Word bookmarks
+remains outside the documented fidelity contract.
 
 Tables are similarly routine for briefs, comparisons, agendas, specifications,
 and client deliverables. Google Docs supports inserting, resizing, styling, and
@@ -245,9 +247,9 @@ user may need to check length, terminology, names, or repeated phrases quickly.
 ### 6. Outline, table of contents, and internal navigation
 
 **Repository status:** The collapsible outline, click-to-scroll navigation,
-stable heading IDs, copyable section URLs, hash navigation, and insertable,
-automatically refreshed table of contents are implemented for headings 1–6.
-Arbitrary bookmarks and document tabs remain future work.
+stable heading IDs, copyable section URLs, previous/next-heading actions, hash
+navigation, named bookmarks, and insertable, automatically refreshed table of
+contents are implemented for headings 1–6. Document tabs remain future work.
 
 Thido supports headings but does not use them as navigation. Google Docs derives
 a document outline from headings and lets users jump between sections
@@ -260,8 +262,7 @@ Recommended Thido scope:
 - **Done:** a collapsible heading outline with click-to-scroll;
 - **Done:** heading IDs that remain stable enough for internal links;
 - **Done:** insertable table of contents with automatic and explicit refresh;
-- **Done for headings:** copyable links to a section; arbitrary bookmarks remain
-  future work;
+- **Done:** copyable links to headings and named inline bookmarks;
 - defer Google-style document tabs until evidence shows that Thido users create
   documents large enough to require them.
 

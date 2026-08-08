@@ -5,6 +5,7 @@ import type { Editor } from "@tiptap/react";
 
 import { DocumentFileMenu } from "@/components/documents/DocumentMoreActions";
 import type { RestoredDocument } from "@/components/documents/VersionHistoryControl";
+import { BookmarkDialog } from "./BookmarkDialog";
 import { FindReplaceDialog } from "./FindReplaceDialog";
 import { FootnoteDialog } from "./FootnoteDialog";
 import { LinkControl } from "./LinkControl";
@@ -18,6 +19,7 @@ import {
   FONT_FAMILY_OPTIONS,
   FONT_SIZE_OPTIONS,
 } from "./extensions/RichTextStyle";
+import type { TextCaseMode } from "./extensions/TextCase";
 import {
   BULLET_STYLES,
   isBulletStyle,
@@ -276,6 +278,7 @@ export function Toolbar({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const [findReplaceOpen, setFindReplaceOpen] = useState(false);
+  const [bookmarkOpen, setBookmarkOpen] = useState(false);
   const [footnoteOpen, setFootnoteOpen] = useState(false);
   const [wordCountOpen, setWordCountOpen] = useState(false);
   const activeBulletStyle =
@@ -393,7 +396,7 @@ export function Toolbar({
     editor.chain().focus().setHeading({ level }).run();
   }
 
-  function changeSelectionCase(mode: "uppercase" | "lowercase" | "title") {
+  function changeSelectionCase(mode: TextCaseMode) {
     if (!editor) return;
     editor.commands.changeTextCase(mode);
     window.setTimeout(() => {
@@ -484,6 +487,37 @@ export function Toolbar({
                 },
               },
             ],
+            [
+              {
+                label: "Duplicate current block",
+                onSelect: () =>
+                  editor.chain().focus().duplicateCurrentBlock().run(),
+              },
+              {
+                label: "Move block up",
+                shortcut: "Alt + Shift + ↑",
+                disabled: !editor.can().moveCurrentBlockUp(),
+                onSelect: () =>
+                  editor.chain().focus().moveCurrentBlockUp().run(),
+              },
+              {
+                label: "Move block down",
+                shortcut: "Alt + Shift + ↓",
+                disabled: !editor.can().moveCurrentBlockDown(),
+                onSelect: () =>
+                  editor.chain().focus().moveCurrentBlockDown().run(),
+              },
+              {
+                label: "Insert paragraph above",
+                onSelect: () =>
+                  editor.chain().focus().insertParagraphAbove().run(),
+              },
+              {
+                label: "Insert paragraph below",
+                onSelect: () =>
+                  editor.chain().focus().insertParagraphBelow().run(),
+              },
+            ],
           ],
           insert: [
             [
@@ -531,6 +565,10 @@ export function Toolbar({
               {
                 label: "Footnote…",
                 onSelect: () => setFootnoteOpen(true),
+              },
+              {
+                label: "Bookmark…",
+                onSelect: () => setBookmarkOpen(true),
               },
             ],
             [
@@ -744,6 +782,14 @@ export function Toolbar({
                 label: "Title Case",
                 onSelect: () => changeSelectionCase("title"),
               },
+              {
+                label: "Sentence case",
+                onSelect: () => changeSelectionCase("sentence"),
+              },
+              {
+                label: "tOGGLE cASE",
+                onSelect: () => changeSelectionCase("toggle"),
+              },
             ],
             [
               {
@@ -797,6 +843,22 @@ export function Toolbar({
               label: `${nextZoom}% zoom${zoom === nextZoom ? " ✓" : ""}`,
               onSelect: () => onZoomChange(nextZoom),
             })),
+            editor
+              ? [
+                  {
+                    label: "Previous heading",
+                    shortcut: "Alt + Shift + Page Up",
+                    disabled: !editor.can().goToPreviousHeading(),
+                    onSelect: () => editor.commands.goToPreviousHeading(),
+                  },
+                  {
+                    label: "Next heading",
+                    shortcut: "Alt + Shift + Page Down",
+                    disabled: !editor.can().goToNextHeading(),
+                    onSelect: () => editor.commands.goToNextHeading(),
+                  },
+                ]
+              : [],
           ]}
         />
         {editingMenus ? (
@@ -811,7 +873,7 @@ export function Toolbar({
             groups={[
               [
                 {
-                  label: "Word count",
+                  label: "Document statistics",
                   shortcut: "Ctrl/⌘ + Shift + C",
                   onSelect: () => setWordCountOpen(true),
                 },
@@ -1084,6 +1146,13 @@ export function Toolbar({
         <FootnoteDialog
           onInsert={(text) => editor.commands.insertFootnote(text)}
           onClose={() => setFootnoteOpen(false)}
+        />
+      ) : null}
+      {bookmarkOpen && editor ? (
+        <BookmarkDialog
+          mode="insert"
+          onSubmit={(label) => editor.commands.insertBookmark(label)}
+          onClose={() => setBookmarkOpen(false)}
         />
       ) : null}
     </>

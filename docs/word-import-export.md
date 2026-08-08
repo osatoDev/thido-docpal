@@ -53,7 +53,7 @@ Word export preserves the Thido structures listed as supported above, including
 safe links, basic tables, disc/circle/square unordered-list markers, stored
 document images, headings 1–6, text alignment, paragraph indentation, font
 family, font size, text color, highlight color, line spacing, paragraph spacing,
-and page breaks. Inserted Thido tables of contents become indented heading lists,
+page breaks, and named Thido bookmarks. Inserted Thido tables of contents become indented heading lists,
 and Thido footnotes become numbered notes with superscript references; these are
 portable fallbacks rather than native Word TOC or footnote fields. Thido
 checklist items are represented with checked or unchecked box characters;
@@ -65,7 +65,9 @@ PDF export renders the document title, headings 1–6, bold, italic, underline,
 strikethrough, font family, font size, text color, code-style text, alignment,
 indentation, line spacing, paragraph spacing, page breaks, clickable links,
 lists, checklist markers, basic tables, blockquotes, horizontal rules, tables of
-contents, numbered footnotes, and stored images onto A4 pages. Highlight and superscript/subscript remain visible
+contents, numbered footnotes, and stored images onto A4 pages. Named bookmark
+markers are omitted from PDF because the current PDF exporter does not create
+internal anchor destinations. Highlight and superscript/subscript remain visible
 in the editor and Word export but currently fall back to plain text in PDF. Browser printing
 remains available when a user needs printer-specific controls.
 

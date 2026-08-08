@@ -11,6 +11,16 @@ export type TextCounts = {
   charactersWithoutSpaces: number;
 };
 
+export type DocumentInsights = {
+  sentences: number;
+  paragraphs: number;
+  headings: number;
+  tables: number;
+  images: number;
+  estimatedReadingMinutes: number;
+  estimatedPages: number;
+};
+
 const DOCUMENT_BOUNDARY = "\u0000";
 
 function escapeRegularExpression(value: string) {
@@ -73,5 +83,37 @@ export function countText(value: string): TextCounts {
     words: value.match(/\S+/gu)?.length ?? 0,
     characters: value.length,
     charactersWithoutSpaces: value.replace(/\s/gu, "").length,
+  };
+}
+
+export function getDocumentInsights(doc: ProseMirrorNode): DocumentInsights {
+  const text = getDocumentText(doc).trim();
+  const words = countText(text).words;
+  let paragraphs = 0;
+  let headings = 0;
+  let tables = 0;
+  let images = 0;
+
+  doc.descendants((node) => {
+    if (node.type.name === "paragraph") paragraphs += 1;
+    if (node.type.name === "heading") headings += 1;
+    if (node.type.name === "table") tables += 1;
+    if (node.type.name === "image") images += 1;
+  });
+
+  const sentences = text
+    ? (text.match(/[^.!?]+(?:[.!?]+|$)/gu)?.filter((sentence) =>
+        /\p{L}|\p{N}/u.test(sentence),
+      ).length ?? 0)
+    : 0;
+
+  return {
+    sentences,
+    paragraphs,
+    headings,
+    tables,
+    images,
+    estimatedReadingMinutes: words === 0 ? 0 : Math.max(1, Math.ceil(words / 200)),
+    estimatedPages: words === 0 ? 0 : Math.max(1, Math.ceil(words / 500)),
   };
 }
