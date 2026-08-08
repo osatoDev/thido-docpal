@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAiModelId } from "@/lib/ai/models";
+import {
+  APPLICATION_STYLE_COOKIE_NAME,
+  isApplicationStyle,
+} from "@/lib/applicationStyle";
 import { unauthorizedResponse } from "@/lib/apiResponses";
 
 export async function GET() {
@@ -30,6 +34,7 @@ export async function PATCH(request: Request) {
     aiCommentMode?: "PROPOSE" | "AUTO" | "AUTO_APPLY";
     aiModel?: string;
     documentStartMode?: "NEW_DOCUMENT" | "MOST_RECENT";
+    applicationStyle?: string;
   } = {};
 
   if (body.aiCommentMode !== undefined) {
@@ -69,6 +74,16 @@ export async function PATCH(request: Request) {
     data.documentStartMode = body.documentStartMode;
   }
 
+  if (body.applicationStyle !== undefined) {
+    if (!isApplicationStyle(body.applicationStyle)) {
+      return NextResponse.json(
+        { error: "Unsupported application style" },
+        { status: 400 },
+      );
+    }
+    data.applicationStyle = body.applicationStyle;
+  }
+
   if (Object.keys(data).length === 0) {
     return NextResponse.json(
       { error: "No supported settings were provided" },
@@ -82,5 +97,15 @@ export async function PATCH(request: Request) {
     create: { userId: session.user.id, ...data },
   });
 
-  return NextResponse.json({ settings });
+  const response = NextResponse.json({ settings });
+  if (data.applicationStyle) {
+    response.cookies.set(APPLICATION_STYLE_COOKIE_NAME, data.applicationStyle, {
+      httpOnly: false,
+      maxAge: 60 * 60 * 24 * 365,
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+  }
+  return response;
 }

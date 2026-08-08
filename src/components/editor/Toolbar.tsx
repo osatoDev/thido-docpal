@@ -11,10 +11,8 @@ import { FootnoteDialog } from "./FootnoteDialog";
 import { LinkControl } from "./LinkControl";
 import { WordCountDialog } from "./WordCountDialog";
 import {
-  DOCUMENT_APPEARANCE_OPTIONS,
   DOCUMENT_LANGUAGE_OPTIONS,
   getDocumentPreferences,
-  type DocumentAppearance,
 } from "./extensions/DocumentPreferences";
 import { LINE_HEIGHT_OPTIONS } from "./extensions/ParagraphFormatting";
 import {
@@ -53,10 +51,106 @@ const HIGHLIGHT_COLOR_OPTIONS = [
 
 type MenuItem = {
   label: string;
-  onSelect: () => void;
+  onSelect?: () => void;
   shortcut?: string;
   disabled?: boolean;
+  children?: readonly MenuItem[];
 };
+
+function EditorMenuItem({
+  item,
+  closeMenu,
+  depth = 0,
+}: {
+  item: MenuItem;
+  closeMenu: () => void;
+  depth?: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const submenuId = useId();
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const hasChildren = Boolean(item.children?.length);
+
+  function openSubmenu() {
+    setExpanded(true);
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById(submenuId)
+        ?.querySelector<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')
+        ?.focus();
+    });
+  }
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        role="menuitem"
+        disabled={item.disabled}
+        aria-haspopup={hasChildren ? "menu" : undefined}
+        aria-expanded={hasChildren ? expanded : undefined}
+        aria-controls={hasChildren ? submenuId : undefined}
+        onClick={() => {
+          if (hasChildren) {
+            setExpanded((current) => !current);
+            return;
+          }
+          closeMenu();
+          item.onSelect?.();
+        }}
+        onKeyDown={(event) => {
+          if (!hasChildren || event.key !== "ArrowRight") return;
+          event.preventDefault();
+          event.stopPropagation();
+          openSubmenu();
+        }}
+        className="flex w-full items-center justify-between gap-4 rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)] disabled:cursor-not-allowed disabled:opacity-45"
+        style={depth > 0 ? { paddingInlineStart: `${0.75 + depth * 0.75}rem` } : undefined}
+      >
+        <span>{item.label}</span>
+        {hasChildren ? (
+          <svg
+            viewBox="0 0 16 16"
+            aria-hidden="true"
+            className={`size-3.5 shrink-0 fill-none stroke-current transition-transform ${expanded ? "rotate-90" : ""}`}
+            strokeWidth="1.8"
+          >
+            <path d="m6 3 5 5-5 5" />
+          </svg>
+        ) : item.shortcut ? (
+          <kbd className="shrink-0 font-sans text-xs font-normal text-[var(--muted)]">
+            {item.shortcut}
+          </kbd>
+        ) : null}
+      </button>
+      {hasChildren && expanded ? (
+        <div
+          id={submenuId}
+          role="menu"
+          aria-label={item.label}
+          className="mx-1 mb-1 border-s border-[var(--border)] ps-1"
+          onKeyDown={(event) => {
+            if (event.key !== "ArrowLeft") return;
+            event.preventDefault();
+            event.stopPropagation();
+            setExpanded(false);
+            buttonRef.current?.focus();
+          }}
+        >
+          {item.children?.map((child) => (
+            <EditorMenuItem
+              key={child.label}
+              item={child}
+              closeMenu={closeMenu}
+              depth={depth + 1}
+            />
+          ))}
+        </div>
+      ) : null}
+    </>
+  );
+}
 
 function EditorMenu({
   label,
@@ -189,24 +283,11 @@ function EditorMenu({
                 />
               ) : null}
               {group.map((item) => (
-                <button
+                <EditorMenuItem
                   key={item.label}
-                  type="button"
-                  role="menuitem"
-                  disabled={item.disabled}
-                  onClick={() => {
-                    setOpen(false);
-                    item.onSelect();
-                  }}
-                  className="flex w-full items-center justify-between gap-4 rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)] disabled:cursor-not-allowed disabled:opacity-45"
-                >
-                  <span>{item.label}</span>
-                  {item.shortcut ? (
-                    <kbd className="shrink-0 font-sans text-xs font-normal text-[var(--muted)]">
-                      {item.shortcut}
-                    </kbd>
-                  ) : null}
-                </button>
+                  item={item}
+                  closeMenu={() => setOpen(false)}
+                />
               ))}
             </div>
           ))}
@@ -473,374 +554,295 @@ export function Toolbar({
           edit: [
             [
               {
-                label: "Undo",
-                shortcut: "Ctrl/⌘ + Z",
-                disabled: !editor.can().chain().undo().run(),
-                onSelect: () => editor.chain().focus().undo().run(),
+                label: "History",
+                children: [
+                  {
+                    label: "Undo",
+                    shortcut: "Ctrl/⌘ + Z",
+                    disabled: !editor.can().chain().undo().run(),
+                    onSelect: () => editor.chain().focus().undo().run(),
+                  },
+                  {
+                    label: "Redo",
+                    shortcut: "Ctrl/⌘ + Shift + Z",
+                    disabled: !editor.can().chain().redo().run(),
+                    onSelect: () => editor.chain().focus().redo().run(),
+                  },
+                ],
               },
               {
-                label: "Redo",
-                shortcut: "Ctrl/⌘ + Shift + Z",
-                disabled: !editor.can().chain().redo().run(),
-                onSelect: () => editor.chain().focus().redo().run(),
-              },
-            ],
-            [
-              {
-                label: "Find and replace…",
-                shortcut: "Ctrl + H / ⌘ + Shift + H",
-                onSelect: () => setFindReplaceOpen(true),
-              },
-              {
-                label: "Select all",
-                shortcut: "Ctrl/⌘ + A",
-                onSelect: () => {
-                  // Dispatch the all-document selection before focusing. TipTap's
-                  // focus command restores a non-text selection asynchronously.
-                  editor.commands.selectAll();
-                  editor.commands.focus();
-                },
-              },
-            ],
-            [
-              {
-                label: "Duplicate current block",
-                onSelect: () =>
-                  editor.chain().focus().duplicateCurrentBlock().run(),
+                label: "Find and select",
+                children: [
+                  {
+                    label: "Find and replace…",
+                    shortcut: "Ctrl + H / ⌘ + Shift + H",
+                    onSelect: () => setFindReplaceOpen(true),
+                  },
+                  {
+                    label: "Select all",
+                    shortcut: "Ctrl/⌘ + A",
+                    onSelect: () => {
+                      editor.commands.selectAll();
+                      editor.commands.focus();
+                    },
+                  },
+                ],
               },
               {
-                label: "Move block up",
-                shortcut: "Alt + Shift + ↑",
-                disabled: !editor.can().moveCurrentBlockUp(),
-                onSelect: () =>
-                  editor.chain().focus().moveCurrentBlockUp().run(),
-              },
-              {
-                label: "Move block down",
-                shortcut: "Alt + Shift + ↓",
-                disabled: !editor.can().moveCurrentBlockDown(),
-                onSelect: () =>
-                  editor.chain().focus().moveCurrentBlockDown().run(),
-              },
-              {
-                label: "Insert paragraph above",
-                onSelect: () =>
-                  editor.chain().focus().insertParagraphAbove().run(),
-              },
-              {
-                label: "Insert paragraph below",
-                onSelect: () =>
-                  editor.chain().focus().insertParagraphBelow().run(),
-              },
-            ],
-            [
-              {
-                label: "Select current block",
-                onSelect: () =>
-                  editor.chain().focus().selectCurrentBlock().run(),
-              },
-              {
-                label: "Delete current block",
-                onSelect: () =>
-                  editor.chain().focus().deleteCurrentBlock().run(),
-              },
-              {
-                label: "Merge with previous block",
-                disabled: !editor.can().mergeCurrentBlockWithPrevious(),
-                onSelect: () =>
-                  editor.chain().focus().mergeCurrentBlockWithPrevious().run(),
-              },
-              {
-                label: "Merge with next block",
-                disabled: !editor.can().mergeCurrentBlockWithNext(),
-                onSelect: () =>
-                  editor.chain().focus().mergeCurrentBlockWithNext().run(),
+                label: "Blocks",
+                children: [
+                  {
+                    label: "Duplicate current block",
+                    onSelect: () =>
+                      editor.chain().focus().duplicateCurrentBlock().run(),
+                  },
+                  {
+                    label: "Move block up",
+                    shortcut: "Alt + Shift + ↑",
+                    disabled: !editor.can().moveCurrentBlockUp(),
+                    onSelect: () =>
+                      editor.chain().focus().moveCurrentBlockUp().run(),
+                  },
+                  {
+                    label: "Move block down",
+                    shortcut: "Alt + Shift + ↓",
+                    disabled: !editor.can().moveCurrentBlockDown(),
+                    onSelect: () =>
+                      editor.chain().focus().moveCurrentBlockDown().run(),
+                  },
+                  {
+                    label: "Insert paragraph above",
+                    onSelect: () =>
+                      editor.chain().focus().insertParagraphAbove().run(),
+                  },
+                  {
+                    label: "Insert paragraph below",
+                    onSelect: () =>
+                      editor.chain().focus().insertParagraphBelow().run(),
+                  },
+                  {
+                    label: "Select current block",
+                    onSelect: () =>
+                      editor.chain().focus().selectCurrentBlock().run(),
+                  },
+                  {
+                    label: "Delete current block",
+                    onSelect: () =>
+                      editor.chain().focus().deleteCurrentBlock().run(),
+                  },
+                  {
+                    label: "Merge with previous block",
+                    disabled: !editor.can().mergeCurrentBlockWithPrevious(),
+                    onSelect: () =>
+                      editor.chain().focus().mergeCurrentBlockWithPrevious().run(),
+                  },
+                  {
+                    label: "Merge with next block",
+                    disabled: !editor.can().mergeCurrentBlockWithNext(),
+                    onSelect: () =>
+                      editor.chain().focus().mergeCurrentBlockWithNext().run(),
+                  },
+                ],
               },
             ],
           ],
           insert: [
             [
               {
-                label: "Link…",
-                shortcut: "Ctrl/⌘ + K",
-                onSelect: () =>
-                  document.getElementById(linkControlId)?.click(),
+                label: "Links and references",
+                children: [
+                  {
+                    label: "Link…",
+                    shortcut: "Ctrl/⌘ + K",
+                    onSelect: () =>
+                      document.getElementById(linkControlId)?.click(),
+                  },
+                  {
+                    label: "Bookmark…",
+                    onSelect: () => setBookmarkOpen(true),
+                  },
+                  {
+                    label: "Footnote…",
+                    onSelect: () => setFootnoteOpen(true),
+                  },
+                  {
+                    label: "Table of contents",
+                    onSelect: () => {
+                      editor.commands.ensureHeadingAnchors();
+                      editor.commands.insertTableOfContents();
+                    },
+                  },
+                  {
+                    label: "Update table of contents",
+                    onSelect: () => editor.commands.refreshTableOfContents(),
+                  },
+                ],
               },
               {
-                label: "Horizontal line",
-                onSelect: () =>
-                  editor.chain().focus().setHorizontalRule().run(),
+                label: "Structure",
+                children: [
+                  {
+                    label: "Horizontal line",
+                    onSelect: () =>
+                      editor.chain().focus().setHorizontalRule().run(),
+                  },
+                  {
+                    label: "Page break",
+                    shortcut: "Ctrl/⌘ + Enter",
+                    onSelect: () => editor.chain().focus().setPageBreak().run(),
+                  },
+                  {
+                    label: "Table (3 × 3)",
+                    onSelect: () =>
+                      editor
+                        .chain()
+                        .focus()
+                        .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                        .run(),
+                  },
+                ],
               },
               {
-                label: "Page break",
-                shortcut: "Ctrl/⌘ + Enter",
-                onSelect: () => editor.chain().focus().setPageBreak().run(),
+                label: "Media",
+                children: [
+                  {
+                    label: uploadingImage ? "Inserting image…" : "Image…",
+                    disabled: uploadingImage,
+                    onSelect: chooseImage,
+                  },
+                ],
               },
               {
-                label: "Table (3 × 3)",
-                onSelect: () =>
-                  editor
-                    .chain()
-                    .focus()
-                    .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-                    .run(),
+                label: "Date and time",
+                children: [
+                  {
+                    label: "Current date",
+                    onSelect: () =>
+                      insertLocalizedText(
+                        new Intl.DateTimeFormat(undefined, {
+                          dateStyle: "long",
+                        }).format(new Date()),
+                      ),
+                  },
+                  {
+                    label: "Current time",
+                    onSelect: () =>
+                      insertLocalizedText(
+                        new Intl.DateTimeFormat(undefined, {
+                          timeStyle: "short",
+                        }).format(new Date()),
+                      ),
+                  },
+                ],
               },
               {
-                label: uploadingImage ? "Inserting image…" : "Image…",
-                disabled: uploadingImage,
-                onSelect: chooseImage,
-              },
-              {
-                label: "Table of contents",
-                onSelect: () => {
-                  editor.commands.ensureHeadingAnchors();
-                  editor.commands.insertTableOfContents();
-                },
-              },
-              {
-                label: "Update table of contents",
-                onSelect: () => editor.commands.refreshTableOfContents(),
-              },
-              {
-                label: "Footnote…",
-                onSelect: () => setFootnoteOpen(true),
-              },
-              {
-                label: "Bookmark…",
-                onSelect: () => setBookmarkOpen(true),
-              },
-            ],
-            [
-              {
-                label: "Current date",
-                onSelect: () =>
-                  insertLocalizedText(
-                    new Intl.DateTimeFormat(undefined, {
-                      dateStyle: "long",
-                    }).format(new Date()),
-                  ),
-              },
-              {
-                label: "Current time",
-                onSelect: () =>
-                  insertLocalizedText(
-                    new Intl.DateTimeFormat(undefined, {
-                      timeStyle: "short",
-                    }).format(new Date()),
-                  ),
-              },
-            ],
-            [
-              {
-                label: "Em dash —",
-                onSelect: () => insertLocalizedText("—"),
-              },
-              {
-                label: "En dash –",
-                onSelect: () => insertLocalizedText("–"),
-              },
-              {
-                label: "Ellipsis …",
-                onSelect: () => insertLocalizedText("…"),
-              },
-              {
-                label: "Non-breaking space",
-                onSelect: () => insertLocalizedText("\u00a0"),
+                label: "Special characters",
+                children: [
+                  {
+                    label: "Em dash —",
+                    onSelect: () => insertLocalizedText("—"),
+                  },
+                  {
+                    label: "En dash –",
+                    onSelect: () => insertLocalizedText("–"),
+                  },
+                  {
+                    label: "Ellipsis …",
+                    onSelect: () => insertLocalizedText("…"),
+                  },
+                  {
+                    label: "Non-breaking space",
+                    onSelect: () => insertLocalizedText("\u00a0"),
+                  },
+                ],
               },
             ],
           ],
           format: [
             [
               {
-                label: "Bold",
-                shortcut: "Ctrl/⌘ + B",
-                onSelect: () => editor.chain().focus().toggleBold().run(),
+                label: "Text",
+                children: [
+                  { label: "Bold", shortcut: "Ctrl/⌘ + B", onSelect: () => editor.chain().focus().toggleBold().run() },
+                  { label: "Italic", shortcut: "Ctrl/⌘ + I", onSelect: () => editor.chain().focus().toggleItalic().run() },
+                  { label: "Underline", shortcut: "Ctrl/⌘ + U", onSelect: () => editor.chain().focus().toggleUnderline().run() },
+                  { label: "Strikethrough", onSelect: () => editor.chain().focus().toggleStrike().run() },
+                  { label: "Highlight", onSelect: () => editor.chain().focus().toggleHighlight().run() },
+                  { label: "Inline code", shortcut: "Ctrl/⌘ + E", onSelect: () => editor.chain().focus().toggleCode().run() },
+                  { label: "Superscript", shortcut: "Ctrl/⌘ + .", onSelect: () => editor.chain().focus().toggleSuperscript().run() },
+                  { label: "Subscript", shortcut: "Ctrl/⌘ + ,", onSelect: () => editor.chain().focus().toggleSubscript().run() },
+                  { label: "Clear formatting", shortcut: "Ctrl/⌘ + \\", onSelect: () => editor.chain().focus().unsetAllMarks().clearNodes().run() },
+                ],
               },
               {
-                label: "Italic",
-                shortcut: "Ctrl/⌘ + I",
-                onSelect: () => editor.chain().focus().toggleItalic().run(),
+                label: "Paragraph style",
+                children: [
+                  { label: "Normal text", onSelect: () => editor.chain().focus().setParagraph().run() },
+                  ...HEADING_LEVELS.map((level) => ({
+                    label: `Heading ${level}`,
+                    onSelect: () => editor.chain().focus().setHeading({ level }).run(),
+                  })),
+                ],
               },
               {
-                label: "Underline",
-                shortcut: "Ctrl/⌘ + U",
-                onSelect: () => editor.chain().focus().toggleUnderline().run(),
+                label: "Lists and blocks",
+                children: [
+                  { label: "Bulleted list", onSelect: () => editor.chain().focus().toggleBulletList().run() },
+                  { label: "Numbered list", onSelect: () => editor.chain().focus().toggleOrderedList().run() },
+                  { label: "Checklist", onSelect: () => editor.chain().focus().toggleTaskList().run() },
+                  { label: "Block quote", onSelect: () => editor.chain().focus().toggleBlockquote().run() },
+                  { label: "Code block", onSelect: () => editor.chain().focus().toggleCodeBlock().run() },
+                ],
               },
               {
-                label: "Strikethrough",
-                onSelect: () => editor.chain().focus().toggleStrike().run(),
+                label: "Alignment",
+                children: [
+                  { label: "Align left", shortcut: "Ctrl/⌘ + Shift + L", onSelect: () => editor.chain().focus().setTextAlign("left").run() },
+                  { label: "Align center", shortcut: "Ctrl/⌘ + Shift + E", onSelect: () => editor.chain().focus().setTextAlign("center").run() },
+                  { label: "Align right", shortcut: "Ctrl/⌘ + Shift + R", onSelect: () => editor.chain().focus().setTextAlign("right").run() },
+                  { label: "Justify", shortcut: "Ctrl/⌘ + Shift + J", onSelect: () => editor.chain().focus().setTextAlign("justify").run() },
+                ],
               },
               {
-                label: "Highlight",
-                onSelect: () => editor.chain().focus().toggleHighlight().run(),
+                label: "Indentation",
+                children: [
+                  { label: "Increase indent", shortcut: "Ctrl/⌘ + ]", onSelect: () => editor.chain().focus().increaseTextIndent().run() },
+                  { label: "Decrease indent", shortcut: "Ctrl/⌘ + [", onSelect: () => editor.chain().focus().decreaseTextIndent().run() },
+                ],
               },
               {
-                label: "Inline code",
-                shortcut: "Ctrl/⌘ + E",
-                onSelect: () => editor.chain().focus().toggleCode().run(),
+                label: "Text direction",
+                children: [
+                  { label: `Left to right${documentPreferences?.direction === "ltr" ? " ✓" : ""}`, onSelect: () => editor.commands.setDocumentDirection("ltr") },
+                  { label: `Right to left${documentPreferences?.direction === "rtl" ? " ✓" : ""}`, onSelect: () => editor.commands.setDocumentDirection("rtl") },
+                ],
               },
               {
-                label: "Superscript",
-                shortcut: "Ctrl/⌘ + .",
-                onSelect: () =>
-                  editor.chain().focus().toggleSuperscript().run(),
+                label: "Line and paragraph spacing",
+                children: [
+                  ...LINE_HEIGHT_OPTIONS.map((lineHeight) => ({
+                    label: `${lineHeight === 1 ? "Single" : lineHeight} line spacing${activeBlockAttributes?.lineHeight === lineHeight ? " ✓" : ""}`,
+                    onSelect: () => editor.chain().focus().setParagraphLineHeight(lineHeight).run(),
+                  })),
+                  {
+                    label: `${Number(activeBlockAttributes?.spaceBefore) > 0 ? "Remove" : "Add"} space before paragraph`,
+                    onSelect: () => editor.chain().focus().setParagraphSpaceBefore(Number(activeBlockAttributes?.spaceBefore) > 0 ? 0 : 0.75).run(),
+                  },
+                  {
+                    label: `${Number(activeBlockAttributes?.spaceAfter) > 0 ? "Remove" : "Add"} space after paragraph`,
+                    onSelect: () => editor.chain().focus().setParagraphSpaceAfter(Number(activeBlockAttributes?.spaceAfter) > 0 ? 0 : 0.75).run(),
+                  },
+                ],
               },
               {
-                label: "Subscript",
-                shortcut: "Ctrl/⌘ + ,",
-                onSelect: () =>
-                  editor.chain().focus().toggleSubscript().run(),
-              },
-            ],
-            [
-              {
-                label: "Normal text",
-                onSelect: () => editor.chain().focus().setParagraph().run(),
-              },
-              ...HEADING_LEVELS.map((level) => ({
-                label: `Heading ${level}`,
-                onSelect: () =>
-                  editor.chain().focus().setHeading({ level }).run(),
-              })),
-            ],
-            [
-              {
-                label: "Bulleted list",
-                onSelect: () => editor.chain().focus().toggleBulletList().run(),
-              },
-              {
-                label: "Numbered list",
-                onSelect: () => editor.chain().focus().toggleOrderedList().run(),
-              },
-              {
-                label: "Checklist",
-                onSelect: () => editor.chain().focus().toggleTaskList().run(),
-              },
-              {
-                label: "Block quote",
-                onSelect: () => editor.chain().focus().toggleBlockquote().run(),
-              },
-              {
-                label: "Code block",
-                onSelect: () => editor.chain().focus().toggleCodeBlock().run(),
-              },
-            ],
-            [
-              {
-                label: "Align left",
-                shortcut: "Ctrl/⌘ + Shift + L",
-                onSelect: () =>
-                  editor.chain().focus().setTextAlign("left").run(),
-              },
-              {
-                label: "Align center",
-                shortcut: "Ctrl/⌘ + Shift + E",
-                onSelect: () =>
-                  editor.chain().focus().setTextAlign("center").run(),
-              },
-              {
-                label: "Align right",
-                shortcut: "Ctrl/⌘ + Shift + R",
-                onSelect: () =>
-                  editor.chain().focus().setTextAlign("right").run(),
-              },
-              {
-                label: "Justify",
-                shortcut: "Ctrl/⌘ + Shift + J",
-                onSelect: () =>
-                  editor.chain().focus().setTextAlign("justify").run(),
-              },
-            ],
-            [
-              {
-                label: "Increase indent",
-                shortcut: "Ctrl/⌘ + ]",
-                onSelect: () =>
-                  editor.chain().focus().increaseTextIndent().run(),
-              },
-              {
-                label: "Decrease indent",
-                shortcut: "Ctrl/⌘ + [",
-                onSelect: () =>
-                  editor.chain().focus().decreaseTextIndent().run(),
-              },
-            ],
-            [
-              {
-                label: `Left-to-right document${documentPreferences?.direction === "ltr" ? " ✓" : ""}`,
-                onSelect: () => editor.commands.setDocumentDirection("ltr"),
-              },
-              {
-                label: `Right-to-left document${documentPreferences?.direction === "rtl" ? " ✓" : ""}`,
-                onSelect: () => editor.commands.setDocumentDirection("rtl"),
-              },
-            ],
-            DOCUMENT_APPEARANCE_OPTIONS.map((option) => ({
-              label: `${option.label} page style${documentPreferences?.appearance === option.value ? " ✓" : ""}`,
-              onSelect: () =>
-                editor.commands.setDocumentAppearance(option.value),
-            })),
-            [
-              ...LINE_HEIGHT_OPTIONS.map((lineHeight) => ({
-                label: `${lineHeight === 1 ? "Single" : lineHeight} line spacing${activeBlockAttributes?.lineHeight === lineHeight ? " ✓" : ""}`,
-                onSelect: () =>
-                  editor
-                    .chain()
-                    .focus()
-                    .setParagraphLineHeight(lineHeight)
-                    .run(),
-              })),
-              {
-                label: `${Number(activeBlockAttributes?.spaceBefore) > 0 ? "Remove" : "Add"} space before paragraph`,
-                onSelect: () =>
-                  editor
-                    .chain()
-                    .focus()
-                    .setParagraphSpaceBefore(
-                      Number(activeBlockAttributes?.spaceBefore) > 0 ? 0 : 0.75,
-                    )
-                    .run(),
-              },
-              {
-                label: `${Number(activeBlockAttributes?.spaceAfter) > 0 ? "Remove" : "Add"} space after paragraph`,
-                onSelect: () =>
-                  editor
-                    .chain()
-                    .focus()
-                    .setParagraphSpaceAfter(
-                      Number(activeBlockAttributes?.spaceAfter) > 0 ? 0 : 0.75,
-                    )
-                    .run(),
-              },
-            ],
-            [
-              {
-                label: "UPPERCASE",
-                onSelect: () => changeSelectionCase("uppercase"),
-              },
-              {
-                label: "lowercase",
-                onSelect: () => changeSelectionCase("lowercase"),
-              },
-              {
-                label: "Title Case",
-                onSelect: () => changeSelectionCase("title"),
-              },
-              {
-                label: "Sentence case",
-                onSelect: () => changeSelectionCase("sentence"),
-              },
-              {
-                label: "tOGGLE cASE",
-                onSelect: () => changeSelectionCase("toggle"),
-              },
-            ],
-            [
-              {
-                label: "Clear formatting",
-                shortcut: "Ctrl/⌘ + \\",
-                onSelect: () =>
-                  editor.chain().focus().unsetAllMarks().clearNodes().run(),
+                label: "Capitalization",
+                children: [
+                  { label: "UPPERCASE", onSelect: () => changeSelectionCase("uppercase") },
+                  { label: "lowercase", onSelect: () => changeSelectionCase("lowercase") },
+                  { label: "Title Case", onSelect: () => changeSelectionCase("title") },
+                  { label: "Sentence case", onSelect: () => changeSelectionCase("sentence") },
+                  { label: "tOGGLE cASE", onSelect: () => changeSelectionCase("toggle") },
+                ],
               },
             ],
           ],
@@ -878,67 +880,46 @@ export function Toolbar({
           groups={[
             [
               {
-                label: commentsOpen ? "Hide comments" : "Show comments",
-                shortcut: "Ctrl/⌘ + Alt + Shift + A",
-                onSelect: onToggleComments,
+                label: "Panels",
+                children: [
+                  {
+                    label: commentsOpen ? "Hide comments" : "Show comments",
+                    shortcut: "Ctrl/⌘ + Alt + Shift + A",
+                    onSelect: onToggleComments,
+                  },
+                  {
+                    label: outlineOpen
+                      ? "Hide document outline"
+                      : "Show document outline",
+                    onSelect: onToggleOutline,
+                  },
+                ],
               },
               {
-                label: outlineOpen
-                  ? "Hide document outline"
-                  : "Show document outline",
-                onSelect: onToggleOutline,
+                label: "Zoom",
+                children: DOCUMENT_ZOOM_OPTIONS.map((nextZoom) => ({
+                  label: `${nextZoom}%${zoom === nextZoom ? " ✓" : ""}`,
+                  onSelect: () => onZoomChange(nextZoom),
+                })),
               },
+              ...(editor
+                ? [
+                    {
+                      label: "Navigate",
+                      children: [
+                        { label: "Document start", shortcut: "Ctrl/⌘ + Home", onSelect: () => editor.commands.goToDocumentStart() },
+                        { label: "Document end", shortcut: "Ctrl/⌘ + End", onSelect: () => editor.commands.goToDocumentEnd() },
+                        { label: "Previous heading", shortcut: "Alt + Shift + Page Up", disabled: !editor.can().goToPreviousHeading(), onSelect: () => editor.commands.goToPreviousHeading() },
+                        { label: "Next heading", shortcut: "Alt + Shift + Page Down", disabled: !editor.can().goToNextHeading(), onSelect: () => editor.commands.goToNextHeading() },
+                        { label: "Previous paragraph", disabled: !editor.can().goToPreviousParagraph(), onSelect: () => editor.commands.goToPreviousParagraph() },
+                        { label: "Next paragraph", disabled: !editor.can().goToNextParagraph(), onSelect: () => editor.commands.goToNextParagraph() },
+                        { label: "Previous table", disabled: !editor.can().goToPreviousTable(), onSelect: () => editor.commands.goToPreviousTable() },
+                        { label: "Next table", disabled: !editor.can().goToNextTable(), onSelect: () => editor.commands.goToNextTable() },
+                      ],
+                    },
+                  ]
+                : []),
             ],
-            DOCUMENT_ZOOM_OPTIONS.map((nextZoom) => ({
-              label: `${nextZoom}% zoom${zoom === nextZoom ? " ✓" : ""}`,
-              onSelect: () => onZoomChange(nextZoom),
-            })),
-            editor
-              ? [
-                  {
-                    label: "Document start",
-                    shortcut: "Ctrl/⌘ + Home",
-                    onSelect: () => editor.commands.goToDocumentStart(),
-                  },
-                  {
-                    label: "Document end",
-                    shortcut: "Ctrl/⌘ + End",
-                    onSelect: () => editor.commands.goToDocumentEnd(),
-                  },
-                  {
-                    label: "Previous heading",
-                    shortcut: "Alt + Shift + Page Up",
-                    disabled: !editor.can().goToPreviousHeading(),
-                    onSelect: () => editor.commands.goToPreviousHeading(),
-                  },
-                  {
-                    label: "Next heading",
-                    shortcut: "Alt + Shift + Page Down",
-                    disabled: !editor.can().goToNextHeading(),
-                    onSelect: () => editor.commands.goToNextHeading(),
-                  },
-                  {
-                    label: "Previous paragraph",
-                    disabled: !editor.can().goToPreviousParagraph(),
-                    onSelect: () => editor.commands.goToPreviousParagraph(),
-                  },
-                  {
-                    label: "Next paragraph",
-                    disabled: !editor.can().goToNextParagraph(),
-                    onSelect: () => editor.commands.goToNextParagraph(),
-                  },
-                  {
-                    label: "Previous table",
-                    disabled: !editor.can().goToPreviousTable(),
-                    onSelect: () => editor.commands.goToPreviousTable(),
-                  },
-                  {
-                    label: "Next table",
-                    disabled: !editor.can().goToNextTable(),
-                    onSelect: () => editor.commands.goToNextTable(),
-                  },
-                ]
-              : [],
           ]}
         />
         {editingMenus ? (
@@ -955,90 +936,72 @@ export function Toolbar({
                 ...(canEdit
                   ? [
                       {
-                        label: "Edit with Thido",
-                        onSelect: onEditWithAi,
+                        label: "Thido",
+                        children: [
+                          {
+                            label: "Edit with Thido",
+                            onSelect: onEditWithAi,
+                          },
+                        ],
                       },
                     ]
                   : []),
                 {
-                  label: "Document statistics",
-                  shortcut: "Ctrl/⌘ + Shift + C",
-                  onSelect: () => setWordCountOpen(true),
+                  label: "Document insights",
+                  children: [
+                    {
+                      label: "Document statistics",
+                      shortcut: "Ctrl/⌘ + Shift + C",
+                      onSelect: () => setWordCountOpen(true),
+                    },
+                  ],
                 },
+                ...(canEdit && documentPreferences
+                  ? [
+                      {
+                        label: "Spelling",
+                        children: [
+                          {
+                            label: `${documentPreferences.spellcheck ? "Disable" : "Enable"} spelling suggestions`,
+                            onSelect: () =>
+                              editor.commands.setDocumentSpellcheck(
+                                !documentPreferences.spellcheck,
+                              ),
+                          },
+                        ],
+                      },
+                    ]
+                  : []),
+                ...(canEdit
+                  ? [
+                    {
+                      label: "Clean up text",
+                      children: [
+                        {
+                          label: "Whitespace",
+                          children: [
+                            { label: "Collapse repeated spaces", onSelect: () => editor.chain().focus().cleanUpText("collapseSpaces").run() },
+                            { label: "Convert tabs to spaces", onSelect: () => editor.chain().focus().cleanUpText("tabsToSpaces").run() },
+                            { label: "Remove zero-width characters", onSelect: () => editor.chain().focus().cleanUpText("removeZeroWidth").run() },
+                            { label: "Remove soft hyphens", onSelect: () => editor.chain().focus().cleanUpText("removeSoftHyphens").run() },
+                            { label: "Replace non-breaking spaces", onSelect: () => editor.chain().focus().cleanUpText("replaceNonBreakingSpaces").run() },
+                            { label: "Normalize Unicode spaces", onSelect: () => editor.chain().focus().cleanUpText("normalizeUnicodeSpaces").run() },
+                          ],
+                        },
+                        {
+                          label: "Typography",
+                          children: [
+                            { label: "Convert to smart quotes", onSelect: () => editor.chain().focus().cleanUpText("smartQuotes").run() },
+                            { label: "Convert to straight quotes", onSelect: () => editor.chain().focus().cleanUpText("straightQuotes").run() },
+                            { label: "Convert double hyphens to em dashes", onSelect: () => editor.chain().focus().cleanUpText("normalizeDashes").run() },
+                            { label: "Convert three periods to ellipses", onSelect: () => editor.chain().focus().cleanUpText("normalizeEllipses").run() },
+                          ],
+                        },
+                      ],
+                    },
+                  ]
+                  : []),
               ],
-              canEdit && documentPreferences
-                ? [
-                    {
-                      label: `${documentPreferences.spellcheck ? "Disable" : "Enable"} spelling suggestions`,
-                      onSelect: () =>
-                        editor.commands.setDocumentSpellcheck(
-                          !documentPreferences.spellcheck,
-                        ),
-                    },
-                  ]
-                : [],
-              canEdit
-                ? [
-                    {
-                      label: "Collapse repeated spaces",
-                      onSelect: () =>
-                        editor.chain().focus().cleanUpText("collapseSpaces").run(),
-                    },
-                    {
-                      label: "Convert tabs to spaces",
-                      onSelect: () =>
-                        editor.chain().focus().cleanUpText("tabsToSpaces").run(),
-                    },
-                    {
-                      label: "Remove zero-width characters",
-                      onSelect: () =>
-                        editor.chain().focus().cleanUpText("removeZeroWidth").run(),
-                    },
-                    {
-                      label: "Remove soft hyphens",
-                      onSelect: () =>
-                        editor.chain().focus().cleanUpText("removeSoftHyphens").run(),
-                    },
-                    {
-                      label: "Replace non-breaking spaces",
-                      onSelect: () =>
-                        editor
-                          .chain()
-                          .focus()
-                          .cleanUpText("replaceNonBreakingSpaces")
-                          .run(),
-                    },
-                    {
-                      label: "Normalize Unicode spaces",
-                      onSelect: () =>
-                        editor
-                          .chain()
-                          .focus()
-                          .cleanUpText("normalizeUnicodeSpaces")
-                          .run(),
-                    },
-                    {
-                      label: "Convert to smart quotes",
-                      onSelect: () =>
-                        editor.chain().focus().cleanUpText("smartQuotes").run(),
-                    },
-                    {
-                      label: "Convert to straight quotes",
-                      onSelect: () =>
-                        editor.chain().focus().cleanUpText("straightQuotes").run(),
-                    },
-                    {
-                      label: "Convert double hyphens to em dashes",
-                      onSelect: () =>
-                        editor.chain().focus().cleanUpText("normalizeDashes").run(),
-                    },
-                    {
-                      label: "Convert three periods to ellipses",
-                      onSelect: () =>
-                        editor.chain().focus().cleanUpText("normalizeEllipses").run(),
-                    },
-                  ]
-                : [],
             ]}
           />
         ) : null}
@@ -1165,28 +1128,6 @@ export function Toolbar({
               </option>
             ))}
           </select>
-          <select
-            value={documentPreferences?.appearance ?? "classic"}
-            onChange={(event) =>
-              editor.commands.setDocumentAppearance(
-                event.target.value as DocumentAppearance,
-              )
-            }
-            aria-label="Page style"
-            title={
-              DOCUMENT_APPEARANCE_OPTIONS.find(
-                (option) => option.value === documentPreferences?.appearance,
-              )?.description ?? "Choose a page style"
-            }
-            className="app-input h-8 w-28 shrink-0 rounded-sm px-2 text-sm outline-none"
-          >
-            {DOCUMENT_APPEARANCE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <ToolbarSeparator />
           <select
             value={String(activeTextStyle.color ?? "")}
             onChange={(event) =>

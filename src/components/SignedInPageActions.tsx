@@ -1,10 +1,8 @@
 import { createBlankDocument } from "@/app/document-actions";
 import { FounderFeedbackLauncher } from "@/components/feedback/FounderFeedbackLauncher";
-import { auth } from "@/lib/auth";
 
-export async function SignedInPageActions() {
-  const session = await auth();
-  if (!session?.user?.id) return null;
+export function SignedInPageActions({ signedIn }: { signedIn: boolean }) {
+  if (!signedIn) return null;
 
   return (
     <>

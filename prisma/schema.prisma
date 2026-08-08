@@ -207,6 +207,7 @@ model UserSettings {
   aiCommentMode     AICommentMode     @default(AUTO)
   aiModel           String            @default("claude-sonnet-5")
   documentStartMode DocumentStartMode @default(NEW_DOCUMENT)
+  applicationStyle  String            @default("classic")
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 }

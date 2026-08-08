@@ -45,6 +45,7 @@ export function DocumentFileMenu({
   const [open, setOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
+  const [downloadOpen, setDownloadOpen] = useState(false);
   const [languageDraft, setLanguageDraft] = useState(documentLanguage);
   const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -276,25 +277,72 @@ export function DocumentFileMenu({
               </>
             ) : null}
             <div role="separator" className="my-1 border-t border-[var(--border)]" />
-            <p className="px-3 py-1 text-[11px] font-semibold tracking-wide text-[var(--muted)] uppercase">
-              Download
-            </p>
-            <a
+            <button
+              type="button"
               role="menuitem"
-              href={`/api/documents/${documentId}/export/docx`}
-              className="block rounded-sm px-3 py-2 hover:bg-[var(--surface-subtle)]"
-              onClick={() => setOpen(false)}
+              aria-haspopup="menu"
+              aria-expanded={downloadOpen}
+              onClick={() => setDownloadOpen((current) => !current)}
+              onKeyDown={(event) => {
+                if (event.key !== "ArrowRight") return;
+                event.preventDefault();
+                setDownloadOpen(true);
+                window.requestAnimationFrame(() => {
+                  menuRef.current
+                    ?.querySelector<HTMLElement>(
+                      '[aria-label="Download"] [role="menuitem"]',
+                    )
+                    ?.focus();
+                });
+              }}
+              className="flex w-full items-center justify-between gap-4 rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)]"
             >
-              Microsoft Word (.docx)
-            </a>
-            <a
-              role="menuitem"
-              href={`/api/documents/${documentId}/export/pdf`}
-              className="block rounded-sm px-3 py-2 hover:bg-[var(--surface-subtle)]"
-              onClick={() => setOpen(false)}
-            >
-              PDF document (.pdf)
-            </a>
+              <span>Download</span>
+              <svg
+                viewBox="0 0 16 16"
+                aria-hidden="true"
+                className={`size-3.5 fill-none stroke-current transition-transform ${downloadOpen ? "rotate-90" : ""}`}
+                strokeWidth="1.8"
+              >
+                <path d="m6 3 5 5-5 5" />
+              </svg>
+            </button>
+            {downloadOpen ? (
+              <div
+                role="menu"
+                aria-label="Download"
+                className="mx-1 mb-1 border-s border-[var(--border)] ps-1"
+                onKeyDown={(event) => {
+                  if (event.key !== "ArrowLeft") return;
+                  event.preventDefault();
+                  setDownloadOpen(false);
+                  window.setTimeout(() => {
+                    menuRef.current
+                      ?.querySelector<HTMLButtonElement>(
+                        '[aria-haspopup="menu"][aria-expanded="false"]',
+                      )
+                      ?.focus();
+                  }, 0);
+                }}
+              >
+                <a
+                  role="menuitem"
+                  href={`/api/documents/${documentId}/export/docx`}
+                  className="block rounded-sm px-5 py-2 hover:bg-[var(--surface-subtle)]"
+                  onClick={() => setOpen(false)}
+                >
+                  Microsoft Word (.docx)
+                </a>
+                <a
+                  role="menuitem"
+                  href={`/api/documents/${documentId}/export/pdf`}
+                  className="block rounded-sm px-5 py-2 hover:bg-[var(--surface-subtle)]"
+                  onClick={() => setOpen(false)}
+                >
+                  PDF document (.pdf)
+                </a>
+              </div>
+            ) : null}
             <div role="separator" className="my-1 border-t border-[var(--border)]" />
             <button
               type="button"

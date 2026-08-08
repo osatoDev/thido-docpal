@@ -5,6 +5,12 @@ import { Analytics } from "@vercel/analytics/next";
 import { RollbarProvider } from "@/components/observability/RollbarProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SignedInPageActions } from "@/components/SignedInPageActions";
+import {
+  APPLICATION_STYLE_COOKIE_NAME,
+  DEFAULT_APPLICATION_STYLE,
+  isApplicationStyle,
+} from "@/lib/applicationStyle";
+import { auth } from "@/lib/auth";
 import { isTheme, THEME_COOKIE_NAME } from "@/lib/theme";
 import "./globals.css";
 
@@ -29,19 +35,29 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const savedTheme = (await cookies()).get(THEME_COOKIE_NAME)?.value;
+  const [cookieStore, session] = await Promise.all([cookies(), auth()]);
+  const savedTheme = cookieStore.get(THEME_COOKIE_NAME)?.value;
   const theme = isTheme(savedTheme) ? savedTheme : "light";
+  const savedApplicationStyle = cookieStore.get(
+    APPLICATION_STYLE_COOKIE_NAME,
+  )?.value;
+  const applicationStyle = isApplicationStyle(session?.user.applicationStyle)
+    ? session.user.applicationStyle
+    : isApplicationStyle(savedApplicationStyle)
+      ? savedApplicationStyle
+      : DEFAULT_APPLICATION_STYLE;
 
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       data-theme={theme}
+      data-app-style={applicationStyle}
     >
       <body className="flex min-h-full flex-col">
         <RollbarProvider>
           {children}
-          <SignedInPageActions />
+          <SignedInPageActions signedIn={Boolean(session?.user.id)} />
           <ThemeToggle />
           <Analytics />
         </RollbarProvider>

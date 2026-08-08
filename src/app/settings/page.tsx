@@ -9,6 +9,10 @@ import { SettingsForm } from "@/components/settings/SettingsForm";
 import { BillingPanel } from "@/components/settings/BillingPanel";
 import { getBillingOffer } from "@/lib/billing";
 import { ConnectedAccounts } from "@/components/settings/ConnectedAccounts";
+import {
+  DEFAULT_APPLICATION_STYLE,
+  isApplicationStyle,
+} from "@/lib/applicationStyle";
 
 export default async function SettingsPage({
   searchParams,
@@ -80,6 +84,11 @@ export default async function SettingsPage({
       <SettingsForm
         initialAiModel={isAiModelId(settings.aiModel) ? settings.aiModel : DEFAULT_AI_MODEL}
         initialCommentMode={settings.aiCommentMode}
+        initialApplicationStyle={
+          isApplicationStyle(settings.applicationStyle)
+            ? settings.applicationStyle
+            : DEFAULT_APPLICATION_STYLE
+        }
       />
       <ConnectedAccounts
         email={user.email ?? session.user.email ?? "your email"}
