@@ -116,6 +116,21 @@ export const FormattedHeading = Heading.extend({
     return {
       ...this.parent?.(),
       ...formattingAttributes(),
+      headingId: {
+        default: null,
+        parseHTML: (element: HTMLElement) => {
+          const headingId = element.getAttribute("id");
+          return headingId && /^[a-z][a-z0-9-]{0,99}$/.test(headingId)
+            ? headingId
+            : null;
+        },
+        renderHTML: (attributes: Record<string, unknown>) => {
+          const headingId = String(attributes.headingId ?? "");
+          return /^[a-z][a-z0-9-]{0,99}$/.test(headingId)
+            ? { id: headingId }
+            : {};
+        },
+      },
     };
   },
 });

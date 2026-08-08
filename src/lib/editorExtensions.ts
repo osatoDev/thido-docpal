@@ -9,6 +9,16 @@ import Superscript from "@tiptap/extension-superscript";
 import TextAlign from "@tiptap/extension-text-align";
 import type { Extensions } from "@tiptap/core";
 import { CommentMark } from "@/components/editor/extensions/CommentMark";
+import {
+  DocumentPreferences,
+  DocumentPreferencesNode,
+} from "@/components/editor/extensions/DocumentPreferences";
+import {
+  Footnote,
+  FootnoteReference,
+  Footnotes,
+} from "@/components/editor/extensions/Footnotes";
+import { HeadingAnchors } from "@/components/editor/extensions/HeadingAnchors";
 import { PageBreak } from "@/components/editor/extensions/PageBreak";
 import {
   FormattedHeading,
@@ -19,6 +29,10 @@ import { RichTextStyle } from "@/components/editor/extensions/RichTextStyle";
 import { StyledBulletList } from "@/components/editor/extensions/StyledBulletList";
 import { TextCase } from "@/components/editor/extensions/TextCase";
 import { TextIndent } from "@/components/editor/extensions/TextIndent";
+import {
+  TableOfContents,
+  TableOfContentsCommands,
+} from "@/components/editor/extensions/TableOfContents";
 import { isSafeDocumentLink } from "@/lib/documentLinks";
 
 const ExclusiveSuperscript = Superscript.extend({
@@ -58,6 +72,14 @@ export function getEditorExtensions(): Extensions {
     }),
     FormattedParagraph,
     FormattedHeading.configure({ levels: [1, 2, 3, 4, 5, 6] }),
+    HeadingAnchors,
+    DocumentPreferencesNode,
+    DocumentPreferences,
+    TableOfContents,
+    TableOfContentsCommands,
+    FootnoteReference,
+    Footnote,
+    Footnotes,
     StyledBulletList,
     TaskList,
     TaskItem.configure({

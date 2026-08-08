@@ -7,6 +7,7 @@ import { getEditorExtensions } from "@/lib/editorExtensions";
 import { Toolbar } from "./Toolbar";
 import { DocumentOutline } from "./DocumentOutline";
 import { TableContextMenu } from "./TableContextMenu";
+import { useEditorHashNavigation } from "./useEditorHashNavigation";
 import { CommentSidebar } from "@/components/comments/CommentSidebar";
 import { CommentComposer } from "@/components/comments/CommentComposer";
 import { RecentThidoChangeNotice } from "@/components/comments/RecentThidoChangeNotice";
@@ -154,6 +155,7 @@ export function TiptapEditor({
     },
   });
   const editorRef = useRef(editor);
+  useEditorHashNavigation(editor);
 
   useEffect(() => {
     mountedRef.current = true;

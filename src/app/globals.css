@@ -320,6 +320,85 @@ select {
   text-underline-offset: 0.15em;
 }
 
+.ProseMirror [data-type="document-preferences"] {
+  display: none;
+}
+
+.ProseMirror nav[data-type="table-of-contents"] {
+  margin: 1.25rem 0;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: var(--surface-subtle);
+  padding: 1rem 1.1rem;
+}
+
+.ProseMirror nav[data-type="table-of-contents"].ProseMirror-selectednode {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ProseMirror .table-of-contents-title {
+  margin: 0 0 0.5rem;
+  font-weight: 650;
+}
+
+.ProseMirror nav[data-type="table-of-contents"] ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ProseMirror nav[data-type="table-of-contents"] li[data-level="2"] {
+  padding-left: 1rem;
+}
+
+.ProseMirror nav[data-type="table-of-contents"] li[data-level="3"],
+.ProseMirror nav[data-type="table-of-contents"] li[data-level="4"],
+.ProseMirror nav[data-type="table-of-contents"] li[data-level="5"],
+.ProseMirror nav[data-type="table-of-contents"] li[data-level="6"] {
+  padding-left: 2rem;
+}
+
+.ProseMirror sup[data-type="footnote-reference"] {
+  margin-inline: 0.08rem;
+  font-size: 0.72em;
+  vertical-align: super;
+}
+
+.ProseMirror aside[data-type="footnote"] {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: baseline;
+  margin: 0.35rem 0;
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+  font-size: 0.9em;
+}
+
+.ProseMirror aside[data-type="footnote"] [data-footnote-content="true"] p {
+  margin: 0;
+}
+
+.ProseMirror .footnote-number {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.ProseMirror .footnote-backlink {
+  text-decoration: none;
+}
+
+.ProseMirror h1[id],
+.ProseMirror h2[id],
+.ProseMirror h3[id],
+.ProseMirror h4[id],
+.ProseMirror h5[id],
+.ProseMirror h6[id],
+.ProseMirror aside[id] {
+  scroll-margin-top: 7rem;
+}
+
 .ProseMirror mark {
   padding: 0.05em 0.12em;
   border-radius: 0.15em;

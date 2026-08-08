@@ -53,7 +53,9 @@ Word export preserves the Thido structures listed as supported above, including
 safe links, basic tables, disc/circle/square unordered-list markers, stored
 document images, headings 1–6, text alignment, paragraph indentation, font
 family, font size, text color, highlight color, line spacing, paragraph spacing,
-and page breaks. Thido
+and page breaks. Inserted Thido tables of contents become indented heading lists,
+and Thido footnotes become numbered notes with superscript references; these are
+portable fallbacks rather than native Word TOC or footnote fields. Thido
 checklist items are represented with checked or unchecked box characters;
 importing that Word file again retains their text but does not reconstruct
 semantic checklist state. The Thido document title is written as Word file
@@ -62,8 +64,8 @@ metadata and used for the filename; it is not duplicated as a body heading.
 PDF export renders the document title, headings 1–6, bold, italic, underline,
 strikethrough, font family, font size, text color, code-style text, alignment,
 indentation, line spacing, paragraph spacing, page breaks, clickable links,
-lists, checklist markers, basic tables, blockquotes, horizontal rules, and
-stored images onto A4 pages. Highlight and superscript/subscript remain visible
+lists, checklist markers, basic tables, blockquotes, horizontal rules, tables of
+contents, numbered footnotes, and stored images onto A4 pages. Highlight and superscript/subscript remain visible
 in the editor and Word export but currently fall back to plain text in PDF. Browser printing
 remains available when a user needs printer-specific controls.
 
@@ -84,7 +86,6 @@ version history are excluded from both export formats.
 
 ## Deliberately separate future work
 
-Adding footnotes or richer table styling to the editor should be followed by
-round-trip coverage for those nodes. Semantic Word checklist conversion,
-comments, and tracked changes require separate mappings and must not be treated
-as side effects of basic `.docx` conversion.
+Native Word footnote/TOC fields, richer table styling, semantic Word checklist
+conversion, comments, and tracked changes require separate mappings and must
+not be treated as side effects of basic `.docx` conversion.

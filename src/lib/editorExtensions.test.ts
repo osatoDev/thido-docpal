@@ -3,6 +3,7 @@ import { generateHTML, generateJSON } from "@tiptap/html/server";
 import type { JSONContent } from "@tiptap/core";
 
 import { transformTextCase } from "@/components/editor/extensions/TextCase";
+import { slugifyHeading } from "@/components/editor/extensions/HeadingAnchors";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 
 describe("styled bullet lists", () => {
@@ -200,6 +201,96 @@ describe("priority-one document structures", () => {
         }),
       ]),
     );
+  });
+
+  it("round-trips document preferences, section links, contents, and footnotes", () => {
+    const content: JSONContent = {
+      type: "doc",
+      content: [
+        {
+          type: "documentPreferences",
+          attrs: {
+            language: "de-DE",
+            spellcheck: false,
+            direction: "rtl",
+          },
+        },
+        {
+          type: "tableOfContents",
+          attrs: {
+            entries: [{ id: "uberblick", level: 2, text: "Überblick" }],
+          },
+        },
+        {
+          type: "heading",
+          attrs: { level: 2, headingId: "uberblick" },
+          content: [{ type: "text", text: "Überblick" }],
+        },
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "A claim" },
+            {
+              type: "footnoteReference",
+              attrs: { footnoteId: "note-1", number: 1 },
+            },
+          ],
+        },
+        {
+          type: "footnote",
+          attrs: { footnoteId: "note-1", number: 1 },
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Supporting source" }],
+            },
+          ],
+        },
+      ],
+    };
+
+    const html = generateHTML(content, getEditorExtensions());
+    const parsed = generateJSON(html, getEditorExtensions());
+
+    expect(html).toContain('data-language="de-DE"');
+    expect(html).toContain('data-direction="rtl"');
+    expect(html).toContain('id="uberblick"');
+    expect(html).toContain('data-type="table-of-contents"');
+    expect(html).not.toContain(' entries="');
+    expect(html).toContain('href="#uberblick"');
+    expect(html).toContain('data-type="footnote-reference"');
+    expect(html).not.toContain(' footnoteid="');
+    expect(html).not.toContain(' number="');
+    expect(html).toContain('href="#footnote-note-1"');
+    expect(html).toContain('href="#footnote-ref-note-1"');
+    expect(parsed.content).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "documentPreferences",
+          attrs: expect.objectContaining({
+            language: "de-DE",
+            spellcheck: false,
+            direction: "rtl",
+          }),
+        }),
+        expect.objectContaining({
+          type: "heading",
+          attrs: expect.objectContaining({ headingId: "uberblick" }),
+        }),
+        expect.objectContaining({
+          type: "footnote",
+          attrs: expect.objectContaining({ footnoteId: "note-1", number: 1 }),
+        }),
+      ]),
+    );
+  });
+});
+
+describe("heading anchors", () => {
+  it("creates safe, readable slugs with a non-numeric prefix", () => {
+    expect(slugifyHeading("Résumé & next steps")).toBe("resume-next-steps");
+    expect(slugifyHeading("2026 roadmap")).toBe("section-2026-roadmap");
+    expect(slugifyHeading("🔥")).toBe("section");
   });
 });
 

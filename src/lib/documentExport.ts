@@ -45,6 +45,14 @@ function wordFontFamily(value: unknown) {
 
 function textRuns(node: JSONContent, forceCode = false): ParagraphChild[] {
   if (node.type === "hardBreak") return [new TextRun({ break: 1 })];
+  if (node.type === "footnoteReference") {
+    return [
+      new TextRun({
+        text: String(Number(node.attrs?.number) || 1),
+        superScript: true,
+      }),
+    ];
+  }
   if (node.type === "text") {
     const markTypes = new Set(node.marks?.map((mark) => mark.type));
     const href = node.marks?.find((mark) => mark.type === "link")?.attrs?.href;
@@ -206,6 +214,54 @@ async function wordBlocks(
 ): Promise<WordBlock[]> {
   const paragraphs: WordBlock[] = [];
   for (const node of nodes) {
+    if (node.type === "documentPreferences") continue;
+    if (node.type === "tableOfContents") {
+      paragraphs.push(
+        new Paragraph({
+          children: [new TextRun({ text: "Table of contents", bold: true })],
+          spacing: { after: 120 },
+        }),
+      );
+      const entries = Array.isArray(node.attrs?.entries)
+        ? node.attrs.entries
+        : [];
+      for (const entry of entries) {
+        if (!entry || typeof entry !== "object") continue;
+        const levelValue = Math.min(
+          6,
+          Math.max(1, Number((entry as Record<string, unknown>).level) || 1),
+        );
+        const text = String((entry as Record<string, unknown>).text ?? "");
+        if (!text) continue;
+        paragraphs.push(
+          new Paragraph({
+            text,
+            indent: { left: (levelValue - 1) * 360 },
+            spacing: { after: 60 },
+          }),
+        );
+      }
+      continue;
+    }
+    if (node.type === "footnote") {
+      let first = true;
+      for (const child of node.content ?? []) {
+        paragraphs.push(
+          await wordParagraph(documentId, child, {
+            prefix: first
+              ? [
+                  new TextRun({
+                    text: `${Number(node.attrs?.number) || 1}. `,
+                    bold: true,
+                  }),
+                ]
+              : undefined,
+          }),
+        );
+        first = false;
+      }
+      continue;
+    }
     if (node.type === "table") {
       paragraphs.push(await wordTable(documentId, node));
       continue;
@@ -395,6 +451,18 @@ function pdfRuns(node: JSONContent, forceCode = false): PdfRun[] {
       },
     ];
   }
+  if (node.type === "footnoteReference") {
+    return [
+      {
+        text: `[${Number(node.attrs?.number) || 1}]`,
+        bold: false,
+        italic: false,
+        code: false,
+        strike: false,
+        underline: false,
+      },
+    ];
+  }
   return node.content?.flatMap((child) => pdfRuns(child, forceCode)) ?? [];
 }
 
@@ -554,6 +622,49 @@ async function renderPdfBlocks(
   level = 0,
 ) {
   for (const node of nodes) {
+    if (node.type === "documentPreferences") continue;
+    if (node.type === "tableOfContents") {
+      pdf.font("Times-Bold").fontSize(13).text("Table of contents");
+      const entries = Array.isArray(node.attrs?.entries)
+        ? node.attrs.entries
+        : [];
+      for (const entry of entries) {
+        if (!entry || typeof entry !== "object") continue;
+        const levelValue = Math.min(
+          6,
+          Math.max(1, Number((entry as Record<string, unknown>).level) || 1),
+        );
+        const text = String((entry as Record<string, unknown>).text ?? "");
+        if (!text) continue;
+        pdf
+          .font("Times-Roman")
+          .fontSize(11)
+          .text(text, { indent: (levelValue - 1) * 18 });
+      }
+      pdf.moveDown(0.7);
+      continue;
+    }
+    if (node.type === "footnote") {
+      const prefix = `${Number(node.attrs?.number) || 1}. `;
+      let first = true;
+      for (const child of node.content ?? []) {
+        const runs = pdfRuns(child);
+        if (first) {
+          runs.unshift({
+            text: prefix,
+            bold: true,
+            italic: false,
+            code: false,
+            strike: false,
+            underline: false,
+          });
+        }
+        renderPdfRuns(pdf, runs, { indent: 12 });
+        pdf.moveDown(0.25);
+        first = false;
+      }
+      continue;
+    }
     if (node.type === "table") {
       renderPdfTable(pdf, node);
       continue;

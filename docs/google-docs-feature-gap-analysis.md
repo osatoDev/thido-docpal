@@ -32,11 +32,12 @@ The most consequential gaps identified in the initial audit were:
 3. **Document portability — implemented for the current schema.** Authenticated
    users can import and export Word files and download server-generated PDFs;
    imports report unsupported structures.
-4. **Everyday document structures.** Safe links, small tables, and checklists
-   are implemented. Document outlines, bookmarks, table of contents, footnotes,
-   and page elements remain missing.
-5. **Everyday writing utilities.** There is no product-level find and replace,
-   word count, spelling/grammar review, or clear document-language control.
+4. **Everyday document structures.** Safe links, small tables, checklists,
+   document outlines, stable section links, tables of contents, and footnotes
+   are implemented. Bookmarks and advanced page elements remain missing.
+5. **Everyday writing utilities.** Find and replace, word counts, explicit
+   document language, browser spelling suggestions, and text direction are
+   implemented. A product-level grammar review remains future work.
 6. **Mature review workflows.** Thido has comments and AI proposals, but not a
    general human suggestion mode, assignments, mentions, comment notifications,
    or a consolidated review history.
@@ -81,12 +82,12 @@ basic once a draft becomes important or collaborative.
 | Simultaneous editing | Safeguarded, live merging deferred | Revision preconditions prevent silent stale overwrites and provide a reload path. Live presence, shared cursors, and operation-level merging are outside the current scope. |
 | Word import/export | Present for the supported schema | Users can import `.docx` with fidelity warnings and download editable Word files. Unsupported Word structures are reported rather than presented as fully preserved. |
 | PDF export | Present | Users can download a server-generated PDF or use the browser print workflow. |
-| Links and bookmarks | Partial | Safe HTTP(S) and email links can be added, edited, opened, copied, removed, pasted, and exported. Internal bookmarks remain unavailable. |
+| Links and bookmarks | Partial | Safe HTTP(S) and email links can be added, edited, opened, copied, removed, pasted, and exported. Headings receive stable anchors with copyable section URLs; arbitrary internal bookmarks remain unavailable. |
 | Tables and checklists | Present for the initial scope | Users can create checklists and small resizable tables, then add or delete rows and columns. Advanced table styling and semantic Word checklist round trips remain future work. |
 | Find and replace | Present | Editor-aware search supports navigation, case matching, replace, and replace all. |
-| Spelling, grammar, and word count | Partial | Document and selection counts are present; spelling, grammar, and language behavior still needs a defined product policy. |
-| Outline and table of contents | Partial | A collapsible heading outline provides click-to-navigate structure; stable section links, bookmarks, and an insertable table of contents remain unavailable. |
-| Page layout and references | Partial | Page breaks persist and print/export correctly; margins, headers, footers, page numbers, sections, and footnotes remain unavailable. |
+| Spelling, grammar, and word count | Partial | Document and selection counts, explicit language, writing direction, and a persisted browser-spellcheck toggle are present. A dedicated grammar-review service is not. |
+| Outline and table of contents | Present for the initial scope | A collapsible outline navigates to stable heading anchors, copies section URLs, and supports insertable tables of contents that refresh when headings change. Arbitrary bookmarks and document tabs remain future work. |
+| Page layout and references | Partial | Page breaks and linked, automatically numbered footnotes persist and render in sharing and export; margins, headers, footers, page numbers, and sections remain unavailable. |
 | Offline editing | Missing | Documents require an online application and server persistence. |
 | Document tabs and smart building blocks | Missing | Advanced organization and Workspace-style integrations are not present. |
 
@@ -216,8 +217,10 @@ Recommended initial scope:
 
 ### 5. Find and replace, word count, and writing review
 
-**Repository status:** Find and replace and document/selection counts are
-implemented. The language and spelling policy remains future work.
+**Repository status:** Find and replace, document/selection counts, explicit
+document language, left-to-right/right-to-left direction, and a persisted
+browser-spellcheck toggle are implemented. Thido does not claim a dedicated
+grammar-review engine.
 
 Google Docs provides editor-aware find and replace, including replace-all and
 case-sensitive matching ([find and replace](https://support.google.com/docs/answer/62754)).
@@ -231,9 +234,9 @@ Current scope:
 - **Done:** Find, Replace, and Replace all with visible match count,
   case-sensitive matching, and keyboard access;
 - **Done:** document and selection word/character counts;
-- an explicit language setting;
-- a consistent spellcheck policy, even if the first version deliberately relies
-  on browser spellcheck;
+- **Done:** an explicit language setting;
+- **Done:** a consistent persisted spellcheck policy that deliberately relies
+  on the browser's native spelling suggestions;
 - **Done:** accessible status announcements for match counts and navigation.
 
 These utilities are especially important for long AI-generated drafts, where a
@@ -241,7 +244,10 @@ user may need to check length, terminology, names, or repeated phrases quickly.
 
 ### 6. Outline, table of contents, and internal navigation
 
-**Repository status:** The collapsible heading outline and click-to-scroll navigation are implemented for headings 1–6. Stable heading IDs, internal section links, bookmarks, and an insertable table of contents remain future work.
+**Repository status:** The collapsible outline, click-to-scroll navigation,
+stable heading IDs, copyable section URLs, hash navigation, and insertable,
+automatically refreshed table of contents are implemented for headings 1–6.
+Arbitrary bookmarks and document tabs remain future work.
 
 Thido supports headings but does not use them as navigation. Google Docs derives
 a document outline from headings and lets users jump between sections
@@ -252,17 +258,18 @@ supports document tabs and nested subtabs for larger documents
 Recommended Thido scope:
 
 - **Done:** a collapsible heading outline with click-to-scroll;
-- heading IDs that remain stable enough for internal links;
-- insertable table of contents with refresh behavior;
-- bookmarks or copyable links to a section;
+- **Done:** heading IDs that remain stable enough for internal links;
+- **Done:** insertable table of contents with automatic and explicit refresh;
+- **Done for headings:** copyable links to a section; arbitrary bookmarks remain
+  future work;
 - defer Google-style document tabs until evidence shows that Thido users create
   documents large enough to require them.
 
 ### 7. Page structure and references
 
-**Repository status:** Persistent page breaks are implemented in the editor,
-browser print layout, Word export, and PDF export. The remaining page-reference
-features are future work.
+**Repository status:** Persistent page breaks and linked, automatically numbered
+footnotes are implemented in the editor, shared view, Word export, and PDF
+export. The remaining page-reference features are future work.
 
 Google Docs supports paged and pageless modes. In paged documents, users can add
 headers, footers, page numbers, section-specific variants, and footnotes
@@ -274,7 +281,7 @@ formal proposals.
 
 Recommended order:
 
-1. **Done:** page breaks; add footnotes next;
+1. **Done:** page breaks and linked footnotes with backlinks;
 2. predictable print/PDF pagination;
 3. headers, footers, and page numbers;
 4. margin, paper-size, and orientation controls only if user demand warrants
@@ -370,9 +377,9 @@ investments unless target-user research identifies them as essential.
 
 - `.docx` import with a fidelity preview;
 - tables and checklists (done for the initial scope);
-- outline, internal links, and table of contents;
-- footnotes (page breaks are done);
-- consistent spellcheck/language behavior.
+- outline, internal links, and table of contents (done for headings);
+- footnotes (done for Thido documents and compatible export fallbacks);
+- consistent spellcheck/language behavior (done using browser spellcheck).
 
 ### Collaboration release
 

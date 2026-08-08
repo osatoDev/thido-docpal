@@ -6,8 +6,13 @@ import type { Editor } from "@tiptap/react";
 import { DocumentFileMenu } from "@/components/documents/DocumentMoreActions";
 import type { RestoredDocument } from "@/components/documents/VersionHistoryControl";
 import { FindReplaceDialog } from "./FindReplaceDialog";
+import { FootnoteDialog } from "./FootnoteDialog";
 import { LinkControl } from "./LinkControl";
 import { WordCountDialog } from "./WordCountDialog";
+import {
+  DOCUMENT_LANGUAGE_OPTIONS,
+  getDocumentPreferences,
+} from "./extensions/DocumentPreferences";
 import { LINE_HEIGHT_OPTIONS } from "./extensions/ParagraphFormatting";
 import {
   FONT_FAMILY_OPTIONS,
@@ -271,6 +276,7 @@ export function Toolbar({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const [findReplaceOpen, setFindReplaceOpen] = useState(false);
+  const [footnoteOpen, setFootnoteOpen] = useState(false);
   const [wordCountOpen, setWordCountOpen] = useState(false);
   const activeBulletStyle =
     editor && isBulletStyle(editor.getAttributes("bulletList").bulletStyle)
@@ -287,6 +293,9 @@ export function Toolbar({
   );
   const activeTextStyle = editor?.getAttributes("richTextStyle") ?? {};
   const activeHighlight = editor?.getAttributes("highlight") ?? {};
+  const documentPreferences = editor
+    ? getDocumentPreferences(editor.state.doc)
+    : null;
 
   useEffect(() => {
     if (!editor) return;
@@ -508,6 +517,21 @@ export function Toolbar({
                 disabled: uploadingImage,
                 onSelect: chooseImage,
               },
+              {
+                label: "Table of contents",
+                onSelect: () => {
+                  editor.commands.ensureHeadingAnchors();
+                  editor.commands.insertTableOfContents();
+                },
+              },
+              {
+                label: "Update table of contents",
+                onSelect: () => editor.commands.refreshTableOfContents(),
+              },
+              {
+                label: "Footnote…",
+                onSelect: () => setFootnoteOpen(true),
+              },
             ],
             [
               {
@@ -527,6 +551,24 @@ export function Toolbar({
                       timeStyle: "short",
                     }).format(new Date()),
                   ),
+              },
+            ],
+            [
+              {
+                label: "Em dash —",
+                onSelect: () => insertLocalizedText("—"),
+              },
+              {
+                label: "En dash –",
+                onSelect: () => insertLocalizedText("–"),
+              },
+              {
+                label: "Ellipsis …",
+                onSelect: () => insertLocalizedText("…"),
+              },
+              {
+                label: "Non-breaking space",
+                onSelect: () => insertLocalizedText("\u00a0"),
               },
             ],
           ],
@@ -647,6 +689,16 @@ export function Toolbar({
               },
             ],
             [
+              {
+                label: `Left-to-right document${documentPreferences?.direction === "ltr" ? " ✓" : ""}`,
+                onSelect: () => editor.commands.setDocumentDirection("ltr"),
+              },
+              {
+                label: `Right-to-left document${documentPreferences?.direction === "rtl" ? " ✓" : ""}`,
+                onSelect: () => editor.commands.setDocumentDirection("rtl"),
+              },
+            ],
+            [
               ...LINE_HEIGHT_OPTIONS.map((lineHeight) => ({
                 label: `${lineHeight === 1 ? "Single" : lineHeight} line spacing${activeBlockAttributes?.lineHeight === lineHeight ? " ✓" : ""}`,
                 onSelect: () =>
@@ -764,6 +816,24 @@ export function Toolbar({
                   onSelect: () => setWordCountOpen(true),
                 },
               ],
+              canEdit && documentPreferences
+                ? [
+                    {
+                      label: `${documentPreferences.spellcheck ? "Disable" : "Enable"} spelling suggestions`,
+                      onSelect: () =>
+                        editor.commands.setDocumentSpellcheck(
+                          !documentPreferences.spellcheck,
+                        ),
+                    },
+                  ]
+                : [],
+              canEdit && documentPreferences
+                ? DOCUMENT_LANGUAGE_OPTIONS.map((option) => ({
+                    label: `${option.label}${documentPreferences.language === option.value ? " ✓" : ""}`,
+                    onSelect: () =>
+                      editor.commands.setDocumentLanguage(option.value),
+                  }))
+                : [],
             ]}
           />
         ) : null}
@@ -1008,6 +1078,12 @@ export function Toolbar({
         <WordCountDialog
           editor={editor}
           onClose={() => setWordCountOpen(false)}
+        />
+      ) : null}
+      {footnoteOpen && editor ? (
+        <FootnoteDialog
+          onInsert={(text) => editor.commands.insertFootnote(text)}
+          onClose={() => setFootnoteOpen(false)}
         />
       ) : null}
     </>

@@ -4,6 +4,7 @@ import type { JSONContent } from "@tiptap/react";
 import { EditorContent, useEditor } from "@tiptap/react";
 
 import { getEditorExtensions } from "@/lib/editorExtensions";
+import { useEditorHashNavigation } from "@/components/editor/useEditorHashNavigation";
 
 export function PublicDocumentViewer({
   content,
@@ -26,6 +27,7 @@ export function PublicDocumentViewer({
       },
     },
   });
+  useEditorHashNavigation(editor);
 
   return <EditorContent editor={editor} />;
 }

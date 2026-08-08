@@ -15,7 +15,7 @@ const content: JSONContent = {
   content: [
     {
       type: "heading",
-      attrs: { level: 1 },
+      attrs: { level: 1, headingId: "a-heading" },
       content: [{ type: "text", text: "A heading" }],
     },
     {
@@ -113,6 +113,32 @@ const content: JSONContent = {
         },
       ],
     },
+    {
+      type: "tableOfContents",
+      attrs: {
+        entries: [{ id: "a-heading", level: 1, text: "A heading" }],
+      },
+    },
+    {
+      type: "paragraph",
+      content: [
+        { type: "text", text: "Referenced claim" },
+        {
+          type: "footnoteReference",
+          attrs: { footnoteId: "note-1", number: 1 },
+        },
+      ],
+    },
+    {
+      type: "footnote",
+      attrs: { footnoteId: "note-1", number: 1 },
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "Supporting source" }],
+        },
+      ],
+    },
   ],
 };
 
@@ -155,6 +181,8 @@ describe("document export", () => {
       imported.content?.some((node: JSONContent) => node.type === "table"),
     ).toBe(true);
     expect(converted.value).toContain('href="https://example.com"');
+    expect(converted.value).toContain("Table of contents");
+    expect(converted.value).toContain("Supporting source");
   });
 
   it("creates safe, useful download names", () => {
