@@ -175,14 +175,22 @@ export function DocumentFileMenu({
       });
       const body = await response.json().catch(() => null);
       if (!response.ok || !body?.document) {
+        const responseRequestId =
+          (typeof body?.requestId === "string" && body.requestId) ||
+          response.headers.get("x-thido-request-id");
+        const responseError =
+          typeof body?.error === "string"
+            ? body.error
+            : typeof body?.error?.message === "string"
+              ? body.error.message
+              : "Could not import this document.";
+        const errorWithReference = responseRequestId
+          ? `${responseError} Reference: ${responseRequestId}`
+          : responseError;
         if (body?.documentConflict === true) {
-          onConflict(
-            typeof body.error === "string"
-              ? body.error
-              : "This document changed somewhere else.",
-          );
+          onConflict(errorWithReference);
         }
-        throw new Error(body?.error || "Could not import this document.");
+        throw new Error(errorWithReference);
       }
       onImport(body.document as RestoredDocument);
       const warnings = Array.isArray(body.warnings)

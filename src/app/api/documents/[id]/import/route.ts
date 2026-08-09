@@ -19,6 +19,12 @@ import {
 import { recordDocumentRevision } from "@/lib/documentRevisions";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { sanitizeImportedWordHtml } from "@/lib/documentImport";
+import {
+  documentImportRequestId,
+  type DocumentImportFileKind,
+  type DocumentImportLogLevel,
+  writeDocumentImportLog,
+} from "@/lib/documentImportObservability";
 import { inferDocumentTitle } from "@/lib/documentPersistence";
 import { markdownToTiptapJSON } from "@/lib/markdownToTiptap";
 import { prisma } from "@/lib/prisma";
@@ -32,6 +38,7 @@ const MAX_MARKDOWN_FILE_BYTES = 2 * 1024 * 1024;
 const MAX_IMPORTED_IMAGE_BYTES = 8 * 1024 * 1024;
 
 type Params = { params: Promise<{ id: string }> };
+type ImportStage = "comment_reconciliation" | "conversion" | "persistence";
 
 function titleFromFilename(filename: string) {
   return (
@@ -45,16 +52,68 @@ function titleFromFilename(filename: string) {
 }
 
 export async function POST(request: Request, { params }: Params) {
-  const session = await auth();
-  if (!session?.user?.id) return unauthorizedResponse();
-  if (!checkRateLimit(`document-import:${session.user.id}`, 10, 60 * 60_000)) {
+  const startedAt = Date.now();
+  const requestId = documentImportRequestId(request.headers);
+  const { id: documentId } = await params;
+  let fileKind: DocumentImportFileKind = "unknown";
+  let importStage: ImportStage = "conversion";
+  const logOutcome = ({
+    error,
+    level,
+    reason,
+    status,
+  }: {
+    error?: unknown;
+    level: DocumentImportLogLevel;
+    reason: string;
+    status: number;
+  }) =>
+    writeDocumentImportLog({
+      documentId,
+      durationMs: Date.now() - startedAt,
+      error,
+      event: "document_import_finished",
+      fileKind,
+      level,
+      reason,
+      requestId,
+      status,
+    });
+  const errorResponse = (
+    error: string,
+    status: number,
+    reason: string,
+    details: Record<string, unknown> = {},
+  ) => {
+    logOutcome({ level: "warning", reason, status });
     return NextResponse.json(
-      { error: "Too many imports. Try again later." },
-      { status: 429 },
+      { ...details, error, requestId },
+      { status, headers: { "x-thido-request-id": requestId } },
+    );
+  };
+
+  writeDocumentImportLog({
+    event: "document_import_started",
+    fileKind,
+    level: "info",
+    requestId,
+  });
+
+  const session = await auth();
+  if (!session?.user?.id) {
+    logOutcome({ level: "warning", reason: "unauthorized", status: 401 });
+    const response = unauthorizedResponse();
+    response.headers.set("x-thido-request-id", requestId);
+    return response;
+  }
+  if (!checkRateLimit(`document-import:${session.user.id}`, 10, 60 * 60_000)) {
+    return errorResponse(
+      "Too many imports. Try again later.",
+      429,
+      "rate_limited",
     );
   }
 
-  const { id: documentId } = await params;
   const document = await getDocumentForUser(
     documentId,
     session.user.id,
@@ -62,7 +121,7 @@ export async function POST(request: Request, { params }: Params) {
     "EDIT",
   );
   if (!document) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return errorResponse("Not found", 404, "not_found_or_forbidden");
   }
 
   const formData = await request.formData().catch(() => null);
@@ -75,29 +134,31 @@ export async function POST(request: Request, { params }: Params) {
   const extension = file instanceof File ? file.name.toLowerCase() : "";
   const isWordFile = extension.endsWith(".docx");
   const isMarkdownFile = extension.endsWith(".md");
+  fileKind = isWordFile ? "docx" : isMarkdownFile ? "markdown" : "unknown";
   if (!(file instanceof File) || (!isWordFile && !isMarkdownFile)) {
-    return NextResponse.json(
-      { error: "Choose a Word .docx or Markdown .md file." },
-      { status: 400 },
+    return errorResponse(
+      "Choose a Word .docx or Markdown .md file.",
+      400,
+      "invalid_file",
     );
   }
   if (baseRevision === null) {
-    return NextResponse.json(
-      { error: "A valid baseRevision is required." },
-      { status: 400 },
+    return errorResponse(
+      "A valid baseRevision is required.",
+      400,
+      "invalid_revision",
     );
   }
   const maximumSize = isMarkdownFile
     ? MAX_MARKDOWN_FILE_BYTES
     : MAX_WORD_FILE_BYTES;
   if (file.size <= 0 || file.size > maximumSize) {
-    return NextResponse.json(
-      {
-        error: isMarkdownFile
-          ? "Markdown files must be smaller than 2 MB."
-          : "Word files must be smaller than 15 MB.",
-      },
-      { status: 413 },
+    return errorResponse(
+      isMarkdownFile
+        ? "Markdown files must be smaller than 2 MB."
+        : "Word files must be smaller than 15 MB.",
+      413,
+      "file_too_large_or_empty",
     );
   }
 
@@ -166,6 +227,7 @@ export async function POST(request: Request, { params }: Params) {
         .slice(0, 8);
     }
     const title = inferDocumentTitle(content) ?? titleFromFilename(file.name);
+    importStage = "persistence";
     const result = await prisma.$transaction(async (transaction) => {
       if (!(await lockDocumentForCommentAi(transaction, documentId))) {
         return { kind: "missing" as const };
@@ -211,46 +273,85 @@ export async function POST(request: Request, { params }: Params) {
       await cleanupImportedImages();
     }
     if (result.kind === "missing") {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return errorResponse("Not found", 404, "document_missing");
     }
     if (result.kind === "locked") {
-      return NextResponse.json(
-        { error: DOCUMENT_AI_LOCK_MESSAGE },
-        { status: 409 },
+      return errorResponse(
+        DOCUMENT_AI_LOCK_MESSAGE,
+        409,
+        "document_locked",
       );
     }
     if (result.kind === "conflict") {
-      return NextResponse.json(
+      return errorResponse(
+        "The document changed while the file was importing.",
+        409,
+        "revision_conflict",
         {
-          error: "The document changed while the file was importing.",
           documentConflict: true,
           currentRevision: result.currentRevision,
         },
-        { status: 409 },
       );
     }
 
+    importStage = "comment_reconciliation";
     await reconcileOrphanedComments(prisma, documentId, content);
-    return NextResponse.json({
-      document: {
-        title: result.document.title,
-        content: result.document.content,
-        revision: result.document.revision,
-        titleManuallySet: result.document.titleManuallySet,
+    logOutcome({ level: "info", reason: "imported", status: 200 });
+    return NextResponse.json(
+      {
+        document: {
+          title: result.document.title,
+          content: result.document.content,
+          revision: result.document.revision,
+          titleManuallySet: result.document.titleManuallySet,
+        },
+        requestId,
+        warnings: warnings.slice(0, 8),
       },
-      warnings: warnings.slice(0, 8),
-    });
+      { headers: { "x-thido-request-id": requestId } },
+    );
   } catch (error) {
-    await cleanupImportedImages();
-    console.error("Unable to import document", error);
+    const errorCode = `${importStage}_failed`;
+    logOutcome({
+      error,
+      level: "error",
+      reason: errorCode,
+      status: 422,
+    });
+    try {
+      await cleanupImportedImages();
+    } catch (cleanupError) {
+      writeDocumentImportLog({
+        documentId,
+        durationMs: Date.now() - startedAt,
+        error: cleanupError,
+        event: "document_import_finished",
+        fileKind,
+        level: "error",
+        reason: "cleanup_failed",
+        requestId,
+        status: 500,
+      });
+      await reportServerError(cleanupError, {
+        source: "document-import-cleanup",
+        operation: fileKind,
+        documentId,
+        errorCode: "cleanup_failed",
+        requestId,
+        status: 500,
+      });
+    }
     await reportServerError(error, {
       source: "document-import",
-      operation: isMarkdownFile ? "markdown" : "docx",
+      operation: fileKind,
       documentId,
+      errorCode,
+      requestId,
+      status: 422,
     });
     return NextResponse.json(
-      { error: "Could not import this document." },
-      { status: 422 },
+      { error: "Could not import this document.", requestId },
+      { status: 422, headers: { "x-thido-request-id": requestId } },
     );
   }
 }
