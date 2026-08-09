@@ -79,6 +79,7 @@ model User {
   uploadedDocumentImages   DocumentImage[]        @relation("DocumentImageUploader")
   documentRevisions        DocumentRevision[]     @relation("DocumentRevisionActor")
   documentLinkAccesses     DocumentLinkAccess[]
+  documentFolders          DocumentFolder[]
   waitlistReviews          WaitlistEntry[]        @relation("WaitlistReviewer")
   waitlistAdmission        WaitlistEntry?         @relation("WaitlistApprovedUser")
 }
@@ -241,6 +242,8 @@ model Document {
   title           String                 @default("Untitled Document")
   ownerId         String
   owner           User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  folderId        String?
+  folder          DocumentFolder?        @relation(fields: [folderId], references: [id], onDelete: SetNull)
   status          DocumentStatus         @default(DRAFTING)
   isPlaceholder   Boolean                @default(false)
   content         Json?
@@ -257,7 +260,22 @@ model Document {
   linkAccesses    DocumentLinkAccess[]
 
   @@index([ownerId])
+  @@index([folderId])
   @@index([isPlaceholder, updatedAt])
+}
+
+model DocumentFolder {
+  id        String     @id @default(cuid())
+  name      String
+  nameKey   String
+  ownerId   String
+  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  documents Document[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([ownerId, nameKey])
+  @@index([ownerId, name])
 }
 
 model DocumentLinkAccess {

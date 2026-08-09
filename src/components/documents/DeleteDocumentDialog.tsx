@@ -22,10 +22,12 @@ export function DeleteDocumentDialog({
   documentId,
   documentTitle,
   deleteAction,
+  onDeleted,
 }: {
   documentId: string;
   documentTitle: string;
-  deleteAction: (documentId: string) => Promise<void>;
+  deleteAction: (documentId: string) => Promise<boolean>;
+  onDeleted?: (documentId: string) => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -33,7 +35,8 @@ export function DeleteDocumentDialog({
   const router = useRouter();
 
   async function handleDelete() {
-    await deleteAction(documentId);
+    const deleted = await deleteAction(documentId);
+    if (deleted) onDeleted?.(documentId);
     dialogRef.current?.close();
     router.refresh();
   }

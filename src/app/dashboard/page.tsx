@@ -8,6 +8,7 @@ import { UserMenu } from "@/components/account/UserMenu";
 import {
   DashboardDocumentTable,
   type DashboardDocumentRow,
+  type DashboardFolderRow,
 } from "@/components/documents/DashboardDocumentTable";
 import {
   documentAccessWhere,
@@ -17,6 +18,12 @@ import {
 } from "@/lib/documentAuth";
 import { createBlankDocument } from "@/app/document-actions";
 import {
+  createDocumentFolder,
+  deleteDocumentFolder,
+  moveDocumentToFolder,
+  renameDocumentFolder,
+} from "@/app/folder-actions";
+import {
   expireStaleCommentAiJobs,
   hasActiveCommentAiJob,
   lockDocumentForCommentAi,
@@ -25,7 +32,7 @@ import {
 async function deleteDocument(documentId: string) {
   "use server";
   const session = await auth();
-  if (!session?.user?.id) return;
+  if (!session?.user?.id) return false;
 
   const document = await getDocumentForUser(
     documentId,
@@ -33,25 +40,26 @@ async function deleteDocument(documentId: string) {
     session.user.email,
     "FULL",
   );
-  if (document) {
-    await prisma.$transaction(async (transaction) => {
-      const documentExists = await lockDocumentForCommentAi(
-        transaction,
-        document.id,
-      );
-      if (!documentExists) return;
+  if (!document) return false;
 
-      await expireStaleCommentAiJobs(transaction, document.id);
-      if (
-        await hasActiveCommentAiJob(transaction, document.id, {
-          documentWideOnly: true,
-        })
-      ) {
-        return;
-      }
-      await transaction.document.delete({ where: { id: document.id } });
-    });
-  }
+  return prisma.$transaction(async (transaction) => {
+    const documentExists = await lockDocumentForCommentAi(
+      transaction,
+      document.id,
+    );
+    if (!documentExists) return false;
+
+    await expireStaleCommentAiJobs(transaction, document.id);
+    if (
+      await hasActiveCommentAiJob(transaction, document.id, {
+        documentWideOnly: true,
+      })
+    ) {
+      return false;
+    }
+    await transaction.document.delete({ where: { id: document.id } });
+    return true;
+  });
 }
 
 export default async function DashboardPage() {
@@ -60,29 +68,36 @@ export default async function DashboardPage() {
     redirect("/login?notice=sign-in-required&callbackUrl=/dashboard");
   }
 
-  const documents = await prisma.document.findMany({
-    where: {
-      AND: [
-        documentAccessWhere(session.user.id, session.user.email, "VIEW"),
-        { isPlaceholder: false },
-      ],
-    },
-    orderBy: { updatedAt: "desc" },
-    include: {
-      owner: { select: { name: true } },
-      collaborators: {
-        where: {
-          email: normalizeCollaboratorEmail(session.user.email ?? ""),
+  const [documents, folders] = await Promise.all([
+    prisma.document.findMany({
+      where: {
+        AND: [
+          documentAccessWhere(session.user.id, session.user.email, "VIEW"),
+          { isPlaceholder: false },
+        ],
+      },
+      orderBy: { updatedAt: "desc" },
+      include: {
+        owner: { select: { name: true } },
+        collaborators: {
+          where: {
+            email: normalizeCollaboratorEmail(session.user.email ?? ""),
+          },
+          select: { permission: true },
         },
-        select: { permission: true },
+        linkAccesses: {
+          where: { userId: session.user.id },
+          select: { id: true },
+          take: 1,
+        },
       },
-      linkAccesses: {
-        where: { userId: session.user.id },
-        select: { id: true },
-        take: 1,
-      },
-    },
-  });
+    }),
+    prisma.documentFolder.findMany({
+      where: { ownerId: session.user.id },
+      orderBy: [{ name: "asc" }, { createdAt: "asc" }],
+      select: { id: true, name: true },
+    }),
+  ]);
   const documentRows: DashboardDocumentRow[] = documents.map((document) => ({
     id: document.id,
     title: document.title,
@@ -90,6 +105,7 @@ export default async function DashboardPage() {
       document.status === "READY"
         ? `/documents/${document.id}/edit`
         : `/documents/${document.id}/wizard`,
+    folderId: document.ownerId === session.user.id ? document.folderId : null,
     lastAccessedAt: document.lastAccessedAt.toISOString(),
     ownerName: document.owner.name,
     isOwner: document.ownerId === session.user.id,
@@ -104,6 +120,7 @@ export default async function DashboardPage() {
     }),
     status: document.status,
   }));
+  const folderRows: DashboardFolderRow[] = folders;
 
   return (
     <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col gap-14 px-5 py-6 sm:px-6 sm:py-10 lg:px-8">
@@ -143,42 +160,20 @@ export default async function DashboardPage() {
           <p className="page-kicker mb-3">Your documents</p>
           <h1 className="page-title">Pick up where you left off.</h1>
           <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
-            Draft, revise, and keep the thinking behind every document in one
-            place.
+            Draft, revise, and organize related work into folders that make
+            sense to you.
           </p>
         </div>
 
-        {documents.length === 0 ? (
-          <div className="flex flex-col items-start gap-3 border-y border-[var(--border)] py-10">
-            <p className="text-lg font-medium">A clear page, ready when you are.</p>
-            <p className="max-w-md text-sm leading-6 text-[var(--muted)]">
-              Open a blank page and start writing, or ask Thido to prepare a
-              first draft from a brief.
-            </p>
-            <div className="flex flex-wrap items-center gap-4">
-              <form action={createBlankDocument}>
-                <button
-                  type="submit"
-                  className="text-sm font-semibold text-[var(--accent-strong)] hover:underline"
-                >
-                  Create a blank document →
-                </button>
-              </form>
-              <Link
-                href="/documents/new"
-                prefetch
-                className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
-              >
-                Draft with AI
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <DashboardDocumentTable
-            documents={documentRows}
-            deleteAction={deleteDocument}
-          />
-        )}
+        <DashboardDocumentTable
+          documents={documentRows}
+          folders={folderRows}
+          deleteAction={deleteDocument}
+          createFolderAction={createDocumentFolder}
+          renameFolderAction={renameDocumentFolder}
+          deleteFolderAction={deleteDocumentFolder}
+          moveDocumentAction={moveDocumentToFolder}
+        />
       </section>
     </main>
   );
