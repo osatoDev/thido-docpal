@@ -21,3 +21,17 @@ export function recordDocumentAccess(documentId: string) {
     }
   });
 }
+
+export function recordSpreadsheetAccess(spreadsheetId: string) {
+  after(async () => {
+    try {
+      await prisma.$executeRaw`
+        UPDATE "Spreadsheet"
+        SET "lastAccessedAt" = NOW()
+        WHERE "id" = ${spreadsheetId}
+      `;
+    } catch (error) {
+      console.error("Unable to record spreadsheet access", error);
+    }
+  });
+}

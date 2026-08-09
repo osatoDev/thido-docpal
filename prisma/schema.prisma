@@ -69,6 +69,7 @@ model User {
   accounts                 Account[]
   sessions                 Session[]
   documents                Document[]
+  spreadsheets             Spreadsheet[]
   comments                 Comment[]
   settings                 UserSettings?
   authTokens               AuthToken[]
@@ -266,17 +267,35 @@ model Document {
 }
 
 model DocumentFolder {
-  id        String     @id @default(cuid())
-  name      String
-  nameKey   String
-  ownerId   String
-  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  documents Document[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id           String        @id @default(cuid())
+  name         String
+  nameKey      String
+  ownerId      String
+  owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  documents    Document[]
+  spreadsheets Spreadsheet[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   @@unique([ownerId, nameKey])
   @@index([ownerId, name])
+}
+
+model Spreadsheet {
+  id             String          @id @default(cuid())
+  title          String          @default("Untitled Spreadsheet")
+  ownerId        String
+  owner          User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  folderId       String?
+  folder         DocumentFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  content        Json
+  revision       Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  lastAccessedAt DateTime        @default(now())
+
+  @@index([ownerId])
+  @@index([folderId])
 }
 
 model DocumentLinkAccess {

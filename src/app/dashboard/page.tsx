@@ -17,10 +17,11 @@ import {
   normalizeCollaboratorEmail,
 } from "@/lib/documentAuth";
 import { createBlankDocument } from "@/app/document-actions";
+import { createSpreadsheet } from "@/app/spreadsheet-actions";
 import {
   createDocumentFolder,
   deleteDocumentFolder,
-  moveDocumentToFolder,
+  moveLibraryItemToFolder,
   renameDocumentFolder,
 } from "@/app/folder-actions";
 import {
@@ -29,10 +30,21 @@ import {
   lockDocumentForCommentAi,
 } from "@/lib/documentAiJobs";
 
-async function deleteDocument(documentId: string) {
+async function deleteLibraryItem(
+  documentId: string,
+  itemKind: "DOCUMENT" | "SPREADSHEET",
+) {
   "use server";
   const session = await auth();
   if (!session?.user?.id) return false;
+
+  if (itemKind === "SPREADSHEET") {
+    const result = await prisma.spreadsheet.deleteMany({
+      where: { id: documentId, ownerId: session.user.id },
+    });
+    return result.count > 0;
+  }
+  if (itemKind !== "DOCUMENT") return false;
 
   const document = await getDocumentForUser(
     documentId,
@@ -68,7 +80,7 @@ export default async function DashboardPage() {
     redirect("/login?notice=sign-in-required&callbackUrl=/dashboard");
   }
 
-  const [documents, folders] = await Promise.all([
+  const [documents, spreadsheets, folders] = await Promise.all([
     prisma.document.findMany({
       where: {
         AND: [
@@ -90,6 +102,16 @@ export default async function DashboardPage() {
           select: { id: true },
           take: 1,
         },
+      },
+    }),
+    prisma.spreadsheet.findMany({
+      where: { ownerId: session.user.id },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        folderId: true,
+        lastAccessedAt: true,
       },
     }),
     prisma.documentFolder.findMany({
@@ -119,14 +141,30 @@ export default async function DashboardPage() {
           : null,
     }),
     status: document.status,
+    kind: "DOCUMENT",
   }));
+  const spreadsheetRows: DashboardDocumentRow[] = spreadsheets.map(
+    (spreadsheet) => ({
+      id: spreadsheet.id,
+      title: spreadsheet.title,
+      href: `/spreadsheets/${spreadsheet.id}/edit`,
+      folderId: spreadsheet.folderId,
+      lastAccessedAt: spreadsheet.lastAccessedAt.toISOString(),
+      ownerName: session.user.name ?? null,
+      isOwner: true,
+      permission: "FULL",
+      status: "READY",
+      kind: "SPREADSHEET",
+    }),
+  );
+  const libraryRows = [...documentRows, ...spreadsheetRows];
   const folderRows: DashboardFolderRow[] = folders;
 
   return (
     <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col gap-14 px-5 py-6 sm:px-6 sm:py-10 lg:px-8">
       <header className="flex flex-col gap-6 border-b border-[var(--border)] pb-7 sm:flex-row sm:items-center sm:justify-between">
         <Brand />
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {isAdminEmail(session.user.email) && (
             <Link
               href="/admin"
@@ -151,28 +189,36 @@ export default async function DashboardPage() {
               New document
             </button>
           </form>
+          <form action={createSpreadsheet}>
+            <button
+              type="submit"
+              className="secondary-button rounded-md px-4 py-2.5 text-sm font-medium"
+            >
+              New spreadsheet
+            </button>
+          </form>
           <UserMenu user={session.user} />
         </div>
       </header>
 
       <section className="flex flex-col gap-8">
         <div className="max-w-2xl">
-          <p className="page-kicker mb-3">Your documents</p>
+          <p className="page-kicker mb-3">Your work</p>
           <h1 className="page-title">Pick up where you left off.</h1>
           <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
-            Draft, revise, and organize related work into folders that make
-            sense to you.
+            Write documents, work with spreadsheet data, and organize related
+            files into folders that make sense to you.
           </p>
         </div>
 
         <DashboardDocumentTable
-          documents={documentRows}
+          documents={libraryRows}
           folders={folderRows}
-          deleteAction={deleteDocument}
+          deleteAction={deleteLibraryItem}
           createFolderAction={createDocumentFolder}
           renameFolderAction={renameDocumentFolder}
           deleteFolderAction={deleteDocumentFolder}
-          moveDocumentAction={moveDocumentToFolder}
+          moveDocumentAction={moveLibraryItemToFolder}
         />
       </section>
     </main>

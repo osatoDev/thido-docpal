@@ -105,19 +105,21 @@ export async function deleteDocumentFolder(folderId: string) {
   return { ok: true as const };
 }
 
-export async function moveDocumentToFolder(
-  documentId: string,
+export async function moveLibraryItemToFolder(
+  itemId: string,
+  itemKind: "DOCUMENT" | "SPREADSHEET",
   folderId: string | null,
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return { ok: false as const, error: "Sign in to move this document." };
+    return { ok: false as const, error: "Sign in to move this file." };
   }
   if (
-    !isValidRecordId(documentId) ||
+    !isValidRecordId(itemId) ||
+    (itemKind !== "DOCUMENT" && itemKind !== "SPREADSHEET") ||
     (folderId !== null && !isValidRecordId(folderId))
   ) {
-    return { ok: false as const, error: "Choose a valid document and folder." };
+    return { ok: false as const, error: "Choose a valid file and folder." };
   }
 
   const result = await prisma.$transaction(async (transaction) => {
@@ -129,12 +131,18 @@ export async function moveDocumentToFolder(
       if (!folder) return { ok: false as const, error: "Choose one of your folders." };
     }
 
-    const updated = await transaction.document.updateMany({
-      where: { id: documentId, ownerId: session.user.id },
-      data: { folderId },
-    });
+    const updated =
+      itemKind === "SPREADSHEET"
+        ? await transaction.spreadsheet.updateMany({
+            where: { id: itemId, ownerId: session.user.id },
+            data: { folderId },
+          })
+        : await transaction.document.updateMany({
+            where: { id: itemId, ownerId: session.user.id },
+            data: { folderId },
+          });
     if (updated.count === 0) {
-      return { ok: false as const, error: "Only the owner can file this document." };
+      return { ok: false as const, error: "Only the owner can file this item." };
     }
 
     return { ok: true as const };

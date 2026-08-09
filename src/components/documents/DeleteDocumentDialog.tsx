@@ -4,7 +4,7 @@ import { useId, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 
-function DeleteSubmitButton() {
+function DeleteSubmitButton({ itemKind }: { itemKind: "DOCUMENT" | "SPREADSHEET" }) {
   const { pending } = useFormStatus();
 
   return (
@@ -13,7 +13,9 @@ function DeleteSubmitButton() {
       disabled={pending}
       className="rounded-md bg-[var(--danger)] px-4 py-2.5 text-sm font-medium text-white disabled:cursor-wait disabled:opacity-65"
     >
-      {pending ? "Deleting…" : "Delete document"}
+      {pending
+        ? "Deleting…"
+        : `Delete ${itemKind === "SPREADSHEET" ? "spreadsheet" : "document"}`}
     </button>
   );
 }
@@ -21,12 +23,17 @@ function DeleteSubmitButton() {
 export function DeleteDocumentDialog({
   documentId,
   documentTitle,
+  itemKind = "DOCUMENT",
   deleteAction,
   onDeleted,
 }: {
   documentId: string;
   documentTitle: string;
-  deleteAction: (documentId: string) => Promise<boolean>;
+  itemKind?: "DOCUMENT" | "SPREADSHEET";
+  deleteAction: (
+    documentId: string,
+    itemKind: "DOCUMENT" | "SPREADSHEET",
+  ) => Promise<boolean>;
   onDeleted?: (documentId: string) => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -35,7 +42,7 @@ export function DeleteDocumentDialog({
   const router = useRouter();
 
   async function handleDelete() {
-    const deleted = await deleteAction(documentId);
+    const deleted = await deleteAction(documentId, itemKind);
     if (deleted) onDeleted?.(documentId);
     dialogRef.current?.close();
     router.refresh();
@@ -86,8 +93,9 @@ export function DeleteDocumentDialog({
             id={descriptionId}
             className="mt-3 text-sm leading-6 text-[var(--muted)]"
           >
-            This permanently removes the document, its comments, and its
-            drafting history. This action cannot be undone.
+            {itemKind === "SPREADSHEET"
+              ? "This permanently removes the spreadsheet and all of its cell data. This action cannot be undone."
+              : "This permanently removes the document, its comments, and its drafting history. This action cannot be undone."}
           </p>
 
           <form
@@ -101,7 +109,7 @@ export function DeleteDocumentDialog({
             >
               Cancel
             </button>
-            <DeleteSubmitButton />
+            <DeleteSubmitButton itemKind={itemKind} />
           </form>
         </div>
       </dialog>
