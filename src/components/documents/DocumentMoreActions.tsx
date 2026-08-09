@@ -24,7 +24,6 @@ export function DocumentFileMenu({
   onImport,
   onConflict,
   onLanguageChange,
-  markdownImportInputId,
 }: {
   documentId: string;
   currentRevision: number;
@@ -36,7 +35,6 @@ export function DocumentFileMenu({
   onImport: (document: RestoredDocument) => void;
   onConflict: (message: string) => void;
   onLanguageChange: (language: string) => void;
-  markdownImportInputId: string;
 }) {
   const wordInputRef = useRef<HTMLInputElement>(null);
   const markdownInputRef = useRef<HTMLInputElement>(null);
@@ -64,7 +62,9 @@ export function DocumentFileMenu({
   const [openDocumentsError, setOpenDocumentsError] = useState<string | null>(null);
   const [openDocumentSearch, setOpenDocumentSearch] = useState("");
   const [languageDraft, setLanguageDraft] = useState(documentLanguage);
-  const [importing, setImporting] = useState(false);
+  const [importingType, setImportingType] = useState<
+    "Markdown" | "Word" | null
+  >(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const filteredOpenDocuments = useMemo(() => {
@@ -162,7 +162,7 @@ export function DocumentFileMenu({
       return;
     }
 
-    setImporting(true);
+    setImportingType(isMarkdown ? "Markdown" : "Word");
     setMessage(null);
     setError(null);
     try {
@@ -201,7 +201,7 @@ export function DocumentFileMenu({
           : "Could not import this document.",
       );
     } finally {
-      setImporting(false);
+      setImportingType(null);
       input.value = "";
     }
   }
@@ -287,7 +287,6 @@ export function DocumentFileMenu({
 
         <input
           ref={markdownInputRef}
-          id={markdownImportInputId}
           type="file"
           accept=".md,text/markdown,text/plain"
           className="sr-only"
@@ -322,16 +321,32 @@ export function DocumentFileMenu({
               Open…
             </button>
             {canImport ? (
-              <button
-                type="button"
-                role="menuitem"
-                disabled={importing}
-                aria-disabled={importing}
-                onClick={() => wordInputRef.current?.click()}
-                className="block w-full rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)] disabled:cursor-wait disabled:opacity-60"
-              >
-                {importing ? "Importing Word…" : "Import Word (.docx)"}
-              </button>
+              <>
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={importingType !== null}
+                  aria-disabled={importingType !== null}
+                  onClick={() => wordInputRef.current?.click()}
+                  className="block w-full rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)] disabled:cursor-wait disabled:opacity-60"
+                >
+                  {importingType === "Word"
+                    ? "Importing Word…"
+                    : "Import Word (.docx)…"}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  disabled={importingType !== null}
+                  aria-disabled={importingType !== null}
+                  onClick={() => markdownInputRef.current?.click()}
+                  className="block w-full rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)] disabled:cursor-wait disabled:opacity-60"
+                >
+                  {importingType === "Markdown"
+                    ? "Importing Markdown…"
+                    : "Import Markdown (.md)…"}
+                </button>
+              </>
             ) : null}
             {canViewHistory ? (
               <button

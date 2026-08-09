@@ -14,6 +14,7 @@ Thido's document editor should follow the familiar Google Docs hierarchy without
 Standalone **Download** and **More** buttons are removed. The **File** menu contains:
 
 - Import Word, when editing is allowed
+- Import Markdown, when editing is allowed
 - Version history, when the viewer has editing access
 - Download as Microsoft Word
 - Download as PDF
@@ -23,7 +24,7 @@ This keeps downloads discoverable in the place users expect while avoiding an un
 
 ## Formatting controls
 
-The toolbar uses icons for undo, redo, bold, italic, underline, strikethrough, links, bulleted lists, numbered lists, checklists, and block quotes. It uses standard paragraph-style and zoom selectors. Visible labels such as **List**, **Checkbox list**, **Insert image**, and **Table actions** do not occupy toolbar space; their accessible names and tooltips remain available.
+The toolbar uses icons for undo, redo, bold, italic, underline, links, bulleted lists, numbered lists, and checklists. It retains the standard paragraph-style selector and the product-defining **Edit with Thido** action. Zoom, typography, colors, list variants, strikethrough, and block quotes remain in **View** or **Format** instead of duplicating them in the toolbar.
 
 Less-frequent insertion and formatting commands remain available through **Insert** and **Format**. Table cell operations also remain available through the table right-click menu.
 
@@ -48,7 +49,7 @@ The next expansion adds sixteen implemented commands while retaining the same si
 - **Insert:** Page break.
 - **Format:** Underline, highlight, inline code, superscript, subscript, code block, align left, align center, align right, justify, increase indent, and decrease indent.
 
-Underline is also present in the compact toolbar, while zoom uses a compact selector. The longer **Format** menu is viewport-bounded and scrollable so it remains usable on smaller screens.
+Underline is also present in the compact toolbar, while zoom remains under **View**. The longer **Format** menu is viewport-bounded and scrollable so it remains usable on smaller screens.
 
 ## Authoring expansion
 
@@ -57,7 +58,7 @@ The next implemented authoring bundle extends the familiar controls without addi
 - **View:** a collapsible heading-derived document outline with click-to-navigate entries.
 - **Insert:** localized current-date and current-time insertion.
 - **Format:** Heading 4–6, four line-spacing presets, paragraph space before/after, and uppercase, lowercase, and title-case conversion for the selection.
-- **Toolbar:** font family, font size, text color, and multi-color highlight selectors.
+- **Format → Typography and color:** font family, font size, text color, and multi-color highlight choices.
 
 Typography, color, highlight, line spacing, paragraph spacing, and deeper headings persist in the shared editor schema and public document rendering. Compatible styling is also carried into Word and PDF export; Word re-import may flatten decorative styling because the import conversion intentionally prioritizes semantic structure.
 

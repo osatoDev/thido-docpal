@@ -7,12 +7,12 @@ Authenticated document members can open **File** in the editor to:
 - download the current document as an editable Word `.docx` file;
 - download a server-generated PDF;
 - import a Word `.docx` file from **File** when they have edit access;
-- import a Markdown `.md` file from **Tools → Document files**.
+- import a Markdown `.md` file from **File** when they have edit access.
 
 Users can also drag a Word `.docx` or Markdown `.md` file from Finder or File
 Explorer onto a blank editable Thido document. Drag-and-drop deliberately does
 not replace a document that already has meaningful content; those imports stay
-behind the explicit replacement flow in **File** or **Tools**.
+behind the explicit replacement flow in **File**.
 
 Import replaces the current document title and body after an explicit browser
 confirmation. The previous content remains recoverable in **Version history**.

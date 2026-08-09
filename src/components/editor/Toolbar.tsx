@@ -35,13 +35,10 @@ import {
 import type { TextCaseMode } from "./extensions/TextCase";
 import {
   BULLET_STYLES,
-  bulletGlyph,
-  isBulletStyle,
   normalizeCustomBulletGlyph,
   type BulletStyle,
 } from "./extensions/StyledBulletList";
 import {
-  isTaskStyle,
   TASK_STYLES,
   type TaskStyle,
 } from "./extensions/StyledTaskList";
@@ -513,7 +510,6 @@ export function Toolbar({
   onConflict: (message: string) => void;
 }) {
   const imageInputId = useId();
-  const markdownImportInputId = useId();
   const linkControlId = useId();
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
@@ -523,19 +519,11 @@ export function Toolbar({
   const [footnoteOpen, setFootnoteOpen] = useState(false);
   const [wordCountOpen, setWordCountOpen] = useState(false);
   const [, setEditorVersion] = useState(0);
-  const activeBulletStyle =
-    editor && isBulletStyle(editor.getAttributes("bulletList").bulletStyle)
-      ? (editor.getAttributes("bulletList").bulletStyle as BulletStyle)
-      : "disc";
   const activeBulletGlyph = editor
     ? normalizeCustomBulletGlyph(
         editor.getAttributes("bulletList").bulletGlyph,
       )
     : null;
-  const activeTaskStyle =
-    editor && isTaskStyle(editor.getAttributes("taskList").taskStyle)
-      ? (editor.getAttributes("taskList").taskStyle as TaskStyle)
-      : "plain";
   const activeHeadingLevel = HEADING_LEVELS.find((level) =>
     editor?.isActive("heading", { level }),
   );
@@ -955,6 +943,64 @@ export function Toolbar({
                 ],
               },
               {
+                label: "Typography and color",
+                children: [
+                  {
+                    label: "Font family",
+                    children: FONT_FAMILY_OPTIONS.map((option) => ({
+                      label: `${option.label}${String(activeTextStyle.fontFamily ?? "") === option.value ? " ✓" : ""}`,
+                      onSelect: () =>
+                        editor
+                          .chain()
+                          .focus()
+                          .setFontFamily(option.value || null)
+                          .run(),
+                    })),
+                  },
+                  {
+                    label: "Font size",
+                    children: [
+                      {
+                        label: `Body size${activeTextStyle.fontSize == null ? " ✓" : ""}`,
+                        onSelect: () =>
+                          editor.chain().focus().setFontSize(null).run(),
+                      },
+                      ...FONT_SIZE_OPTIONS.map((fontSize) => ({
+                        label: `${fontSize} pt${activeTextStyle.fontSize === fontSize ? " ✓" : ""}`,
+                        onSelect: () =>
+                          editor.chain().focus().setFontSize(fontSize).run(),
+                      })),
+                    ],
+                  },
+                  {
+                    label: "Text color",
+                    children: TEXT_COLOR_OPTIONS.map((option) => ({
+                      label: `${option.label}${String(activeTextStyle.color ?? "") === option.value ? " ✓" : ""}`,
+                      onSelect: () =>
+                        editor
+                          .chain()
+                          .focus()
+                          .setTextColor(option.value || null)
+                          .run(),
+                    })),
+                  },
+                  {
+                    label: "Highlight color",
+                    children: HIGHLIGHT_COLOR_OPTIONS.map((option) => ({
+                      label: `${option.label}${String(activeHighlight.color ?? "") === option.value ? " ✓" : ""}`,
+                      onSelect: () => {
+                        const chain = editor.chain().focus();
+                        if (option.value) {
+                          chain.setHighlight({ color: option.value }).run();
+                        } else {
+                          chain.unsetHighlight().run();
+                        }
+                      },
+                    })),
+                  },
+                ],
+              },
+              {
                 label: "Paragraph style",
                 children: [
                   { label: "Normal text", onSelect: () => editor.chain().focus().setParagraph().run() },
@@ -1067,7 +1113,6 @@ export function Toolbar({
           onLanguageChange={(language) =>
             editor?.commands.setDocumentLanguage(language)
           }
-          markdownImportInputId={markdownImportInputId}
         />
         {editingMenus ? (
           <EditorMenu label="Edit" groups={editingMenus.edit} />
@@ -1148,18 +1193,6 @@ export function Toolbar({
               [
                 ...(canEdit
                   ? [
-                      {
-                        label: "Document files",
-                        children: [
-                          {
-                            label: "Import Markdown (.md)…",
-                            onSelect: () =>
-                              document
-                                .getElementById(markdownImportInputId)
-                                ?.click(),
-                          },
-                        ],
-                      },
                       {
                         label: "Thido",
                         children: [
@@ -1301,95 +1334,6 @@ export function Toolbar({
               </option>
             ))}
           </select>
-          <select
-            value={String(activeTextStyle.fontFamily ?? "")}
-            onChange={(event) =>
-              editor
-                .chain()
-                .focus()
-                .setFontFamily(event.target.value || null)
-                .run()
-            }
-            aria-label="Font family"
-            title="Font family"
-            className="app-input h-8 w-28 shrink-0 rounded-sm px-2 text-sm outline-none"
-          >
-            {FONT_FAMILY_OPTIONS.map((option) => (
-              <option key={option.label} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <select
-            value={String(activeTextStyle.fontSize ?? "")}
-            onChange={(event) =>
-              editor
-                .chain()
-                .focus()
-                .setFontSize(event.target.value ? Number(event.target.value) : null)
-                .run()
-            }
-            aria-label="Font size"
-            title="Font size"
-            className="app-input h-8 w-20 shrink-0 rounded-sm px-2 text-sm outline-none"
-          >
-            <option value="">Body size</option>
-            {FONT_SIZE_OPTIONS.map((fontSize) => (
-              <option key={fontSize} value={fontSize}>
-                {fontSize} pt
-              </option>
-            ))}
-          </select>
-          <select
-            value={zoom}
-            onChange={(event) => onZoomChange(Number(event.target.value))}
-            aria-label="Document zoom"
-            title="Document zoom"
-            className="app-input h-8 w-20 shrink-0 rounded-sm px-2 text-sm outline-none"
-          >
-            {DOCUMENT_ZOOM_OPTIONS.map((zoomOption) => (
-              <option key={zoomOption} value={zoomOption}>
-                {zoomOption}%
-              </option>
-            ))}
-          </select>
-          <select
-            value={String(activeTextStyle.color ?? "")}
-            onChange={(event) =>
-              editor
-                .chain()
-                .focus()
-                .setTextColor(event.target.value || null)
-                .run()
-            }
-            aria-label="Text color"
-            title="Text color"
-            className="app-input h-8 w-24 shrink-0 rounded-sm px-2 text-sm outline-none"
-          >
-            {TEXT_COLOR_OPTIONS.map((option) => (
-              <option key={option.label} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <select
-            value={String(activeHighlight.color ?? "")}
-            onChange={(event) => {
-              const color = event.target.value;
-              const chain = editor.chain().focus();
-              if (color) chain.setHighlight({ color }).run();
-              else chain.unsetHighlight().run();
-            }}
-            aria-label="Highlight color"
-            title="Highlight color"
-            className="app-input h-8 w-28 shrink-0 rounded-sm px-2 text-sm outline-none"
-          >
-            {HIGHLIGHT_COLOR_OPTIONS.map((option) => (
-              <option key={option.label} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
           <ToolbarSeparator />
           <ToolbarButton
             label="Bold"
@@ -1412,13 +1356,6 @@ export function Toolbar({
           >
             <span className="underline underline-offset-2">U</span>
           </ToolbarButton>
-          <ToolbarButton
-            label="Strikethrough"
-            isActive={editor.isActive("strike")}
-            onClick={() => editor.chain().focus().toggleStrike().run()}
-          >
-            <span className="line-through">S</span>
-          </ToolbarButton>
           <ToolbarSeparator />
           <LinkControl editor={editor} triggerId={linkControlId} />
           <ToolbarSeparator />
@@ -1431,28 +1368,6 @@ export function Toolbar({
               <span>•</span><span>☰</span>
             </span>
           </ToolbarButton>
-          <select
-            value={activeBulletStyle}
-            onChange={(event) => {
-              const bulletStyle = event.target.value;
-              if (bulletStyle === "custom") {
-                setCustomBulletOpen(true);
-              } else if (isBulletStyle(bulletStyle)) {
-                setBulletStyle(bulletStyle);
-              }
-            }}
-            aria-label="Bullet style"
-            title="Bullet style"
-            className="app-input h-8 w-28 shrink-0 rounded-sm px-1 text-sm outline-none"
-          >
-            {BULLET_STYLES.map((bulletStyle) => (
-              <option key={bulletStyle} value={bulletStyle}>
-                {bulletStyle === "custom" && activeBulletStyle === "custom"
-                  ? `${bulletGlyph({ bulletStyle, bulletGlyph: activeBulletGlyph })} Custom`
-                  : bulletStyleLabels[bulletStyle]}
-              </option>
-            ))}
-          </select>
           <ToolbarButton
             label="Numbered list"
             isActive={editor.isActive("orderedList")}
@@ -1470,30 +1385,6 @@ export function Toolbar({
             <span aria-hidden="true" className="flex items-center gap-1 font-mono text-xs">
               <span>☑</span><span>☰</span>
             </span>
-          </ToolbarButton>
-          <select
-            value={activeTaskStyle}
-            onChange={(event) => {
-              if (isTaskStyle(event.target.value)) {
-                setTaskStyle(event.target.value);
-              }
-            }}
-            aria-label="Checklist style"
-            title="Checklist style"
-            className="app-input h-8 w-44 shrink-0 rounded-sm px-1 text-xs outline-none"
-          >
-            {TASK_STYLES.map((taskStyle) => (
-              <option key={taskStyle} value={taskStyle}>
-                {taskStyleLabels[taskStyle]}
-              </option>
-            ))}
-          </select>
-          <ToolbarButton
-            label="Block quote"
-            isActive={editor.isActive("blockquote")}
-            onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          >
-            <span aria-hidden="true" className="text-lg leading-none">“</span>
           </ToolbarButton>
           {imageError ? (
             <p role="alert" className="ml-2 shrink-0 text-xs text-[var(--danger)]">
