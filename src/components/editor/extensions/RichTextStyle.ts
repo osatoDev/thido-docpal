@@ -1,7 +1,7 @@
 import { Mark, mergeAttributes } from "@tiptap/core";
 
 export const FONT_FAMILY_OPTIONS = [
-  { label: "Default", value: "" },
+  { label: "Thido Sans", value: "" },
   { label: "Serif", value: "serif" },
   { label: "Sans serif", value: "sans-serif" },
   { label: "Monospace", value: "monospace" },

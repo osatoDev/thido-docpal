@@ -6,6 +6,29 @@ export function createDefaultDocumentTitle(date = new Date()) {
   return `${DEFAULT_DOCUMENT_TITLE} — ${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
 }
 
+export function createLocalizedDefaultDocumentTitle(
+  date: Date,
+  locale?: string,
+  timeZone?: string,
+) {
+  const dateTime = new Intl.DateTimeFormat(locale, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone,
+  }).format(date);
+  const zoneName = new Intl.DateTimeFormat(locale, {
+    timeZone,
+    timeZoneName: "short",
+  })
+    .formatToParts(date)
+    .find((part) => part.type === "timeZoneName")?.value;
+
+  return `${DEFAULT_DOCUMENT_TITLE} — ${dateTime}${zoneName ? ` ${zoneName}` : ""}`;
+}
+
 export function isDefaultDocumentTitle(title: string) {
   return title === DEFAULT_DOCUMENT_TITLE || TIMESTAMPED_DEFAULT_TITLE.test(title);
 }

@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { EditorContent, useEditor, type JSONContent } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { getEditorExtensions } from "@/lib/editorExtensions";
@@ -30,8 +36,10 @@ import type {
 } from "@/lib/types";
 import { isDocumentWideCommentRequest } from "@/lib/commentProcessing";
 import {
+  createLocalizedDefaultDocumentTitle,
   hasMeaningfulDocumentContent,
   inferDocumentTitle,
+  isDefaultDocumentTitle,
 } from "@/lib/documentPersistence";
 import {
   detectTextTable,
@@ -48,6 +56,7 @@ type Props = {
   documentId: string;
   initialTitle: string;
   initialTitleManuallySet: boolean;
+  initialCreatedAt: string;
   initialContent: JSONContent | null;
   initialRevision: number;
   initialComments: CommentWithReplies[];
@@ -87,11 +96,13 @@ type PendingTablePaste = {
 };
 
 const BROADER_SCOPE_PROMPT = /\b(paragraph|section|intro|introduction|conclusion|opening|closing|entire|whole|overall)\b/i;
+const subscribeToHydration = () => () => undefined;
 
 export function TiptapEditor({
   documentId,
   initialTitle,
   initialTitleManuallySet,
+  initialCreatedAt,
   initialContent,
   initialRevision,
   initialComments,
@@ -110,6 +121,18 @@ export function TiptapEditor({
     accessPermission === "EDIT" || accessPermission === "FULL";
   const canManage = accessPermission === "FULL";
   const [title, setTitle] = useState(initialTitle);
+  const hasHydrated = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
+  const visibleTitle =
+    hasHydrated &&
+    !initialTitleManuallySet &&
+    isDefaultDocumentTitle(initialTitle) &&
+    title === initialTitle
+      ? createLocalizedDefaultDocumentTitle(new Date(initialCreatedAt))
+      : title;
   const [revision, setRevision] = useState(initialRevision);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [documentConflict, setDocumentConflict] = useState<string | null>(null);
@@ -953,13 +976,13 @@ export function TiptapEditor({
 
   return (
     <div className="print-document-layout flex min-h-0 flex-1 flex-col lg:flex-row">
-      <div className="print-document-layout flex w-full min-w-0 flex-1 flex-col gap-4 px-3 py-4 sm:px-5 lg:px-6">
-        <header className="print-hidden mx-auto flex w-full max-w-6xl flex-col gap-3 border-b border-[var(--border)] pb-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="print-document-layout flex w-full min-w-0 flex-1 flex-col gap-3 px-2 py-3 sm:px-3 lg:px-4">
+        <header className="print-hidden mx-auto flex w-full max-w-none flex-col gap-3 border-b border-[var(--border)] pb-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <Brand href="/dashboard" />
             <div className="min-w-0 flex-1">
               <input
-                value={title}
+                value={visibleTitle}
                 readOnly={!canEditNow}
                 onChange={(event) => {
                   if (!canEditNow) return;
@@ -1035,7 +1058,7 @@ export function TiptapEditor({
           </div>
         </header>
 
-        <div className="print-hidden mx-auto w-full max-w-6xl">
+        <div className="print-hidden mx-auto w-full max-w-none">
           <Toolbar
             editor={editor}
             documentId={documentId}
@@ -1070,7 +1093,7 @@ export function TiptapEditor({
 
         {documentConflict && (
           <div
-            className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 border border-[var(--warm)] bg-[var(--surface)] px-4 py-3 text-sm"
+            className="mx-auto flex w-full max-w-none flex-wrap items-center justify-between gap-3 border border-[var(--warm)] bg-[var(--surface)] px-4 py-3 text-sm"
             role="alert"
           >
             <div>
@@ -1100,7 +1123,7 @@ export function TiptapEditor({
         )}
 
         {startedFromPaste && !initialContent && (
-          <div className="print-hidden mx-auto w-full max-w-6xl border-l-2 border-[var(--warm)] pl-4">
+          <div className="print-hidden mx-auto w-full max-w-none border-l-2 border-[var(--warm)] pl-4">
             <p className="text-sm font-medium">Paste your document below.</p>
             <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
               When it is saved, highlight any passage to target it, or choose
@@ -1112,7 +1135,7 @@ export function TiptapEditor({
 
         {documentImportMessage ? (
           <p
-            className={`print-hidden mx-auto w-full max-w-6xl border-l-2 px-3 py-2 text-xs leading-5 ${
+            className={`print-hidden mx-auto w-full max-w-none border-l-2 px-3 py-2 text-xs leading-5 ${
               documentImportMessage.kind === "error"
                 ? "border-[var(--danger)] text-[var(--danger)]"
                 : "border-[var(--accent-strong)] text-[var(--muted)]"
@@ -1124,7 +1147,7 @@ export function TiptapEditor({
         ) : null}
 
         <div
-          className="print-document-panel app-panel relative mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-hidden rounded-sm"
+          className="print-document-panel app-panel relative mx-auto flex w-full max-w-none flex-1 flex-col overflow-hidden rounded-sm"
           aria-busy={
             documentAiLocked || documentImportMessage?.kind === "loading"
           }
@@ -1175,7 +1198,7 @@ export function TiptapEditor({
                 onClose={() => setDocumentOutlineOpen(false)}
               />
             ) : null}
-            <div className="print-document-content min-w-0 flex-1 overflow-y-auto px-4 py-7 sm:px-7 sm:py-10 lg:px-8">
+            <div className="print-document-content min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-5 sm:py-8 lg:px-6">
               <div
                 className="editor-zoom"
                 style={{ zoom: editorZoom / 100 }}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 import { sendUserFeedbackMessage } from "@/app/feedback-actions";
@@ -25,10 +25,12 @@ export function FeedbackConversation({
   messages,
   initialCategory,
   contextPath,
+  onRefresh,
 }: {
   messages: FeedbackMessageView[];
   initialCategory: keyof typeof CATEGORY_LABELS;
   contextPath: string | null;
+  onRefresh?: () => void | Promise<void>;
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -37,6 +39,10 @@ export function FeedbackConversation({
     sendUserFeedbackMessage,
     initialFeedbackActionState,
   );
+  const refreshConversation = useCallback(() => {
+    if (onRefresh) return onRefresh();
+    router.refresh();
+  }, [onRefresh, router]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "nearest" });
@@ -45,15 +51,15 @@ export function FeedbackConversation({
   useEffect(() => {
     if (!state.submissionId) return;
     formRef.current?.reset();
-    router.refresh();
-  }, [router, state.submissionId]);
+    void refreshConversation();
+  }, [refreshConversation, state.submissionId]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
-      if (document.visibilityState === "visible") router.refresh();
+      if (document.visibilityState === "visible") void refreshConversation();
     }, 15_000);
     return () => window.clearInterval(interval);
-  }, [router]);
+  }, [refreshConversation]);
 
   return (
     <div className="grid min-h-0 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">

@@ -115,6 +115,7 @@ export default async function EditDocumentPage({ params, searchParams }: Props) 
       documentId={document.id}
       initialTitle={document.title}
       initialTitleManuallySet={document.titleManuallySet}
+      initialCreatedAt={document.createdAt.toISOString()}
       initialContent={content}
       initialRevision={document.revision}
       initialComments={document.comments}

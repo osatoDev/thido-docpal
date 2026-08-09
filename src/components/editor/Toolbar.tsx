@@ -64,7 +64,7 @@ const taskStyleLabels: Record<TaskStyle, string> = {
 const DOCUMENT_ZOOM_OPTIONS = [75, 100, 125, 150] as const;
 const HEADING_LEVELS = [1, 2, 3, 4, 5, 6] as const;
 const TEXT_COLOR_OPTIONS = [
-  { label: "Default color", value: "" },
+  { label: "Theme color", value: "" },
   { label: "Black", value: "#161916" },
   { label: "Red", value: "#b42318" },
   { label: "Blue", value: "#175cd3" },
@@ -1333,7 +1333,7 @@ export function Toolbar({
             title="Font size"
             className="app-input h-8 w-20 shrink-0 rounded-sm px-2 text-sm outline-none"
           >
-            <option value="">Default</option>
+            <option value="">Body size</option>
             {FONT_SIZE_OPTIONS.map((fontSize) => (
               <option key={fontSize} value={fontSize}>
                 {fontSize} pt
