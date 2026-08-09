@@ -1,10 +1,22 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import type { Editor } from "@tiptap/react";
 
 import { DocumentFileMenu } from "@/components/documents/DocumentMoreActions";
 import type { RestoredDocument } from "@/components/documents/VersionHistoryControl";
+import {
+  calculateSideMenuPosition,
+  type SideMenuPosition,
+} from "@/lib/menuPosition";
 import { BookmarkDialog } from "./BookmarkDialog";
 import { CustomBulletDialog } from "./CustomBulletDialog";
 import { FindReplaceDialog } from "./FindReplaceDialog";
@@ -78,25 +90,102 @@ type MenuItem = {
 function EditorMenuItem({
   item,
   closeMenu,
+  expandedSubmenus,
+  menuTreeId,
+  onSubmenuToggle,
   depth = 0,
 }: {
   item: MenuItem;
   closeMenu: () => void;
+  expandedSubmenus: Readonly<Record<number, string>>;
+  menuTreeId: string;
+  onSubmenuToggle: (
+    depth: number,
+    submenuId: string,
+    expanded: boolean,
+  ) => void;
   depth?: number;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [submenuPosition, setSubmenuPosition] =
+    useState<SideMenuPosition | null>(null);
   const submenuId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const submenuRef = useRef<HTMLDivElement>(null);
   const hasChildren = Boolean(item.children?.length);
+  const expanded = expandedSubmenus[depth] === submenuId;
 
   function openSubmenu() {
-    setExpanded(true);
+    onSubmenuToggle(depth, submenuId, true);
     window.requestAnimationFrame(() => {
       document
         .getElementById(submenuId)
         ?.querySelector<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')
         ?.focus();
     });
+  }
+
+  useLayoutEffect(() => {
+    if (!expanded || !buttonRef.current || !submenuRef.current) return;
+
+    function positionSubmenu() {
+      const button = buttonRef.current;
+      const submenu = submenuRef.current;
+      if (!button || !submenu) return;
+      const anchor = button.getBoundingClientRect();
+      setSubmenuPosition(
+        calculateSideMenuPosition({
+          anchor,
+          menuHeight: submenu.scrollHeight,
+          menuWidth: submenu.offsetWidth,
+          viewportHeight: window.innerHeight,
+          viewportWidth: window.innerWidth,
+        }),
+      );
+    }
+
+    positionSubmenu();
+    window.addEventListener("resize", positionSubmenu);
+    window.addEventListener("scroll", positionSubmenu, true);
+    return () => {
+      window.removeEventListener("resize", positionSubmenu);
+      window.removeEventListener("scroll", positionSubmenu, true);
+    };
+  }, [expanded]);
+
+  function handleSubmenuKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      event.stopPropagation();
+      onSubmenuToggle(depth, submenuId, false);
+      buttonRef.current?.focus();
+      return;
+    }
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+      return;
+    }
+
+    const items = Array.from(
+      submenuRef.current?.querySelectorAll<HTMLButtonElement>(
+        ':scope > [role="menuitem"]:not(:disabled)',
+      ) ?? [],
+    );
+    if (items.length === 0) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    const currentIndex = items.indexOf(
+      document.activeElement as HTMLButtonElement,
+    );
+    let nextIndex = currentIndex;
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = items.length - 1;
+    if (event.key === "ArrowDown") {
+      nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
+    }
+    if (event.key === "ArrowUp") {
+      nextIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
+    }
+    items[nextIndex]?.focus();
   }
 
   return (
@@ -111,7 +200,11 @@ function EditorMenuItem({
         aria-controls={hasChildren ? submenuId : undefined}
         onClick={() => {
           if (hasChildren) {
-            setExpanded((current) => !current);
+            if (expanded) {
+              onSubmenuToggle(depth, submenuId, false);
+            } else {
+              openSubmenu();
+            }
             return;
           }
           closeMenu();
@@ -131,7 +224,7 @@ function EditorMenuItem({
           <svg
             viewBox="0 0 16 16"
             aria-hidden="true"
-            className={`size-3.5 shrink-0 fill-none stroke-current transition-transform ${expanded ? "rotate-90" : ""}`}
+            className="size-3.5 shrink-0 fill-none stroke-current"
             strokeWidth="1.8"
           >
             <path d="m6 3 5 5-5 5" />
@@ -142,30 +235,39 @@ function EditorMenuItem({
           </kbd>
         ) : null}
       </button>
-      {hasChildren && expanded ? (
-        <div
-          id={submenuId}
-          role="menu"
-          aria-label={item.label}
-          className="mx-1 mb-1 border-s border-[var(--border)] ps-1"
-          onKeyDown={(event) => {
-            if (event.key !== "ArrowLeft") return;
-            event.preventDefault();
-            event.stopPropagation();
-            setExpanded(false);
-            buttonRef.current?.focus();
-          }}
-        >
-          {item.children?.map((child) => (
-            <EditorMenuItem
-              key={child.label}
-              item={child}
-              closeMenu={closeMenu}
-              depth={depth + 1}
-            />
-          ))}
-        </div>
-      ) : null}
+      {hasChildren && expanded && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              ref={submenuRef}
+              id={submenuId}
+              role="menu"
+              aria-label={item.label}
+              data-editor-menu-tree={menuTreeId}
+              data-side={submenuPosition?.side ?? "right"}
+              className="app-panel fixed z-50 w-64 max-w-[calc(100vw-1rem)] overflow-y-auto rounded-md p-1.5 text-sm shadow-lg"
+              style={{
+                left: submenuPosition?.left ?? 0,
+                maxHeight: submenuPosition?.maxHeight,
+                top: submenuPosition?.top ?? 0,
+                visibility: submenuPosition ? "visible" : "hidden",
+              }}
+              onKeyDown={handleSubmenuKeyDown}
+            >
+              {item.children?.map((child) => (
+                <EditorMenuItem
+                  key={child.label}
+                  item={child}
+                  closeMenu={closeMenu}
+                  expandedSubmenus={expandedSubmenus}
+                  menuTreeId={menuTreeId}
+                  onSubmenuToggle={onSubmenuToggle}
+                  depth={depth + 1}
+                />
+              ))}
+            </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 }
@@ -178,11 +280,32 @@ function EditorMenu({
   groups: readonly (readonly MenuItem[])[];
 }) {
   const [open, setOpen] = useState(false);
+  const [expandedSubmenus, setExpandedSubmenus] = useState<
+    Record<number, string>
+  >({});
   const [menuOffset, setMenuOffset] = useState(0);
   const menuId = useId();
-  const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const closeEditorMenu = useCallback(() => {
+    setOpen(false);
+    setExpandedSubmenus({});
+  }, []);
+
+  const updateExpandedSubmenu = useCallback(
+    (depth: number, submenuId: string, expanded: boolean) => {
+      setExpandedSubmenus((current) => {
+        const next: Record<number, string> = {};
+        for (const [level, openSubmenuId] of Object.entries(current)) {
+          if (Number(level) < depth) next[Number(level)] = openSubmenuId;
+        }
+        if (expanded) next[depth] = submenuId;
+        return next;
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -192,12 +315,16 @@ function EditorMenu({
       ?.focus();
 
     function closeOnOutsidePointer(event: PointerEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      const menuTree =
+        event.target instanceof Element
+          ? event.target.closest<HTMLElement>("[data-editor-menu-tree]")
+          : null;
+      if (menuTree?.dataset.editorMenuTree !== menuId) closeEditorMenu();
     }
 
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
-      setOpen(false);
+      closeEditorMenu();
       triggerRef.current?.focus();
     }
 
@@ -207,7 +334,7 @@ function EditorMenu({
       document.removeEventListener("pointerdown", closeOnOutsidePointer);
       document.removeEventListener("keydown", closeOnEscape);
     };
-  }, [open]);
+  }, [closeEditorMenu, menuId, open]);
 
   useLayoutEffect(() => {
     if (!open || !menuRef.current) return;
@@ -263,7 +390,7 @@ function EditorMenu({
   }
 
   return (
-    <div ref={rootRef} className="relative">
+    <div className="relative" data-editor-menu-tree={menuId}>
       <button
         ref={triggerRef}
         type="button"
@@ -271,7 +398,13 @@ function EditorMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => {
+          if (open) {
+            closeEditorMenu();
+          } else {
+            setOpen(true);
+          }
+        }}
         onKeyDown={(event) => {
           if (event.key === "ArrowDown") {
             event.preventDefault();
@@ -304,7 +437,10 @@ function EditorMenu({
                 <EditorMenuItem
                   key={item.label}
                   item={item}
-                  closeMenu={() => setOpen(false)}
+                  closeMenu={closeEditorMenu}
+                  expandedSubmenus={expandedSubmenus}
+                  menuTreeId={menuId}
+                  onSubmenuToggle={updateExpandedSubmenu}
                 />
               ))}
             </div>

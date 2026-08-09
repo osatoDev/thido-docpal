@@ -7,6 +7,7 @@ import { getEditorExtensions } from "@/lib/editorExtensions";
 import { Toolbar } from "./Toolbar";
 import { DocumentOutline } from "./DocumentOutline";
 import { TableContextMenu } from "./TableContextMenu";
+import { TableConversionDialog } from "./TableConversionDialog";
 import { useEditorHashNavigation } from "./useEditorHashNavigation";
 import { CommentSidebar } from "@/components/comments/CommentSidebar";
 import { CommentComposer } from "@/components/comments/CommentComposer";
@@ -28,7 +29,20 @@ import type {
   SuggestionWithStatus,
 } from "@/lib/types";
 import { isDocumentWideCommentRequest } from "@/lib/commentProcessing";
-import { inferDocumentTitle } from "@/lib/documentPersistence";
+import {
+  hasMeaningfulDocumentContent,
+  inferDocumentTitle,
+} from "@/lib/documentPersistence";
+import {
+  detectTextTable,
+  plainTextToTiptapNodes,
+  textTableToTiptapNode,
+  type DetectedTextTable,
+} from "@/lib/textTable";
+import {
+  isSupportedDocumentFileName,
+  SUPPORTED_DOCUMENT_FILE_LABEL,
+} from "@/lib/documentFileTypes";
 
 type Props = {
   documentId: string;
@@ -65,6 +79,12 @@ type DocumentComposer = {
   scope: "DOCUMENT";
 };
 type ActiveComposer = SelectionComposer | DocumentComposer;
+type PendingTablePaste = {
+  from: number;
+  originalText: string;
+  table: DetectedTextTable;
+  to: number;
+};
 
 const BROADER_SCOPE_PROMPT = /\b(paragraph|section|intro|introduction|conclusion|opening|closing|entire|whole|overall)\b/i;
 
@@ -117,6 +137,13 @@ export function TiptapEditor({
   const [commentError, setCommentError] = useState<string | null>(null);
   const [recentThidoChange, setRecentThidoChange] =
     useState<SuggestionWithStatus | null>(null);
+  const [pendingTablePaste, setPendingTablePaste] =
+    useState<PendingTablePaste | null>(null);
+  const [fileDragActive, setFileDragActive] = useState(false);
+  const [documentImportMessage, setDocumentImportMessage] = useState<{
+    kind: "error" | "loading" | "success";
+    text: string;
+  } | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef<{
     title?: string;
@@ -130,6 +157,8 @@ export function TiptapEditor({
   const documentAiLockedRef = useRef(initialDocumentAiLocked);
   const titleRef = useRef(initialTitle);
   const titleManuallySetRef = useRef(initialTitleManuallySet);
+  const pendingTablePasteRef = useRef<PendingTablePaste | null>(null);
+  const documentImportingRef = useRef(false);
   const canEditNow = canEdit && !documentAiLocked;
   const canCommentNow = canComment && !documentAiLocked;
   const updateDocumentAiLock = useCallback((locked: boolean) => {
@@ -154,6 +183,56 @@ export function TiptapEditor({
       attributes: {
         class:
           "prose prose-sm sm:prose-base max-w-none min-h-[60vh] focus:outline-none prose-headings:text-[var(--foreground)] prose-p:text-[var(--foreground)] prose-strong:text-[var(--foreground)] prose-blockquote:text-[var(--muted)]",
+      },
+      handlePaste: (view, event) => {
+        if (
+          !canEdit ||
+          documentAiLockedRef.current ||
+          pendingTablePasteRef.current
+        ) {
+          return false;
+        }
+        const originalText = event.clipboardData?.getData("text/plain") ?? "";
+        const table = detectTextTable(originalText);
+        if (!table) return false;
+
+        event.preventDefault();
+        const pending = {
+          from: view.state.selection.from,
+          originalText,
+          table,
+          to: view.state.selection.to,
+        };
+        pendingTablePasteRef.current = pending;
+        setPendingTablePaste(pending);
+        return true;
+      },
+      handleDrop: (view, event, _slice, moved) => {
+        const file = event.dataTransfer?.files?.[0];
+        if (moved || !file || !canEdit || documentAiLockedRef.current) {
+          return false;
+        }
+
+        event.preventDefault();
+        setFileDragActive(false);
+        if (documentImportingRef.current) return true;
+        if (hasMeaningfulDocumentContent(view.state.doc.toJSON())) {
+          setDocumentImportMessage({
+            kind: "error",
+            text: "Drop a document into a blank Thido document. Use the File or Tools menu to replace a document that already has content.",
+          });
+          return true;
+        }
+        if (!isSupportedDocumentFileName(file.name)) {
+          setDocumentImportMessage({
+            kind: "error",
+            text: `Thido can import ${SUPPORTED_DOCUMENT_FILE_LABEL}.`,
+          });
+          return true;
+        }
+
+        void importDroppedDocument(file);
+        return true;
       },
     },
     onCreate: ({ editor }) => {
@@ -187,6 +266,36 @@ export function TiptapEditor({
   });
   const editorRef = useRef(editor);
   useEditorHashNavigation(editor);
+
+  const insertPendingTablePaste = useCallback((convertToTable: boolean) => {
+    const pending = pendingTablePasteRef.current;
+    const currentEditor = editorRef.current;
+    if (!pending || !currentEditor) return;
+
+    pendingTablePasteRef.current = null;
+    setPendingTablePaste(null);
+    const maximumPosition = currentEditor.state.doc.content.size;
+    const from = Math.min(pending.from, maximumPosition);
+    const to = Math.min(Math.max(pending.to, from), maximumPosition);
+    currentEditor
+      .chain()
+      .focus()
+      .setTextSelection({ from, to })
+      .insertContent(
+        convertToTable
+          ? textTableToTiptapNode(pending.table)
+          : plainTextToTiptapNodes(pending.originalText),
+      )
+      .run();
+  }, []);
+
+  const convertPendingTablePaste = useCallback(() => {
+    insertPendingTablePaste(true);
+  }, [insertPendingTablePaste]);
+
+  const keepPendingTablePasteAsText = useCallback(() => {
+    insertPendingTablePaste(false);
+  }, [insertPendingTablePaste]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -362,6 +471,64 @@ export function TiptapEditor({
     conflictRef.current = true;
     setDocumentConflict(message);
     setSaveState("error");
+  }
+
+  async function importDroppedDocument(file: File) {
+    documentImportingRef.current = true;
+    setDocumentImportMessage({
+      kind: "loading",
+      text: `Importing ${file.name}…`,
+    });
+    setCommentError(null);
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    pendingSaveRef.current = null;
+
+    try {
+      await saveChainRef.current;
+      const formData = new FormData();
+      formData.set("file", file);
+      formData.set("baseRevision", String(revisionRef.current));
+      const response = await fetch(`/api/documents/${documentId}/import`, {
+        method: "POST",
+        body: formData,
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok || !body?.document) {
+        if (body?.documentConflict === true) {
+          handleDocumentConflict(
+            typeof body.error === "string"
+              ? body.error
+              : "This document changed somewhere else.",
+          );
+        }
+        throw new Error(body?.error || "Could not import this document.");
+      }
+
+      handleDocumentRestored(body.document as RestoredDocument);
+      const warnings = Array.isArray(body.warnings)
+        ? body.warnings.filter((warning: unknown) => typeof warning === "string")
+        : [];
+      setDocumentImportMessage({
+        kind: "success",
+        text:
+          warnings.length > 0
+            ? `${file.name} is now editable. Import notes: ${warnings.join(" ")}`
+            : `${file.name} is now an editable Thido document.`,
+      });
+    } catch (reason) {
+      setDocumentImportMessage({
+        kind: "error",
+        text:
+          reason instanceof Error
+            ? reason.message
+            : "Could not import this document.",
+      });
+    } finally {
+      documentImportingRef.current = false;
+    }
   }
 
   function startComment() {
@@ -943,10 +1110,50 @@ export function TiptapEditor({
           </div>
         )}
 
+        {documentImportMessage ? (
+          <p
+            className={`print-hidden mx-auto w-full max-w-6xl border-l-2 px-3 py-2 text-xs leading-5 ${
+              documentImportMessage.kind === "error"
+                ? "border-[var(--danger)] text-[var(--danger)]"
+                : "border-[var(--accent-strong)] text-[var(--muted)]"
+            }`}
+            role={documentImportMessage.kind === "error" ? "alert" : "status"}
+          >
+            {documentImportMessage.text}
+          </p>
+        ) : null}
+
         <div
-          className="print-document-panel app-panel mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-hidden rounded-sm"
-          aria-busy={documentAiLocked}
+          className="print-document-panel app-panel relative mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-hidden rounded-sm"
+          aria-busy={
+            documentAiLocked || documentImportMessage?.kind === "loading"
+          }
+          onDragEnter={(event) => {
+            if (!canEditNow || !event.dataTransfer.types.includes("Files")) return;
+            setFileDragActive(true);
+          }}
+          onDragOver={(event) => {
+            if (!canEditNow || !event.dataTransfer.types.includes("Files")) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "copy";
+          }}
+          onDragLeave={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+              setFileDragActive(false);
+            }
+          }}
+          onDrop={() => setFileDragActive(false)}
         >
+          {fileDragActive ? (
+            <div className="pointer-events-none absolute inset-2 z-30 flex items-center justify-center rounded-md border-2 border-dashed border-[var(--accent-strong)] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] p-6 text-center">
+              <div>
+                <p className="font-semibold">Drop to import this document</p>
+                <p className="mt-1 text-xs text-[var(--muted)]">
+                  Blank documents accept {SUPPORTED_DOCUMENT_FILE_LABEL} files.
+                </p>
+              </div>
+            </div>
+          ) : null}
           {editor && canCommentNow && (
             <BubbleMenu editor={editor}>
               <div className="print-hidden app-panel flex items-center gap-1 rounded-sm p-1">
@@ -1023,6 +1230,13 @@ export function TiptapEditor({
           />
         </div>
       )}
+      {pendingTablePaste ? (
+        <TableConversionDialog
+          table={pendingTablePaste.table}
+          onConvert={convertPendingTablePaste}
+          onKeepText={keepPendingTablePasteAsText}
+        />
+      ) : null}
     </div>
   );
 }

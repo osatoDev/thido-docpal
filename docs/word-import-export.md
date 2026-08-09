@@ -9,6 +9,11 @@ Authenticated document members can open **File** in the editor to:
 - import a Word `.docx` file from **File** when they have edit access;
 - import a Markdown `.md` file from **Tools → Document files**.
 
+Users can also drag a Word `.docx` or Markdown `.md` file from Finder or File
+Explorer onto a blank editable Thido document. Drag-and-drop deliberately does
+not replace a document that already has meaningful content; those imports stay
+behind the explicit replacement flow in **File** or **Tools**.
+
 Import replaces the current document title and body after an explicit browser
 confirmation. The previous content remains recoverable in **Version history**.
 An import is rejected if another tab, collaborator, or AI action changed the
@@ -20,6 +25,11 @@ rules, and basic tables supported by the shared editor schema. The first
 meaningful heading becomes the document title; when no heading exists, Thido
 uses the upload filename. Raw HTML is sanitized, and embedded external images
 are omitted rather than loaded into a document.
+
+When pasted plain text has a consistent tab-separated, Markdown, CSV, or
+aligned-column structure, Thido asks whether to convert it into a table. The
+first row becomes the header when accepted. Choosing **Keep as text**, pressing
+Escape, or dismissing the prompt preserves the pasted lines as plain text.
 
 ## Import fidelity contract
 
