@@ -16,8 +16,7 @@ import {
   getDocumentForUser,
   normalizeCollaboratorEmail,
 } from "@/lib/documentAuth";
-import { createBlankDocument } from "@/app/document-actions";
-import { createSpreadsheet } from "@/app/spreadsheet-actions";
+import { NewDocumentMenu } from "@/components/documents/NewDocumentMenu";
 import {
   createDocumentFolder,
   deleteDocumentFolder,
@@ -174,29 +173,7 @@ export default async function DashboardPage() {
               Admin
             </Link>
           )}
-          <Link
-            href="/documents/new"
-            prefetch
-            className="text-sm font-medium text-[var(--muted)] hover:text-[var(--foreground)]"
-          >
-            Draft with AI
-          </Link>
-          <form action={createBlankDocument}>
-            <button
-              type="submit"
-              className="primary-button rounded-md px-4 py-2.5 text-sm font-medium"
-            >
-              New document
-            </button>
-          </form>
-          <form action={createSpreadsheet}>
-            <button
-              type="submit"
-              className="secondary-button rounded-md px-4 py-2.5 text-sm font-medium"
-            >
-              New spreadsheet
-            </button>
-          </form>
+          <NewDocumentMenu />
           <UserMenu user={session.user} />
         </div>
       </header>

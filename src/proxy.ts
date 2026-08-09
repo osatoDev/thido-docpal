@@ -9,22 +9,7 @@ export default auth((req) => {
     name.startsWith("__Secure-authjs.session-token"),
   );
 
-  const isPublicRoute =
-    pathname === "/" ||
-    pathname === "/login" ||
-    pathname === "/register" ||
-    pathname === "/forgot-password" ||
-    pathname === "/reset-password" ||
-    pathname === "/verify-email" ||
-    pathname === "/forbidden" ||
-    pathname === "/terms" ||
-    pathname === "/privacy" ||
-    pathname === "/documents/new" ||
-    pathname.startsWith("/share/") ||
-    pathname.startsWith("/api/") ||
-    /\.[^/]+$/.test(pathname);
-
-  if (!isLoggedIn && !isPublicRoute) {
+  if (!isLoggedIn) {
     const loginUrl = new URL("/login", req.nextUrl.origin);
     loginUrl.searchParams.set("callbackUrl", `${pathname}${req.nextUrl.search}`);
     loginUrl.searchParams.set(
@@ -38,5 +23,13 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    "/admin/:path*",
+    "/dashboard/:path*",
+    "/documents/:id/edit/:path*",
+    "/documents/:id/wizard/:path*",
+    "/feedback/:path*",
+    "/settings/:path*",
+    "/spreadsheets/:path*",
+  ],
 };

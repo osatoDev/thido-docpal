@@ -116,7 +116,7 @@ export function FeedbackConversation({
         className="app-panel flex h-fit flex-col gap-4 rounded-2xl p-5 sm:p-6"
       >
         <div>
-          <h2 className="font-semibold">Message the founders</h2>
+          <h2 className="font-semibold">Want a feature? Suggest it here</h2>
           <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
             We try to reply immediately. If we are away, expect a response
             within eight hours.

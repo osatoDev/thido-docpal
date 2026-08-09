@@ -1,13 +1,16 @@
 import { redirect } from "next/navigation";
 
-import { auth } from "@/lib/auth";
+import { NewDocumentLanding } from "@/components/landing/NewDocumentLanding";
 import { getOrCreateBlankDocument } from "@/lib/blankDocument";
+import { getCurrentSession } from "@/lib/currentSession";
 import { documentAccessWhere } from "@/lib/documentAuth";
 import { prisma } from "@/lib/prisma";
 
 export default async function Home() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/documents/new");
+  const session = await getCurrentSession();
+  if (!session?.user?.id) {
+    return <NewDocumentLanding user={null} resumeGuestDraft={false} />;
+  }
 
   const settings = await prisma.userSettings.upsert({
     where: { userId: session.user.id },

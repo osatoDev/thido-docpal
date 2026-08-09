@@ -2,10 +2,10 @@
 
 ## Recommendation
 
-Add a signed-in **Message the founders** messenger, but do not describe it as a
-chatbot. It should be a persistent, asynchronous conversation with the founding
-team. The interface can feel as immediate as chat while remaining honest when
-no founder is online.
+Add a signed-in **Want a feature? Suggest it here** messenger, but do not
+describe it as a chatbot. It should be a persistent, asynchronous conversation
+with the founding team. The interface can feel as immediate as chat while
+remaining honest when no founder is online.
 
 Use this promise in the composer:
 
@@ -18,9 +18,9 @@ human, or “live chat” language when nobody is covering the inbox.
 
 ## User experience
 
-- Show a persistent **Message founders** button on every signed-in page. A
-  bottom-left launcher avoids the existing theme control and remains available
-  inside the document editor.
+- Show a persistent **Want a feature? Suggest it here** button on every
+  signed-in page. A bottom-left launcher avoids the existing theme control and
+  remains available inside the document editor.
 - Open a side panel rather than navigating away, so a user can describe a
   problem while looking at the document or screen where it occurred.
 - Start with one free-text field and optional categories: **Problem**, **Idea**,
@@ -39,9 +39,10 @@ human, or “live chat” language when nobody is covering the inbox.
   retention, and privacy wording are defined. Text feedback is enough for the
   first 100 users.
 
-The launcher label should remain explicit. “Feedback” can sound like a survey;
-“Support” can feel transactional; **Message founders** communicates that a real
-person will read and answer.
+The launcher label should remain inviting and concrete. **Want a feature?
+Suggest it here** makes the product-shaping opportunity obvious, while the
+conversation itself still accepts problems, ideas, and questions and makes
+clear that the founding team will read and answer.
 
 ## Founder workflow
 

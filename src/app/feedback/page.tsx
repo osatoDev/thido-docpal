@@ -10,7 +10,7 @@ import { sanitizeFeedbackPath } from "@/lib/feedback";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
-  title: "Message the founders — Thido",
+  title: "Suggest a feature — Thido",
 };
 
 const messageDateFormatter = new Intl.DateTimeFormat("en", {
@@ -66,11 +66,11 @@ export default async function FeedbackPage({
       </header>
 
       <section className="max-w-3xl">
-        <p className="page-kicker mb-3">Private beta feedback</p>
-        <h1 className="page-title">Talk directly with the founders.</h1>
+        <p className="page-kicker mb-3">Help shape Thido</p>
+        <h1 className="page-title">What should Thido build next?</h1>
         <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-          Tell us what is confusing, broken, or missing. We try to respond
-          immediately and otherwise within eight hours.
+          Suggest a feature, share an idea, or tell us what feels confusing.
+          The founding team reads every message and replies here.
         </p>
       </section>
 

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
-import { RollbarProvider } from "@/components/observability/RollbarProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SignedInPageActions } from "@/components/SignedInPageActions";
 import {
@@ -10,7 +9,7 @@ import {
   DEFAULT_APPLICATION_STYLE,
   isApplicationStyle,
 } from "@/lib/applicationStyle";
-import { auth } from "@/lib/auth";
+import { getCurrentSession } from "@/lib/currentSession";
 import { isTheme, THEME_COOKIE_NAME } from "@/lib/theme";
 import "./globals.css";
 
@@ -35,13 +34,16 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [cookieStore, session] = await Promise.all([cookies(), auth()]);
+  const [cookieStore, session] = await Promise.all([
+    cookies(),
+    getCurrentSession(),
+  ]);
   const savedTheme = cookieStore.get(THEME_COOKIE_NAME)?.value;
   const theme = isTheme(savedTheme) ? savedTheme : "light";
   const savedApplicationStyle = cookieStore.get(
     APPLICATION_STYLE_COOKIE_NAME,
   )?.value;
-  const applicationStyle = isApplicationStyle(session?.user.applicationStyle)
+  const applicationStyle = isApplicationStyle(session?.user?.applicationStyle)
     ? session.user.applicationStyle
     : isApplicationStyle(savedApplicationStyle)
       ? savedApplicationStyle
@@ -55,12 +57,10 @@ export default async function RootLayout({
       data-app-style={applicationStyle}
     >
       <body className="flex min-h-full flex-col">
-        <RollbarProvider>
-          {children}
-          <SignedInPageActions signedIn={Boolean(session?.user.id)} />
-          <ThemeToggle />
-          <Analytics />
-        </RollbarProvider>
+        {children}
+        <SignedInPageActions signedIn={Boolean(session?.user?.id)} />
+        <ThemeToggle />
+        <Analytics />
       </body>
     </html>
   );

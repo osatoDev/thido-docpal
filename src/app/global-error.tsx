@@ -2,8 +2,6 @@
 
 import { useEffect } from "react";
 
-import { reportClientError } from "@/lib/rollbar/client";
-
 export default function GlobalError({
   error,
   unstable_retry,
@@ -12,10 +10,16 @@ export default function GlobalError({
   unstable_retry: () => void;
 }) {
   useEffect(() => {
-    reportClientError(error, {
-      source: "next-global-error",
-      digest: error.digest,
-    });
+    void import("@/lib/rollbar/client")
+      .then(({ reportClientError }) => {
+        reportClientError(error, {
+          source: "next-global-error",
+          digest: error.digest,
+        });
+      })
+      .catch(() => {
+        // The recovery UI must remain usable if telemetry cannot load.
+      });
   }, [error]);
 
   return (

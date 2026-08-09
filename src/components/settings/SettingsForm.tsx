@@ -60,8 +60,8 @@ export function SettingsForm({
           <div>
             <h2 className="font-semibold">When I open Thido</h2>
             <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-              Choose whether thido.ai opens a fresh document or returns to the
-              document you used most recently.
+              A blank document is the default. Choose the other option if you
+              prefer to return to the document you used most recently.
             </p>
           </div>
           <select
@@ -76,7 +76,7 @@ export function SettingsForm({
             }}
             className="app-input rounded-md px-3 py-2.5 text-sm outline-none"
           >
-            <option value="NEW_DOCUMENT">Start a new document</option>
+            <option value="NEW_DOCUMENT">Open a blank document (default)</option>
             <option value="MOST_RECENT">Open my most recent document</option>
           </select>
         </div>

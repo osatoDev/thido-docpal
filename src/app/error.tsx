@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect } from "react";
 
 import { Brand } from "@/components/Brand";
-import { reportClientError } from "@/lib/rollbar/client";
 
 export default function ErrorPage({
   error,
@@ -14,10 +13,16 @@ export default function ErrorPage({
   unstable_retry: () => void;
 }) {
   useEffect(() => {
-    reportClientError(error, {
-      source: "next-error-boundary",
-      digest: error.digest,
-    });
+    void import("@/lib/rollbar/client")
+      .then(({ reportClientError }) => {
+        reportClientError(error, {
+          source: "next-error-boundary",
+          digest: error.digest,
+        });
+      })
+      .catch(() => {
+        // The recovery UI must remain usable if telemetry cannot load.
+      });
   }, [error]);
 
   return (

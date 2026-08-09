@@ -8,7 +8,6 @@ import {
   parseStoredGuestDraft,
 } from "@/lib/guestDraft";
 
-const SERVER_SNAPSHOT = "__server__";
 const EMPTY_SNAPSHOT = "__empty__";
 
 function subscribeToGuestDraft() {
@@ -19,8 +18,12 @@ function getGuestDraftSnapshot() {
   return window.sessionStorage.getItem(GUEST_DRAFT_STORAGE_KEY) ?? EMPTY_SNAPSHOT;
 }
 
-function getServerSnapshot() {
-  return SERVER_SNAPSHOT;
+function getClientHydrationSnapshot() {
+  return true;
+}
+
+function getServerHydrationSnapshot() {
+  return false;
 }
 
 export function InitialPromptForm({
@@ -30,23 +33,12 @@ export function InitialPromptForm({
   isAuthenticated: boolean;
   resumeGuestDraft: boolean;
 }) {
-  const storedValue = useSyncExternalStore(
+  const hydrated = useSyncExternalStore(
     subscribeToGuestDraft,
-    getGuestDraftSnapshot,
-    getServerSnapshot,
+    getClientHydrationSnapshot,
+    getServerHydrationSnapshot,
   );
-
-  if (storedValue === SERVER_SNAPSHOT) {
-    return (
-      <div
-        role="status"
-        className="flex flex-col items-start gap-3 border-t border-[var(--border-strong)] py-10"
-      >
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent-strong)]" />
-        <p className="text-sm text-[var(--muted)]">Restoring your outline…</p>
-      </div>
-    );
-  }
+  const storedValue = hydrated ? getGuestDraftSnapshot() : EMPTY_SNAPSHOT;
 
   const storedDraft = parseStoredGuestDraft(
     storedValue === EMPTY_SNAPSHOT ? null : storedValue,
@@ -54,8 +46,10 @@ export function InitialPromptForm({
 
   return (
     <InitialPromptEditor
+      key={storedValue}
       initialDraft={storedDraft}
       isAuthenticated={isAuthenticated}
+      persistDraft={hydrated}
       resumeGuestDraft={resumeGuestDraft}
     />
   );

@@ -47,10 +47,12 @@ function createDraft(
 export function InitialPromptEditor({
   initialDraft,
   isAuthenticated,
+  persistDraft,
   resumeGuestDraft,
 }: {
   initialDraft: StoredGuestDraft | null;
   isAuthenticated: boolean;
+  persistDraft: boolean;
   resumeGuestDraft: boolean;
 }) {
   const router = useRouter();
@@ -64,7 +66,7 @@ export function InitialPromptEditor({
     initialDraft?.mode === "FREEFORM" ? initialDraft.prompt : "",
   );
   const [draftId] = useState(
-    () => initialDraft?.draftId ?? window.crypto.randomUUID(),
+    () => initialDraft?.draftId ?? globalThis.crypto.randomUUID(),
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +78,8 @@ export function InitialPromptEditor({
   );
 
   useEffect(() => {
+    if (!persistDraft) return;
+
     const draft = {
       version: GUEST_DRAFT_VERSION,
       draftId,
@@ -89,7 +93,7 @@ export function InitialPromptEditor({
       GUEST_DRAFT_STORAGE_KEY,
       JSON.stringify(draft),
     );
-  }, [answers, draftId, freeformPrompt, mode]);
+  }, [answers, draftId, freeformPrompt, mode, persistDraft]);
 
   async function claimDraft(draft: GuestDraft) {
     setSubmitting(true);
