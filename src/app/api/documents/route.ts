@@ -19,6 +19,7 @@ export async function GET() {
       ],
     },
     orderBy: { updatedAt: "desc" },
+    take: 100,
     select: { id: true, title: true, status: true, updatedAt: true },
   });
 
@@ -32,14 +33,16 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const title =
-    typeof body.title === "string" && body.title.trim()
-      ? body.title.trim()
-      : "Untitled Document";
+  const hasRequestedTitle =
+    typeof body.title === "string" && Boolean(body.title.trim());
+  const title = hasRequestedTitle
+    ? body.title.trim().slice(0, 200)
+    : "Untitled Document";
 
   const document = await prisma.document.create({
     data: {
       title,
+      titleManuallySet: hasRequestedTitle,
       ownerId: session.user.id,
       revisions: {
         create: initialRevisionData({ title, actorId: session.user.id }),

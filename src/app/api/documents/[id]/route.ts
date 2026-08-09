@@ -94,15 +94,19 @@ export async function PATCH(request: Request, { params }: Params) {
   }
   const data: {
     title?: string;
+    titleManuallySet?: boolean;
     content?: object;
     isPlaceholder?: false;
   } = {};
-  if (
-    editableDocument &&
-    typeof body.title === "string" &&
-    body.title.trim()
-  ) {
-    data.title = body.title.trim();
+  const requestedTitle =
+    editableDocument && typeof body.title === "string" && body.title.trim()
+      ? body.title.trim().slice(0, 200)
+      : null;
+  const titleUpdateSource =
+    body.titleUpdateSource === "AUTO" ? "AUTO" : "USER";
+  if (requestedTitle && titleUpdateSource === "USER") {
+    data.title = requestedTitle;
+    data.titleManuallySet = true;
   }
   if (body.content !== undefined) {
     if (!editableDocument) {
@@ -144,7 +148,13 @@ export async function PATCH(request: Request, { params }: Params) {
 
     const currentDocument = await transaction.document.findUnique({
       where: { id },
-      select: { id: true, title: true, content: true, revision: true },
+      select: {
+        id: true,
+        title: true,
+        titleManuallySet: true,
+        content: true,
+        revision: true,
+      },
     });
     if (!currentDocument) return { kind: "missing" as const };
     if (currentDocument.revision !== baseRevision) {
@@ -152,6 +162,14 @@ export async function PATCH(request: Request, { params }: Params) {
         kind: "conflict" as const,
         currentRevision: currentDocument.revision,
       };
+    }
+
+    if (
+      requestedTitle &&
+      titleUpdateSource === "AUTO" &&
+      !currentDocument.titleManuallySet
+    ) {
+      data.title = requestedTitle;
     }
 
     await expireStaleCommentAiJobs(transaction, id);

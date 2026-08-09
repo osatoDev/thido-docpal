@@ -1,11 +1,12 @@
 # Thido production checklist
 
-Last reviewed: 8 August 2026
+Last reviewed: 9 August 2026
 
 This is the running source of truth for production-readiness work. Completed boxes indicate repository evidence or a verified check. External configuration remains unchecked until it is explicitly verified.
 
 ## Immediate deployment blockers
 
+- [ ] Apply the `20260809160000_add_document_title_intent` migration before deploying persisted manual-title protection and heading-derived automatic titles.
 - [ ] Apply the `20260803170000_add_permissioned_share_links` migration to the production database before deploying permission-bearing link sharing.
 - [ ] Apply the `20260802190000_add_document_revisions` migration to the production database before deploying version history, optimistic concurrency, or Word import.
 - [x] Apply the `20260801130000_add_waitlist_and_document_images` migration to the production database before deploying the post-cap waitlist or document photos.
@@ -123,8 +124,9 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Keep complete and partial guest input local and restore it after sign-in initiated through either **Generate** or the page navigation; require authentication before AI generation or permanent database storage.
 - [x] Let users switch between guided initial questions and a freeform prompt; retain tailored follow-ups for guided briefs and generate directly from freeform briefs.
 - [x] Make a blank `READY` document the default signed-in creation path, give each fresh or reused blank placeholder a sortable UTC date-and-time title, and keep AI-guided drafting and paste-existing flows available as explicit alternatives.
+- [x] Make `thido.ai` immediately open a reusable new document by default, expose a persisted Settings choice to open the most recently accessed document instead, and fall back safely to a new document when no recent document exists.
 - [x] Keep untouched blank editor sessions as hidden, reusable placeholders and count them as documents only after a custom title or meaningful body content is saved.
-- [ ] Make AI-generated documents persist a meaningful document title instead of retaining `Untitled Document` when the generated body begins with a clear title.
+- [x] Infer unnamed document titles from the first meaningful heading for typed, imported, and AI-generated content, persist whether a user deliberately named a document, and prevent later automatic inference from overwriting that deliberate title.
 - [x] Show a clear `BETA` status badge beside the shared Thido wordmark across the application.
 - [x] Give signed-in users a consistent top-right profile image or initials menu with direct Settings and Log out actions.
 - [x] Let document owners create, copy, open, and revoke unlisted read-only share links; public views expose the title, document body, and owner profile name while keeping email and other account details private.
@@ -146,6 +148,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Let users expand a background comment response to see its real queued, processing, or failed state while it refreshes automatically.
 - [x] Move resolved comment threads into a collapsible archive and retain the ability to reopen or delete them.
 - [x] Let document viewers hide and restore the comments sidebar to reclaim document width, expose the state through an accessible toggle, support the Google Docs-style discussion shortcut `Ctrl/⌘ + Alt + Shift + A`, and automatically reopen the sidebar when starting a comment.
+- [x] Keep the comments sidebar closed on initial document load when the document has no comment threads, while continuing to open it for existing comments and newly started comments.
 - [ ] Deploy and browser-check additional user messages and contextual Thido responses inside open AI comment threads, including failure recovery and whole-document locking.
 - [x] Add Auto as the default AI edit mode, use the structured prompt decision to apply clear edit instructions while keeping questions and ambiguous requests as proposals, and retain explicit always-propose and always-apply overrides.
 - [x] Keep the AI model and edit-application preferences in Settings instead of duplicating them in each document editor.
@@ -158,6 +161,8 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Remove the default dashboard `READY` status column and show only non-ready document states inline with the title.
 - [ ] Define and communicate which pasted rich-text structures are preserved; treat importing Word/Google Docs comments and tracked changes as a separate feature.
 - [x] Implement the repository-backed Priority 0 foundations in the [Google Docs feature-gap analysis](./google-docs-feature-gap-analysis.md): bounded durable version history and restore, revision-based stale-write protection across user and AI changes, Word import/export, and server-generated PDF download.
+- [x] Add a Google Docs-style **File → Open** dialog with searchable Thido documents, and add sanitized `.md` replacement import under **Tools → Document files** so Markdown becomes regular editable Thido content.
+- [x] Browser-check **File → Open**, Markdown import (including replacement confirmation, sanitization, and heading-derived naming), the empty-comment default, and both root-opening preferences at desktop and 390 px against the isolated local database with no framework overlay or horizontal overflow.
 - [x] Use the Google Docs-inspired hierarchy in [the document action layout recommendation](./document-action-layout.md): identity and collaboration controls on the first row, implemented **File / Edit / View / Insert / Format / Tools** menus below, and a compact icon formatting toolbar without standalone **Download**, **More**, or literal list buttons.
 - [x] Label the existing task-list formatting control explicitly as **Checkbox list** so the checkbox bullet option is discoverable without relying on its icon.
 - [x] Match Google Docs list choices with eight built-in bullet markers, a safe custom-bullet path, and checklist variants with or without completed-item strikethrough; preserve them in shared rendering and compatible Word/PDF fallbacks.
@@ -252,7 +257,8 @@ This is the running source of truth for production-readiness work. Completed box
 
 - [ ] Validate the assumptions in [Can the current version of Thido support 100 users?](./can-thido-support-100-users.md) with an isolated staging load test at 10, 25, 50, and 100 concurrent virtual users before making a concurrent-capacity claim.
 - [x] Add automated unit tests for authentication input, password hashing, token helpers, rate limiting, and API auth responses.
-- [x] Confirm the current unit suite passes: 126 tests across thirty-four files, including folder-name normalization and case-insensitive keys, admin-detail route allowlisting and pagination validation, founder-inbox filter validation, Google-style bullet/checklist variants, outline entry visibility commands, global application-style validation, legacy document appearance and AI-rewrite preference preservation, stable heading and bookmark anchors, table-of-contents and footnote schema round trips, advanced editor typography/spacing/deeper-heading schema round trips and capitalization, editor text search/statistics, expanded block/navigation/cleanup commands, reviewed beta-seat allocation, timestamped reusable placeholders, private-image public-share URL coverage, safe links, persisted bullet/checklist/table structures, revision coalescing, import sanitization, Word/PDF generation, link-derived authorization, and AI comment conversation ordering.
+- [x] Confirm the current unit suite passes: 129 tests across thirty-four files, including folder-name normalization and case-insensitive keys, admin-detail route allowlisting and pagination validation, founder-inbox filter validation, Google-style bullet/checklist variants, outline entry visibility commands, global application-style validation, legacy document appearance and AI-rewrite preference preservation, heading-derived document titles, safe Markdown conversion, stable heading and bookmark anchors, table-of-contents and footnote schema round trips, advanced editor typography/spacing/deeper-heading schema round trips and capitalization, editor text search/statistics, expanded block/navigation/cleanup commands, reviewed beta-seat allocation, timestamped reusable placeholders, private-image public-share URL coverage, safe links, persisted bullet/checklist/table structures, revision coalescing, import sanitization, Word/PDF generation, link-derived authorization, and AI comment conversation ordering.
+- [x] Confirm type checking, lint, Prisma validation, and the production build pass after the document-opening, Markdown-import, title-inference, comment-default, and root-opening-preference implementation.
 - [x] Apply all nineteen migrations to an isolated temporary PostgreSQL instance and browser-check visible full-access link controls, click-time authentication with action return, full editor access, link-access activity, immediate revocation, and an additional user/AI message pair in an existing whole-document comment thread.
 - [x] Browser-check the rendered connected-accounts Settings panel, empty admin approval waitlist, and editor image insertion control with no framework overlay or browser errors.
 - [x] Deploy the connected-accounts, private document-photo, post-cap waitlist, verified auth sender, and analytics-status changes to Vercel Production (`dpl_6tYbWWaY4rT5FdFEBrkyGRQRjjHd`) and smoke-check the live login and registration pages without browser errors.

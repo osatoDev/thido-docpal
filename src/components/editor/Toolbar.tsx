@@ -377,6 +377,7 @@ export function Toolbar({
   onConflict: (message: string) => void;
 }) {
   const imageInputId = useId();
+  const markdownImportInputId = useId();
   const linkControlId = useId();
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
@@ -930,6 +931,7 @@ export function Toolbar({
           onLanguageChange={(language) =>
             editor?.commands.setDocumentLanguage(language)
           }
+          markdownImportInputId={markdownImportInputId}
         />
         {editingMenus ? (
           <EditorMenu label="Edit" groups={editingMenus.edit} />
@@ -1010,6 +1012,18 @@ export function Toolbar({
               [
                 ...(canEdit
                   ? [
+                      {
+                        label: "Document files",
+                        children: [
+                          {
+                            label: "Import Markdown (.md)…",
+                            onSelect: () =>
+                              document
+                                .getElementById(markdownImportInputId)
+                                ?.click(),
+                          },
+                        ],
+                      },
                       {
                         label: "Thido",
                         children: [

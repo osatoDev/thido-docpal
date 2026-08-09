@@ -1,6 +1,6 @@
 import sanitizeHtml from "sanitize-html";
 
-export function sanitizeImportedWordHtml(html: string) {
+export function sanitizeImportedDocumentHtml(html: string) {
   return sanitizeHtml(html, {
     allowedTags: [
       "p",
@@ -53,3 +53,5 @@ export function sanitizeImportedWordHtml(html: string) {
       !frame.attribs.src?.startsWith("/api/document-images/"),
   });
 }
+
+export const sanitizeImportedWordHtml = sanitizeImportedDocumentHtml;

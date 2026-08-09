@@ -4,6 +4,7 @@ import {
   createDefaultDocumentTitle,
   DEFAULT_DOCUMENT_TITLE,
   hasMeaningfulDocumentContent,
+  inferDocumentTitle,
   isDefaultDocumentTitle,
   shouldPromotePlaceholder,
 } from "@/lib/documentPersistence";
@@ -77,5 +78,37 @@ describe("document persistence", () => {
         content: [{ type: "table", content: [] }],
       }),
     ).toBe(true);
+  });
+
+  it("infers an unnamed document title from its first heading", () => {
+    expect(
+      inferDocumentTitle({
+        type: "doc",
+        content: [
+          { type: "paragraph", content: [{ type: "text", text: "Preface" }] },
+          {
+            type: "heading",
+            attrs: { level: 2 },
+            content: [
+              { type: "text", text: "  Quarterly" },
+              { type: "text", text: "   plan  " },
+            ],
+          },
+          { type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: "Later" }] },
+        ],
+      }),
+    ).toBe("Quarterly plan");
+  });
+
+  it("does not infer a title without a meaningful heading", () => {
+    expect(
+      inferDocumentTitle({
+        type: "doc",
+        content: [
+          { type: "heading", content: [{ type: "text", text: "   " }] },
+          { type: "paragraph", content: [{ type: "text", text: "Body" }] },
+        ],
+      }),
+    ).toBeNull();
   });
 });

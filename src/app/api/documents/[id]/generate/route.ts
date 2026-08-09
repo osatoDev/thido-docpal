@@ -15,6 +15,7 @@ import { checkRateLimit } from "@/lib/rateLimit";
 import { unauthorizedResponse } from "@/lib/apiResponses";
 import { recordDocumentRevision } from "@/lib/documentRevisions";
 import { DocumentRevisionSource } from "@prisma/client";
+import { inferDocumentTitle } from "@/lib/documentPersistence";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -115,11 +116,15 @@ export async function POST(_request: Request, { params }: Params) {
         const message = await claudeStream.finalMessage();
         trackedMessage = message;
         const content = await markdownToTiptapJSON(fullText);
+        const inferredTitle = document.titleManuallySet
+          ? null
+          : inferDocumentTitle(content);
         await prisma.$transaction(async (transaction) => {
           const updatedDocument = await transaction.document.update({
             where: { id },
             data: {
               content,
+              ...(inferredTitle ? { title: inferredTitle } : {}),
               status: "READY",
               revision: { increment: 1 },
             },

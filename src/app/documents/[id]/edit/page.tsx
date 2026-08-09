@@ -114,6 +114,7 @@ export default async function EditDocumentPage({ params, searchParams }: Props) 
     <TiptapEditor
       documentId={document.id}
       initialTitle={document.title}
+      initialTitleManuallySet={document.titleManuallySet}
       initialContent={content}
       initialRevision={document.revision}
       initialComments={document.comments}

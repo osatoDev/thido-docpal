@@ -10,6 +10,33 @@ export function isDefaultDocumentTitle(title: string) {
   return title === DEFAULT_DOCUMENT_TITLE || TIMESTAMPED_DEFAULT_TITLE.test(title);
 }
 
+const MAX_DOCUMENT_TITLE_LENGTH = 200;
+
+function nodeText(value: unknown): string {
+  if (Array.isArray(value)) return value.map(nodeText).join("");
+  if (!value || typeof value !== "object") return "";
+
+  const node = value as { text?: unknown; content?: unknown };
+  return `${typeof node.text === "string" ? node.text : ""}${nodeText(node.content)}`;
+}
+
+/** Uses the first top-level heading as an unnamed document's title. */
+export function inferDocumentTitle(content: unknown) {
+  if (!content || typeof content !== "object") return null;
+  const nodes = (content as { content?: unknown }).content;
+  if (!Array.isArray(nodes)) return null;
+
+  for (const node of nodes) {
+    if (!node || typeof node !== "object" || (node as { type?: unknown }).type !== "heading") {
+      continue;
+    }
+    const title = nodeText(node).replace(/\s+/g, " ").trim();
+    if (title) return title.slice(0, MAX_DOCUMENT_TITLE_LENGTH).trimEnd();
+  }
+
+  return null;
+}
+
 const MEANINGFUL_LEAF_NODES = new Set(["horizontalRule", "image", "table"]);
 
 function hasMeaningfulNode(value: unknown): boolean {

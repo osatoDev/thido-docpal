@@ -1,4 +1,4 @@
-# Word import and document export
+# Document import and export
 
 ## User workflow
 
@@ -6,12 +6,20 @@ Authenticated document members can open **File** in the editor to:
 
 - download the current document as an editable Word `.docx` file;
 - download a server-generated PDF;
-- import a Word `.docx` file when they have edit access.
+- import a Word `.docx` file from **File** when they have edit access;
+- import a Markdown `.md` file from **Tools → Document files**.
 
 Import replaces the current document title and body after an explicit browser
 confirmation. The previous content remains recoverable in **Version history**.
 An import is rejected if another tab, collaborator, or AI action changed the
 document after the import began.
+
+Markdown files become ordinary editable Thido content. Thido preserves headings,
+paragraphs, emphasis, safe links, lists, code blocks, blockquotes, horizontal
+rules, and basic tables supported by the shared editor schema. The first
+meaningful heading becomes the document title; when no heading exists, Thido
+uses the upload filename. Raw HTML is sanitized, and embedded external images
+are omitted rather than loaded into a document.
 
 ## Import fidelity contract
 
@@ -81,9 +89,10 @@ version history are excluded from both export formats.
 ## Limits and security
 
 - Word uploads are limited to 15 MB.
+- Markdown uploads are limited to 2 MB.
 - Each embedded image is limited to 8 MB before normalization.
 - Imports are limited to ten per user per hour; exports are limited to twenty.
-- Mammoth's raw HTML output is never passed directly to the editor. Thido
+- Mammoth's raw HTML output and rendered Markdown HTML are never passed directly to the editor. Thido
   allowlists its supported structural tags and attributes, removes executable
   markup, and accepts only image URLs created by Thido during that import.
 - External file access is disabled during Word conversion.

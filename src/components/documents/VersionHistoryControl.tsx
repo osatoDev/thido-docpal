@@ -22,13 +22,14 @@ const sourceLabels: Record<RevisionSource, string> = {
   USER: "Edited",
   AI: "Changed by Thido",
   RESTORE: "Restored",
-  IMPORT: "Imported from Word",
+  IMPORT: "Imported file",
 };
 
 export type RestoredDocument = {
   title: string;
   content: JSONContent | null;
   revision: number;
+  titleManuallySet?: boolean;
 };
 
 export function VersionHistoryDialog({

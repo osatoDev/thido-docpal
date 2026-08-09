@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { sanitizeImportedWordHtml } from "@/lib/documentImport";
+import { markdownToTiptapJSON } from "@/lib/markdownToTiptap";
 
 describe("Word import sanitization", () => {
   it("keeps supported document markup and Thido-owned images", () => {
@@ -27,5 +28,19 @@ describe("Word import sanitization", () => {
     );
 
     expect(html).toBe("<p><a>Text</a></p>");
+  });
+
+  it("turns sanitized Markdown into editable Thido document JSON", async () => {
+    const content = await markdownToTiptapJSON(
+      "# Project plan\n\nSafe **body**.\n\n<script>alert('no')</script>",
+      { sanitize: true },
+    );
+
+    expect(content.content?.[0]).toMatchObject({
+      type: "heading",
+      attrs: { level: 1 },
+      content: [{ type: "text", text: "Project plan" }],
+    });
+    expect(JSON.stringify(content)).not.toContain("alert");
   });
 });

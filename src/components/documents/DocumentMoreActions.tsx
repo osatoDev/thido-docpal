@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import {
   type RestoredDocument,
@@ -23,6 +24,7 @@ export function DocumentFileMenu({
   onImport,
   onConflict,
   onLanguageChange,
+  markdownImportInputId,
 }: {
   documentId: string;
   currentRevision: number;
@@ -34,22 +36,45 @@ export function DocumentFileMenu({
   onImport: (document: RestoredDocument) => void;
   onConflict: (message: string) => void;
   onLanguageChange: (language: string) => void;
+  markdownImportInputId: string;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const wordInputRef = useRef<HTMLInputElement>(null);
+  const markdownInputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
   const languageTitleId = useId();
   const languageDescriptionId = useId();
+  const openTitleId = useId();
   const [open, setOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
+  const [openDocumentDialog, setOpenDocumentDialog] = useState(false);
+  const [openDocuments, setOpenDocuments] = useState<
+    Array<{
+      id: string;
+      title: string;
+      status: "DRAFTING" | "GENERATING" | "READY";
+      updatedAt: string;
+    }>
+  >([]);
+  const [openDocumentsLoading, setOpenDocumentsLoading] = useState(false);
+  const [openDocumentsError, setOpenDocumentsError] = useState<string | null>(null);
+  const [openDocumentSearch, setOpenDocumentSearch] = useState("");
   const [languageDraft, setLanguageDraft] = useState(documentLanguage);
   const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const filteredOpenDocuments = useMemo(() => {
+    const query = openDocumentSearch.trim().toLocaleLowerCase();
+    return query
+      ? openDocuments.filter((document) =>
+          document.title.toLocaleLowerCase().includes(query),
+        )
+      : openDocuments;
+  }, [openDocumentSearch, openDocuments]);
 
   useEffect(() => {
     if (!open) return;
@@ -89,13 +114,51 @@ export function DocumentFileMenu({
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [languageOpen]);
 
-  async function importWordFile(file: File) {
+  useEffect(() => {
+    if (!openDocumentDialog) return;
+    let cancelled = false;
+
+    void fetch("/api/documents", { cache: "no-store" })
+      .then(async (response) => {
+        const body = await response.json().catch(() => null);
+        if (!response.ok || !Array.isArray(body?.documents)) {
+          throw new Error(body?.error || "Could not load your documents.");
+        }
+        if (!cancelled) setOpenDocuments(body.documents);
+      })
+      .catch((reason) => {
+        if (!cancelled) {
+          setOpenDocumentsError(
+            reason instanceof Error
+              ? reason.message
+              : "Could not load your documents.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setOpenDocumentsLoading(false);
+      });
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setOpenDocumentDialog(false);
+      window.setTimeout(() => triggerRef.current?.focus(), 0);
+    }
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [openDocumentDialog]);
+
+  async function importDocumentFile(file: File, input: HTMLInputElement) {
+    const isMarkdown = file.name.toLowerCase().endsWith(".md");
     if (
       !window.confirm(
-        "Importing this Word file will replace the current title and document body. You can restore the current version from Version history. Continue?",
+        `Importing this ${isMarkdown ? "Markdown" : "Word"} file will replace the current title and document body. You can restore the current version from Version history. Continue?`,
       )
     ) {
-      if (inputRef.current) inputRef.current.value = "";
+      input.value = "";
       return;
     }
 
@@ -119,7 +182,7 @@ export function DocumentFileMenu({
               : "This document changed somewhere else.",
           );
         }
-        throw new Error(body?.error || "Could not import this Word file.");
+        throw new Error(body?.error || "Could not import this document.");
       }
       onImport(body.document as RestoredDocument);
       const warnings = Array.isArray(body.warnings)
@@ -128,18 +191,18 @@ export function DocumentFileMenu({
       setMessage(
         warnings.length > 0
           ? `Imported with notes: ${warnings.join(" ")}`
-          : "Word document imported.",
+          : `${isMarkdown ? "Markdown" : "Word"} document imported.`,
       );
       setOpen(false);
     } catch (reason) {
       setError(
         reason instanceof Error
           ? reason.message
-          : "Could not import this Word file.",
+          : "Could not import this document.",
       );
     } finally {
       setImporting(false);
-      if (inputRef.current) inputRef.current.value = "";
+      input.value = "";
     }
   }
 
@@ -150,6 +213,11 @@ export function DocumentFileMenu({
 
   function closeLanguage() {
     setLanguageOpen(false);
+    window.setTimeout(() => triggerRef.current?.focus(), 0);
+  }
+
+  function closeOpenDocumentDialog() {
+    setOpenDocumentDialog(false);
     window.setTimeout(() => triggerRef.current?.focus(), 0);
   }
 
@@ -206,14 +274,27 @@ export function DocumentFileMenu({
         </button>
 
         <input
-          ref={inputRef}
+          ref={wordInputRef}
           type="file"
           accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           className="sr-only"
           aria-label="Choose a Word document to import"
           onChange={(event) => {
             const file = event.currentTarget.files?.[0];
-            if (file) void importWordFile(file);
+            if (file) void importDocumentFile(file, event.currentTarget);
+          }}
+        />
+
+        <input
+          ref={markdownInputRef}
+          id={markdownImportInputId}
+          type="file"
+          accept=".md,text/markdown,text/plain"
+          className="sr-only"
+          aria-label="Choose a Markdown document to import"
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            if (file) void importDocumentFile(file, event.currentTarget);
           }}
         />
 
@@ -226,13 +307,27 @@ export function DocumentFileMenu({
             onKeyDown={handleMenuKeyDown}
             className="app-panel absolute top-full left-0 z-40 mt-1 w-64 rounded-md p-1.5 text-sm shadow-lg"
           >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                setOpenDocumentSearch("");
+                setOpenDocumentsLoading(true);
+                setOpenDocumentsError(null);
+                setOpenDocumentDialog(true);
+              }}
+              className="block w-full rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)]"
+            >
+              Open…
+            </button>
             {canImport ? (
               <button
                 type="button"
                 role="menuitem"
                 disabled={importing}
                 aria-disabled={importing}
-                onClick={() => inputRef.current?.click()}
+                onClick={() => wordInputRef.current?.click()}
                 className="block w-full rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)] disabled:cursor-wait disabled:opacity-60"
               >
                 {importing ? "Importing Word…" : "Import Word (.docx)"}
@@ -460,6 +555,105 @@ export function DocumentFileMenu({
               </button>
             </div>
           </form>
+        </div>
+      ) : null}
+      {openDocumentDialog ? (
+        <div
+          className="fixed inset-0 z-[80] flex items-start justify-center bg-black/45 p-4 pt-[8vh]"
+          onPointerDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closeOpenDocumentDialog();
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={openTitleId}
+            className="app-panel flex max-h-[82vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl shadow-xl"
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
+              <h2 id={openTitleId} className="text-lg font-semibold">
+                Open a document
+              </h2>
+              <button
+                type="button"
+                aria-label="Close open document dialog"
+                title="Close"
+                onClick={closeOpenDocumentDialog}
+                className="app-button-secondary inline-flex size-8 items-center justify-center p-0 text-lg"
+              >
+                ×
+              </button>
+            </div>
+            <div className="border-b border-[var(--border)] p-4">
+              <input
+                type="search"
+                value={openDocumentSearch}
+                onChange={(event) => setOpenDocumentSearch(event.target.value)}
+                placeholder="Search your documents"
+                aria-label="Search your documents"
+                autoFocus
+                className="app-input w-full rounded-md px-3 py-2.5 text-sm outline-none"
+              />
+            </div>
+            <div className="min-h-56 overflow-y-auto p-2">
+              {openDocumentsLoading ? (
+                <p className="px-3 py-8 text-center text-sm text-[var(--muted)]" role="status">
+                  Loading documents…
+                </p>
+              ) : openDocumentsError ? (
+                <p className="px-3 py-8 text-center text-sm text-[var(--danger)]" role="alert">
+                  {openDocumentsError}
+                </p>
+              ) : filteredOpenDocuments.length > 0 ? (
+                <ul>
+                  {filteredOpenDocuments.map((document) => (
+                      <li key={document.id}>
+                        <Link
+                          href={
+                            document.status === "READY"
+                              ? `/documents/${document.id}/edit`
+                              : `/documents/${document.id}/wizard`
+                          }
+                          className="flex items-center justify-between gap-4 rounded-md px-3 py-3 hover:bg-[var(--surface-subtle)]"
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-medium">
+                              {document.title}
+                            </span>
+                            <span className="mt-0.5 block text-xs text-[var(--muted)]">
+                              {document.id === documentId
+                                ? "Current document"
+                                : document.status === "READY"
+                                  ? "Thido document"
+                                  : "Draft in progress"}
+                            </span>
+                          </span>
+                          <span className="shrink-0 text-xs text-[var(--muted)]">
+                            {new Intl.DateTimeFormat(undefined, {
+                              dateStyle: "medium",
+                            }).format(new Date(document.updatedAt))}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                </ul>
+              ) : (
+                <p className="px-3 py-8 text-center text-sm text-[var(--muted)]">
+                  No matching documents.
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end border-t border-[var(--border)] px-5 py-4">
+              <Link
+                href="/dashboard"
+                className="secondary-button rounded-sm px-3 py-2 text-sm font-medium"
+              >
+                View all documents
+              </Link>
+            </div>
+          </section>
         </div>
       ) : null}
     </>

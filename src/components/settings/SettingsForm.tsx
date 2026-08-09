@@ -14,18 +14,23 @@ type Props = {
   initialAiModel: AiModelId;
   initialCommentMode: CommentMode;
   initialApplicationStyle: ApplicationStyle;
+  initialDocumentStartMode: "NEW_DOCUMENT" | "MOST_RECENT";
 };
 
 export function SettingsForm({
   initialAiModel,
   initialCommentMode,
   initialApplicationStyle,
+  initialDocumentStartMode,
 }: Props) {
   const router = useRouter();
   const [aiModel, setAiModel] = useState(initialAiModel);
   const [commentMode, setCommentMode] = useState(initialCommentMode);
   const [applicationStyle, setApplicationStyle] = useState(
     initialApplicationStyle,
+  );
+  const [documentStartMode, setDocumentStartMode] = useState(
+    initialDocumentStartMode,
   );
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
@@ -50,6 +55,33 @@ export function SettingsForm({
 
   return (
     <div className="flex flex-col border-t border-[var(--border-strong)]">
+      <section className="border-b border-[var(--border)] py-7">
+        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
+          <div>
+            <h2 className="font-semibold">When I open Thido</h2>
+            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+              Choose whether thido.ai opens a fresh document or returns to the
+              document you used most recently.
+            </p>
+          </div>
+          <select
+            aria-label="When I open Thido"
+            value={documentStartMode}
+            onChange={(event) => {
+              const next = event.target.value as
+                | "NEW_DOCUMENT"
+                | "MOST_RECENT";
+              setDocumentStartMode(next);
+              void save({ documentStartMode: next });
+            }}
+            className="app-input rounded-md px-3 py-2.5 text-sm outline-none"
+          >
+            <option value="NEW_DOCUMENT">Start a new document</option>
+            <option value="MOST_RECENT">Open my most recent document</option>
+          </select>
+        </div>
+      </section>
+
       <section className="border-b border-[var(--border)] py-7">
         <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
           <div>

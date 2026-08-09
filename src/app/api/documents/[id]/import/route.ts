@@ -19,6 +19,8 @@ import {
 import { recordDocumentRevision } from "@/lib/documentRevisions";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { sanitizeImportedWordHtml } from "@/lib/documentImport";
+import { inferDocumentTitle } from "@/lib/documentPersistence";
+import { markdownToTiptapJSON } from "@/lib/markdownToTiptap";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { reportServerError } from "@/lib/rollbar/server";
@@ -26,6 +28,7 @@ import { reportServerError } from "@/lib/rollbar/server";
 export const runtime = "nodejs";
 
 const MAX_WORD_FILE_BYTES = 15 * 1024 * 1024;
+const MAX_MARKDOWN_FILE_BYTES = 2 * 1024 * 1024;
 const MAX_IMPORTED_IMAGE_BYTES = 8 * 1024 * 1024;
 
 type Params = { params: Promise<{ id: string }> };
@@ -34,6 +37,7 @@ function titleFromFilename(filename: string) {
   return (
     filename
       .replace(/\.docx$/i, "")
+      .replace(/\.md$/i, "")
       .replace(/[\u0000-\u001f]/g, "")
       .trim()
       .slice(0, 200) || "Imported document"
@@ -68,9 +72,12 @@ export async function POST(request: Request, { params }: Params) {
     typeof baseRevisionValue === "string" && /^\d+$/.test(baseRevisionValue)
       ? Number(baseRevisionValue)
       : null;
-  if (!(file instanceof File) || !file.name.toLowerCase().endsWith(".docx")) {
+  const extension = file instanceof File ? file.name.toLowerCase() : "";
+  const isWordFile = extension.endsWith(".docx");
+  const isMarkdownFile = extension.endsWith(".md");
+  if (!(file instanceof File) || (!isWordFile && !isMarkdownFile)) {
     return NextResponse.json(
-      { error: "Choose a Word .docx file." },
+      { error: "Choose a Word .docx or Markdown .md file." },
       { status: 400 },
     );
   }
@@ -80,9 +87,16 @@ export async function POST(request: Request, { params }: Params) {
       { status: 400 },
     );
   }
-  if (file.size <= 0 || file.size > MAX_WORD_FILE_BYTES) {
+  const maximumSize = isMarkdownFile
+    ? MAX_MARKDOWN_FILE_BYTES
+    : MAX_WORD_FILE_BYTES;
+  if (file.size <= 0 || file.size > maximumSize) {
     return NextResponse.json(
-      { error: "Word files must be smaller than 15 MB." },
+      {
+        error: isMarkdownFile
+          ? "Markdown files must be smaller than 2 MB."
+          : "Word files must be smaller than 15 MB.",
+      },
       { status: 413 },
     );
   }
@@ -98,49 +112,60 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   try {
-    const input = Buffer.from(await file.arrayBuffer());
-    const conversion = await mammoth.convertToHtml(
-      { buffer: input },
-      {
-        externalFileAccess: false,
-        ignoreEmptyParagraphs: false,
-        convertImage: mammoth.images.imgElement(async (image) => {
-          const source = await image.readAsBuffer();
-          if (source.byteLength > MAX_IMPORTED_IMAGE_BYTES) {
-            throw new Error("An image in this Word file is larger than 8 MB.");
-          }
-          const data = await sharp(source).rotate().png().toBuffer();
-          const imageId = crypto.randomUUID();
-          const pathname = `documents/${documentId}/${imageId}.png`;
-          const blob = await put(pathname, data, {
-            access: "private",
-            addRandomSuffix: false,
-            contentType: "image/png",
-            cacheControlMaxAge: 60 * 60 * 24 * 30,
-          });
-          await prisma.documentImage.create({
-            data: {
-              id: imageId,
-              documentId,
-              uploadedById: session.user.id,
-              blobUrl: blob.url,
-              pathname: blob.pathname,
+    let content: JSONContent;
+    let warnings: string[] = [];
+    if (isMarkdownFile) {
+      const markdown = (await file.text()).replace(/^\uFEFF/, "");
+      content = await markdownToTiptapJSON(markdown, { sanitize: true });
+    } else {
+      const input = Buffer.from(await file.arrayBuffer());
+      const conversion = await mammoth.convertToHtml(
+        { buffer: input },
+        {
+          externalFileAccess: false,
+          ignoreEmptyParagraphs: false,
+          convertImage: mammoth.images.imgElement(async (image) => {
+            const source = await image.readAsBuffer();
+            if (source.byteLength > MAX_IMPORTED_IMAGE_BYTES) {
+              throw new Error("An image in this Word file is larger than 8 MB.");
+            }
+            const data = await sharp(source).rotate().png().toBuffer();
+            const imageId = crypto.randomUUID();
+            const pathname = `documents/${documentId}/${imageId}.png`;
+            const blob = await put(pathname, data, {
+              access: "private",
+              addRandomSuffix: false,
               contentType: "image/png",
-              size: data.byteLength,
-              alt: "Imported image",
-            },
-          });
-          storedImages.push({ id: imageId, blobUrl: blob.url });
-          return {
-            src: `/api/document-images/${encodeURIComponent(imageId)}`,
-          };
-        }),
-      },
-    );
+              cacheControlMaxAge: 60 * 60 * 24 * 30,
+            });
+            await prisma.documentImage.create({
+              data: {
+                id: imageId,
+                documentId,
+                uploadedById: session.user.id,
+                blobUrl: blob.url,
+                pathname: blob.pathname,
+                contentType: "image/png",
+                size: data.byteLength,
+                alt: "Imported image",
+              },
+            });
+            storedImages.push({ id: imageId, blobUrl: blob.url });
+            return {
+              src: `/api/document-images/${encodeURIComponent(imageId)}`,
+            };
+          }),
+        },
+      );
 
-    const safeHtml = sanitizeImportedWordHtml(conversion.value);
-    const content = generateJSON(safeHtml, getEditorExtensions()) as JSONContent;
-    const title = titleFromFilename(file.name);
+      const safeHtml = sanitizeImportedWordHtml(conversion.value);
+      content = generateJSON(safeHtml, getEditorExtensions()) as JSONContent;
+      warnings = conversion.messages
+        .map((message) => message.message)
+        .filter((message, index, messages) => messages.indexOf(message) === index)
+        .slice(0, 8);
+    }
+    const title = inferDocumentTitle(content) ?? titleFromFilename(file.name);
     const result = await prisma.$transaction(async (transaction) => {
       if (!(await lockDocumentForCommentAi(transaction, documentId))) {
         return { kind: "missing" as const };
@@ -169,6 +194,7 @@ export async function POST(request: Request, { params }: Params) {
         where: { id: documentId },
         data: {
           title,
+          titleManuallySet: true,
           content,
           revision: { increment: 1 },
           isPlaceholder: false,
@@ -196,7 +222,7 @@ export async function POST(request: Request, { params }: Params) {
     if (result.kind === "conflict") {
       return NextResponse.json(
         {
-          error: "The document changed while the Word file was importing.",
+          error: "The document changed while the file was importing.",
           documentConflict: true,
           currentRevision: result.currentRevision,
         },
@@ -205,28 +231,25 @@ export async function POST(request: Request, { params }: Params) {
     }
 
     await reconcileOrphanedComments(prisma, documentId, content);
-    const warnings = conversion.messages
-      .map((message) => message.message)
-      .filter((message, index, messages) => messages.indexOf(message) === index)
-      .slice(0, 8);
     return NextResponse.json({
       document: {
         title: result.document.title,
         content: result.document.content,
         revision: result.document.revision,
+        titleManuallySet: result.document.titleManuallySet,
       },
       warnings: warnings.slice(0, 8),
     });
   } catch (error) {
     await cleanupImportedImages();
-    console.error("Unable to import Word document", error);
+    console.error("Unable to import document", error);
     await reportServerError(error, {
       source: "document-import",
-      operation: "docx",
+      operation: isMarkdownFile ? "markdown" : "docx",
       documentId,
     });
     return NextResponse.json(
-      { error: "Could not import this Word file." },
+      { error: "Could not import this document." },
       { status: 422 },
     );
   }

@@ -235,29 +235,30 @@ enum DocumentPermission {
 }
 
 model Document {
-  id              String                 @id @default(cuid())
-  guestDraftId    String?                @unique
-  shareToken      String?                @unique
-  sharePermission DocumentPermission     @default(VIEW)
-  title           String                 @default("Untitled Document")
-  ownerId         String
-  owner           User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  folderId        String?
-  folder          DocumentFolder?        @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  status          DocumentStatus         @default(DRAFTING)
-  isPlaceholder   Boolean                @default(false)
-  content         Json?
-  revision        Int                    @default(0)
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
-  lastAccessedAt  DateTime               @default(now())
-  promptAnswers   PromptAnswer[]
-  comments        Comment[]
-  collaborators   DocumentCollaborator[]
-  aiGenerations   AiGeneration[]
-  images          DocumentImage[]
-  revisions       DocumentRevision[]
-  linkAccesses    DocumentLinkAccess[]
+  id               String                 @id @default(cuid())
+  guestDraftId     String?                @unique
+  shareToken       String?                @unique
+  sharePermission  DocumentPermission     @default(VIEW)
+  title            String                 @default("Untitled Document")
+  titleManuallySet Boolean                @default(false)
+  ownerId          String
+  owner            User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  folderId         String?
+  folder           DocumentFolder?        @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  status           DocumentStatus         @default(DRAFTING)
+  isPlaceholder    Boolean                @default(false)
+  content          Json?
+  revision         Int                    @default(0)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  lastAccessedAt   DateTime               @default(now())
+  promptAnswers    PromptAnswer[]
+  comments         Comment[]
+  collaborators    DocumentCollaborator[]
+  aiGenerations    AiGeneration[]
+  images           DocumentImage[]
+  revisions        DocumentRevision[]
+  linkAccesses     DocumentLinkAccess[]
 
   @@index([ownerId])
   @@index([folderId])

@@ -28,10 +28,12 @@ import type {
   SuggestionWithStatus,
 } from "@/lib/types";
 import { isDocumentWideCommentRequest } from "@/lib/commentProcessing";
+import { inferDocumentTitle } from "@/lib/documentPersistence";
 
 type Props = {
   documentId: string;
   initialTitle: string;
+  initialTitleManuallySet: boolean;
   initialContent: JSONContent | null;
   initialRevision: number;
   initialComments: CommentWithReplies[];
@@ -69,6 +71,7 @@ const BROADER_SCOPE_PROMPT = /\b(paragraph|section|intro|introduction|conclusion
 export function TiptapEditor({
   documentId,
   initialTitle,
+  initialTitleManuallySet,
   initialContent,
   initialRevision,
   initialComments,
@@ -92,7 +95,9 @@ export function TiptapEditor({
   const [documentConflict, setDocumentConflict] = useState<string | null>(null);
   const [comments, setComments] = useState<CommentWithReplies[]>(initialComments);
   const [activeComposer, setActiveComposer] = useState<ActiveComposer | null>(null);
-  const [commentsSidebarOpen, setCommentsSidebarOpen] = useState(true);
+  const [commentsSidebarOpen, setCommentsSidebarOpen] = useState(
+    initialComments.length > 0,
+  );
   const [documentOutlineOpen, setDocumentOutlineOpen] = useState(false);
   const [editorZoom, setEditorZoom] = useState(100);
   const [pendingCommentIds, setPendingCommentIds] = useState<Set<string>>(() => {
@@ -115,6 +120,7 @@ export function TiptapEditor({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef<{
     title?: string;
+    titleUpdateSource?: "AUTO" | "USER";
     content?: JSONContent;
   } | null>(null);
   const saveChainRef = useRef<Promise<void>>(Promise.resolve());
@@ -122,6 +128,8 @@ export function TiptapEditor({
   const conflictRef = useRef(false);
   const mountedRef = useRef(true);
   const documentAiLockedRef = useRef(initialDocumentAiLocked);
+  const titleRef = useRef(initialTitle);
+  const titleManuallySetRef = useRef(initialTitleManuallySet);
   const canEditNow = canEdit && !documentAiLocked;
   const canCommentNow = canComment && !documentAiLocked;
   const updateDocumentAiLock = useCallback((locked: boolean) => {
@@ -148,9 +156,32 @@ export function TiptapEditor({
           "prose prose-sm sm:prose-base max-w-none min-h-[60vh] focus:outline-none prose-headings:text-[var(--foreground)] prose-p:text-[var(--foreground)] prose-strong:text-[var(--foreground)] prose-blockquote:text-[var(--muted)]",
       },
     },
+    onCreate: ({ editor }) => {
+      if (titleManuallySetRef.current) return;
+      const inferredTitle = inferDocumentTitle(editor.getJSON());
+      if (!inferredTitle || inferredTitle === titleRef.current) return;
+
+      titleRef.current = inferredTitle;
+      setTitle(inferredTitle);
+      scheduleSave({ title: inferredTitle, titleUpdateSource: "AUTO" });
+    },
     onUpdate: ({ editor }) => {
       if (!documentAiLockedRef.current && (canEdit || canComment)) {
-        scheduleSave({ content: editor.getJSON() });
+        const content = editor.getJSON();
+        const inferredTitle = titleManuallySetRef.current
+          ? null
+          : inferDocumentTitle(content);
+        if (inferredTitle && inferredTitle !== titleRef.current) {
+          titleRef.current = inferredTitle;
+          setTitle(inferredTitle);
+          scheduleSave({
+            content,
+            title: inferredTitle,
+            titleUpdateSource: "AUTO",
+          });
+          return;
+        }
+        scheduleSave({ content });
       }
     },
   });
@@ -194,7 +225,11 @@ export function TiptapEditor({
     return () => document.removeEventListener("keydown", toggleCommentsSidebar);
   }, []);
 
-  function scheduleSave(next: { title?: string; content?: JSONContent }) {
+  function scheduleSave(next: {
+    title?: string;
+    titleUpdateSource?: "AUTO" | "USER";
+    content?: JSONContent;
+  }) {
     if (documentAiLockedRef.current || conflictRef.current) return;
     pendingSaveRef.current = { ...pendingSaveRef.current, ...next };
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -209,6 +244,7 @@ export function TiptapEditor({
 
   function saveDocumentUpdate(next: {
     title?: string;
+    titleUpdateSource?: "AUTO" | "USER";
     content?: JSONContent;
   }) {
     const operation = saveChainRef.current.then(async () => {
@@ -282,10 +318,13 @@ export function TiptapEditor({
       }
       const latest = body.document as {
         title: string;
+        titleManuallySet: boolean;
         content: JSONContent | null;
         revision: number;
       };
       setTitle(latest.title);
+      titleRef.current = latest.title;
+      titleManuallySetRef.current = latest.titleManuallySet;
       editorRef.current?.commands.setContent(latest.content ?? "", {
         emitUpdate: false,
       });
@@ -305,6 +344,10 @@ export function TiptapEditor({
 
   function handleDocumentRestored(document: RestoredDocument) {
     setTitle(document.title);
+    titleRef.current = document.title;
+    if (typeof document.titleManuallySet === "boolean") {
+      titleManuallySetRef.current = document.titleManuallySet;
+    }
     editorRef.current?.commands.setContent(document.content ?? "", {
       emitUpdate: false,
     });
@@ -753,8 +796,14 @@ export function TiptapEditor({
                 readOnly={!canEditNow}
                 onChange={(event) => {
                   if (!canEditNow) return;
-                  setTitle(event.target.value);
-                  scheduleSave({ title: event.target.value });
+                  const nextTitle = event.target.value;
+                  titleRef.current = nextTitle;
+                  titleManuallySetRef.current = true;
+                  setTitle(nextTitle);
+                  scheduleSave({
+                    title: nextTitle,
+                    titleUpdateSource: "USER",
+                  });
                 }}
                 aria-label="Document title"
                 className={`w-full truncate rounded-sm border border-transparent bg-transparent px-1 py-0.5 text-lg font-medium tracking-tight outline-none hover:border-[var(--border)] focus:border-[var(--border-strong)] ${
