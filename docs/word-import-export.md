@@ -50,13 +50,16 @@ those notes after a successful import so loss is not silent.
 ## Export fidelity contract
 
 Word export preserves the Thido structures listed as supported above, including
-safe links, basic tables, disc/circle/square unordered-list markers, stored
+safe links, basic tables, the eight built-in unordered-list markers, stored
 document images, headings 1–6, text alignment, paragraph indentation, font
 family, font size, text color, highlight color, line spacing, paragraph spacing,
-page breaks, and named Thido bookmarks. Inserted Thido tables of contents become indented heading lists,
+page breaks, and named Thido bookmarks. Safe custom bullet symbols use a visible
+text-prefix fallback in Word because they are not part of the document's fixed
+numbering definitions. Inserted Thido tables of contents become indented heading lists,
 and Thido footnotes become numbered notes with superscript references; these are
 portable fallbacks rather than native Word TOC or footnote fields. Thido
-checklist items are represented with checked or unchecked box characters;
+checklist items are represented with checked or unchecked box characters, and
+completed-item strikethrough is preserved when that checklist style is selected;
 importing that Word file again retains their text but does not reconstruct
 semantic checklist state. The Thido document title is written as Word file
 metadata and used for the filename; it is not duplicated as a body heading.
@@ -64,7 +67,8 @@ metadata and used for the filename; it is not duplicated as a body heading.
 PDF export renders the document title, headings 1–6, bold, italic, underline,
 strikethrough, font family, font size, text color, code-style text, alignment,
 indentation, line spacing, paragraph spacing, page breaks, clickable links,
-lists, checklist markers, basic tables, blockquotes, horizontal rules, tables of
+lists including safe custom bullet symbols, both checklist completion styles,
+basic tables, blockquotes, horizontal rules, tables of
 contents, numbered footnotes, and stored images onto A4 pages. Named bookmark
 markers are omitted from PDF because the current PDF exporter does not create
 internal anchor destinations. Highlight and superscript/subscript remain visible

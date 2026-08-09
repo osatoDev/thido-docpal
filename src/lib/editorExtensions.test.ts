@@ -4,6 +4,7 @@ import type { JSONContent } from "@tiptap/core";
 
 import { transformTextCase } from "@/components/editor/extensions/TextCase";
 import { slugifyHeading } from "@/components/editor/extensions/HeadingAnchors";
+import { normalizeCustomBulletGlyph } from "@/components/editor/extensions/StyledBulletList";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { preserveDocumentPreferences } from "@/lib/markdownToTiptap";
 
@@ -50,6 +51,49 @@ describe("styled bullet lists", () => {
     expect(supported.content?.[0].attrs?.bulletStyle).toBe("circle");
     expect(unsupported.content?.[0].attrs?.bulletStyle).toBe("disc");
   });
+
+  it("round-trips preset and safe custom bullet glyphs", () => {
+    const html = generateHTML(
+      {
+        type: "doc",
+        content: [
+          {
+            type: "bulletList",
+            attrs: { bulletStyle: "star" },
+            content: [
+              {
+                type: "listItem",
+                content: [{ type: "paragraph", content: [{ type: "text", text: "Important" }] }],
+              },
+            ],
+          },
+          {
+            type: "bulletList",
+            attrs: { bulletStyle: "custom", bulletGlyph: "❖" },
+            content: [
+              {
+                type: "listItem",
+                content: [{ type: "paragraph", content: [{ type: "text", text: "Custom" }] }],
+              },
+            ],
+          },
+        ],
+      },
+      getEditorExtensions(),
+    );
+    const parsed = generateJSON(html, getEditorExtensions());
+
+    expect(html).toContain('data-bullet-style="star"');
+    expect(html).toContain('data-bullet-style="custom"');
+    expect(html).toContain('data-bullet-glyph="❖"');
+    expect(parsed.content?.[1].attrs).toMatchObject({
+      bulletStyle: "custom",
+      bulletGlyph: "❖",
+    });
+    expect(normalizeCustomBulletGlyph("A")).toBeNull();
+    expect(normalizeCustomBulletGlyph(";}")).toBeNull();
+    expect(normalizeCustomBulletGlyph("✦")).toBe("✦");
+  });
 });
 
 describe("priority-one document structures", () => {
@@ -87,6 +131,44 @@ describe("priority-one document structures", () => {
     expect(html).toContain('data-type="taskList"');
     expect(html).toContain("<th");
     expect(html).toContain("<td");
+  });
+
+  it("round-trips both checklist completion styles", () => {
+    const content: JSONContent = {
+      type: "doc",
+      content: [
+        {
+          type: "taskList",
+          attrs: { taskStyle: "strike" },
+          content: [
+            {
+              type: "taskItem",
+              attrs: { checked: true },
+              content: [{ type: "paragraph", content: [{ type: "text", text: "Done" }] }],
+            },
+          ],
+        },
+        {
+          type: "taskList",
+          attrs: { taskStyle: "plain" },
+          content: [
+            {
+              type: "taskItem",
+              attrs: { checked: false },
+              content: [{ type: "paragraph", content: [{ type: "text", text: "Open" }] }],
+            },
+          ],
+        },
+      ],
+    };
+
+    const html = generateHTML(content, getEditorExtensions());
+    const parsed = generateJSON(html, getEditorExtensions());
+    expect(html).toContain('data-task-style="strike"');
+    expect(html).toContain('data-task-style="plain"');
+    expect(
+      parsed.content?.map((node: JSONContent) => node.attrs?.taskStyle),
+    ).toEqual(["strike", "plain"]);
   });
 
   it("round-trips expanded formatting, alignment, indentation, and page breaks", () => {
@@ -225,7 +307,11 @@ describe("priority-one document structures", () => {
         },
         {
           type: "heading",
-          attrs: { level: 2, headingId: "uberblick" },
+          attrs: {
+            level: 2,
+            headingId: "uberblick",
+            outlineHidden: true,
+          },
           content: [{ type: "text", text: "Überblick" }],
         },
         {
@@ -258,6 +344,7 @@ describe("priority-one document structures", () => {
     expect(html).toContain('data-direction="rtl"');
     expect(html).toContain('data-appearance="editorial"');
     expect(html).toContain('id="uberblick"');
+    expect(html).toContain('data-outline-hidden="true"');
     expect(html).toContain('data-type="table-of-contents"');
     expect(html).not.toContain(' entries="');
     expect(html).toContain('href="#uberblick"');
@@ -279,7 +366,10 @@ describe("priority-one document structures", () => {
         }),
         expect.objectContaining({
           type: "heading",
-          attrs: expect.objectContaining({ headingId: "uberblick" }),
+          attrs: expect.objectContaining({
+            headingId: "uberblick",
+            outlineHidden: true,
+          }),
         }),
         expect.objectContaining({
           type: "footnote",

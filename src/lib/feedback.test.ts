@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   founderFeedbackRecipients,
+  parseFounderInboxView,
   sanitizeFeedbackPath,
 } from "@/lib/feedback";
 
@@ -22,6 +23,13 @@ describe("feedback helpers", () => {
       "/share/[token]",
     );
     expect(sanitizeFeedbackPath("https://example.com/not-local")).toBeNull();
+  });
+
+  it("only enables the founder replies-due view for its exact query value", () => {
+    expect(parseFounderInboxView("due")).toBe("due");
+    expect(parseFounderInboxView(undefined)).toBe("all");
+    expect(parseFounderInboxView("unknown")).toBe("all");
+    expect(parseFounderInboxView(["due", "all"])).toBe("all");
   });
 
   it("uses and deduplicates explicitly configured recipients", () => {

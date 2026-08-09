@@ -52,7 +52,23 @@ const content: JSONContent = {
       ],
     },
     {
+      type: "bulletList",
+      attrs: { bulletStyle: "custom", bulletGlyph: "❖" },
+      content: [
+        {
+          type: "listItem",
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Custom bullet item" }],
+            },
+          ],
+        },
+      ],
+    },
+    {
       type: "taskList",
+      attrs: { taskStyle: "strike" },
       content: [
         {
           type: "taskItem",
@@ -187,6 +203,8 @@ describe("document export", () => {
     expect(converted.value).toContain('href="https://example.com"');
     expect(converted.value).toContain("Table of contents");
     expect(converted.value).toContain("Supporting source");
+    expect(converted.value).toContain("Custom bullet item");
+    expect(converted.value).toContain("Completed task");
   });
 
   it("creates safe, useful download names", () => {

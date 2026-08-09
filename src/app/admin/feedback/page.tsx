@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Brand } from "@/components/Brand";
 import { UserMenu } from "@/components/account/UserMenu";
 import { requireAdmin } from "@/lib/admin";
+import { parseFounderInboxView } from "@/lib/feedback";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
@@ -17,10 +18,21 @@ function formatDate(date: Date) {
   }).format(date);
 }
 
-export default async function FounderInboxPage() {
-  const session = await requireAdmin("/admin/feedback");
+export default async function FounderInboxPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string | string[] }>;
+}) {
+  const view = parseFounderInboxView((await searchParams).view);
+  const showingDue = view === "due";
+  const session = await requireAdmin(
+    showingDue ? "/admin/feedback?view=due" : "/admin/feedback",
+  );
   const threads = await prisma.feedbackThread.findMany({
-    orderBy: { updatedAt: "desc" },
+    where: showingDue ? { responseDueAt: { not: null } } : undefined,
+    orderBy: showingDue
+      ? [{ responseDueAt: "asc" }, { updatedAt: "desc" }]
+      : { updatedAt: "desc" },
     select: {
       id: true,
       category: true,
@@ -53,15 +65,45 @@ export default async function FounderInboxPage() {
         <p className="page-kicker mb-3">Founder inbox</p>
         <h1 className="page-title">Messages from beta users.</h1>
         <p className="mt-4 text-sm text-[var(--muted)]">
-          Open a conversation to reply. Outstanding messages show their
-          eight-hour response deadline.
+          {showingDue
+            ? "Conversations awaiting a founder reply, ordered by deadline."
+            : "Open a conversation to reply. Outstanding messages show their eight-hour response deadline."}
         </p>
+        <nav
+          className="mt-5 flex items-center gap-2"
+          aria-label="Founder inbox views"
+        >
+          <Link
+            href="/admin/feedback"
+            aria-current={showingDue ? undefined : "page"}
+            className={`rounded-lg border px-3 py-2 text-sm font-medium ${
+              showingDue
+                ? "border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)]"
+                : "border-[var(--accent-strong)] bg-[var(--surface-subtle)] text-[var(--foreground)]"
+            }`}
+          >
+            All
+          </Link>
+          <Link
+            href="/admin/feedback?view=due"
+            aria-current={showingDue ? "page" : undefined}
+            className={`rounded-lg border px-3 py-2 text-sm font-medium ${
+              showingDue
+                ? "border-[var(--accent-strong)] bg-[var(--surface-subtle)] text-[var(--foreground)]"
+                : "border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)]"
+            }`}
+          >
+            Replies due
+          </Link>
+        </nav>
       </section>
 
       <section className="app-panel overflow-hidden rounded-2xl">
         {threads.length === 0 ? (
           <p className="p-6 text-sm text-[var(--muted)]">
-            No founder messages yet.
+            {showingDue
+              ? "No founder replies are currently due."
+              : "No founder messages yet."}
           </p>
         ) : (
           <ul className="divide-y divide-[var(--border)]">

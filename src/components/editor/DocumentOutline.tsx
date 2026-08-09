@@ -18,7 +18,7 @@ type OutlineHeading = {
 function readHeadings(editor: Editor) {
   const headings: OutlineHeading[] = [];
   editor.state.doc.descendants((node, position) => {
-    if (node.type.name !== "heading") return;
+    if (node.type.name !== "heading" || node.attrs.outlineHidden === true) return;
     headings.push({
       level: Number(node.attrs.level) || 1,
       position,
@@ -27,6 +27,14 @@ function readHeadings(editor: Editor) {
     });
   });
   return headings;
+}
+
+function readActiveHeadingPosition(editor: Editor) {
+  const { $from } = editor.state.selection;
+  for (let depth = $from.depth; depth > 0; depth -= 1) {
+    if ($from.node(depth).type.name === "heading") return $from.before(depth);
+  }
+  return null;
 }
 
 function sameBookmarks(
@@ -57,6 +65,9 @@ export function DocumentOutline({
   const [bookmarks, setBookmarks] = useState(() =>
     readDocumentBookmarks(editor.state.doc),
   );
+  const [activeHeadingPosition, setActiveHeadingPosition] = useState(() =>
+    readActiveHeadingPosition(editor),
+  );
   const [copiedTargetId, setCopiedTargetId] = useState<string | null>(null);
   const [copyStatus, setCopyStatus] = useState("");
   const [editingBookmark, setEditingBookmark] =
@@ -86,6 +97,7 @@ export function DocumentOutline({
           ? currentBookmarks
           : nextBookmarks,
       );
+      setActiveHeadingPosition(readActiveHeadingPosition(editor));
     }
 
     editor.on("transaction", refreshOutline);
@@ -160,12 +172,35 @@ export function DocumentOutline({
                 <button
                   type="button"
                   onClick={() => navigateToHeading(heading.position, heading.id)}
-                  className="block min-w-0 flex-1 truncate rounded-sm py-1 pr-2 text-left text-xs hover:bg-[var(--surface-subtle)]"
+                  aria-current={
+                    activeHeadingPosition === heading.position
+                      ? "location"
+                      : undefined
+                  }
+                  className={`block min-w-0 flex-1 truncate rounded-sm py-1 pr-2 text-left text-xs hover:bg-[var(--surface-subtle)] ${
+                    activeHeadingPosition === heading.position
+                      ? "bg-[var(--surface-subtle)] font-semibold text-[var(--accent-strong)]"
+                      : ""
+                  }`}
                   style={{ paddingLeft: `${8 + (heading.level - 1) * 10}px` }}
                   title={heading.text}
                 >
                   {heading.text}
                 </button>
+                {canEdit ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      editor.commands.setTextSelection(heading.position + 1);
+                      editor.commands.setCurrentHeadingInOutline(false);
+                    }}
+                    aria-label={`Remove ${heading.text} from document outline`}
+                    title="Remove from outline"
+                    className="inline-flex size-7 shrink-0 items-center justify-center rounded-sm text-[var(--muted)] opacity-70 hover:bg-[var(--surface-subtle)] hover:text-[var(--foreground)] lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100"
+                  >
+                    ×
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   disabled={!heading.id}

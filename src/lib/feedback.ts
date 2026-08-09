@@ -2,6 +2,14 @@ import { z } from "zod";
 
 export const FEEDBACK_RESPONSE_WINDOW_MS = 8 * 60 * 60 * 1000;
 
+export type FounderInboxView = "all" | "due";
+
+export function parseFounderInboxView(
+  value: string | string[] | undefined,
+): FounderInboxView {
+  return value === "due" ? "due" : "all";
+}
+
 export const feedbackMessageSchema = z.object({
   body: z
     .string()

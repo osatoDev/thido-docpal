@@ -3,7 +3,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
 import Highlight from "@tiptap/extension-highlight";
 import { TableKit } from "@tiptap/extension-table";
-import { TaskItem, TaskList } from "@tiptap/extension-list";
+import { TaskItem } from "@tiptap/extension-list";
 import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
 import TextAlign from "@tiptap/extension-text-align";
@@ -33,6 +33,7 @@ import {
 } from "@/components/editor/extensions/ParagraphFormatting";
 import { RichTextStyle } from "@/components/editor/extensions/RichTextStyle";
 import { StyledBulletList } from "@/components/editor/extensions/StyledBulletList";
+import { StyledTaskList } from "@/components/editor/extensions/StyledTaskList";
 import { TextCase } from "@/components/editor/extensions/TextCase";
 import { TextCleanup } from "@/components/editor/extensions/TextCleanup";
 import { TextIndent } from "@/components/editor/extensions/TextIndent";
@@ -92,7 +93,7 @@ export function getEditorExtensions(): Extensions {
     Footnote,
     Footnotes,
     StyledBulletList,
-    TaskList,
+    StyledTaskList,
     TaskItem.configure({
       nested: true,
       a11y: {

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Brand } from "@/components/Brand";
 import { UserMenu } from "@/components/account/UserMenu";
 import { requireAdmin } from "@/lib/admin";
+import { adminDetailHref } from "@/lib/adminDetails";
 import { prisma } from "@/lib/prisma";
 import { getVercelAnalyticsSummary } from "@/lib/vercelAnalytics";
 import { getAiOperationsSummary } from "@/lib/ai/adminMetrics";
@@ -96,14 +97,42 @@ export default async function AdminPage() {
       }),
   ]);
 
-  const metrics = [
-    { label: "Users", value: users },
-    { label: "Free beta seats", value: `${betaUsers} / 100` },
-    { label: "Documents", value: documents },
-    { label: "Comments", value: comments },
-    { label: "Pending suggestions", value: pendingSuggestions },
-    { label: "Founder replies due", value: awaitingFounderReplies },
-    { label: "Waitlist", value: pendingWaitlist.length },
+  const metrics: Array<{
+    label: string;
+    value: number | string;
+    href: string;
+  }> = [
+    { label: "Users", value: users, href: adminDetailHref("users") },
+    {
+      label: "Free beta seats",
+      value: `${betaUsers} / 100`,
+      href: adminDetailHref("beta-users"),
+    },
+    {
+      label: "Documents",
+      value: documents,
+      href: adminDetailHref("documents"),
+    },
+    {
+      label: "Comments",
+      value: comments,
+      href: adminDetailHref("comments"),
+    },
+    {
+      label: "Pending suggestions",
+      value: pendingSuggestions,
+      href: adminDetailHref("pending-suggestions"),
+    },
+    {
+      label: "Founder replies due",
+      value: awaitingFounderReplies,
+      href: "/admin/feedback?view=due",
+    },
+    {
+      label: "Waitlist",
+      value: pendingWaitlist.length,
+      href: adminDetailHref("waitlist"),
+    },
   ];
 
   const configuration = [
@@ -173,14 +202,28 @@ export default async function AdminPage() {
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-7" aria-label="Application totals">
-        {metrics.map((metric) => (
-          <article key={metric.label} className="app-panel rounded-2xl p-5">
-            <p className="text-sm font-medium text-[var(--muted)]">{metric.label}</p>
-            <p className="mt-3 font-mono text-3xl font-semibold tracking-[-0.05em]">
-              {metric.value.toLocaleString()}
-            </p>
-          </article>
-        ))}
+        {metrics.map((metric) => {
+          const content = (
+            <>
+              <p className="text-sm font-medium text-[var(--muted)]">
+                {metric.label}
+              </p>
+              <p className="mt-3 font-mono text-3xl font-semibold tracking-[-0.05em]">
+                {metric.value.toLocaleString()}
+              </p>
+            </>
+          );
+
+          return (
+            <Link
+              key={metric.label}
+              href={metric.href}
+              className="app-panel rounded-2xl p-5 transition-colors hover:border-[var(--accent-strong)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-strong)]"
+            >
+              {content}
+            </Link>
+          );
+        })}
       </section>
 
       <section className="app-panel overflow-hidden rounded-2xl" aria-labelledby="waitlist-heading">

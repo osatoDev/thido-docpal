@@ -7,6 +7,7 @@ declare module "@tiptap/core" {
   interface Commands<ReturnType> {
     headingAnchors: {
       ensureHeadingAnchors: () => ReturnType;
+      setCurrentHeadingInOutline: (include: boolean) => ReturnType;
     };
   }
 }
@@ -65,6 +66,40 @@ export const HeadingAnchors = Extension.create({
           const changed = addHeadingAnchors(state.doc, tr);
           if (changed && dispatch) dispatch(tr);
           return changed;
+        },
+      setCurrentHeadingInOutline:
+        (include) =>
+        ({ state, tr, dispatch }) => {
+          let headingPosition: number | null = null;
+          for (let depth = state.selection.$from.depth; depth > 0; depth -= 1) {
+            if (state.selection.$from.node(depth).type.name === "heading") {
+              headingPosition = state.selection.$from.before(depth);
+              break;
+            }
+          }
+
+          if (headingPosition === null) {
+            const selectedNode = state.doc.nodeAt(state.selection.from);
+            if (selectedNode?.type.name === "heading") {
+              headingPosition = state.selection.from;
+            }
+          }
+
+          if (headingPosition === null) return false;
+          const heading = state.doc.nodeAt(headingPosition);
+          if (!heading || heading.type.name !== "heading") return false;
+          const outlineHidden = !include;
+          if (heading.attrs.outlineHidden === outlineHidden) return false;
+
+          if (dispatch) {
+            dispatch(
+              tr.setNodeMarkup(headingPosition, undefined, {
+                ...heading.attrs,
+                outlineHidden,
+              }),
+            );
+          }
+          return true;
         },
     };
   },

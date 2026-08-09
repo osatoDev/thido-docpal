@@ -604,32 +604,41 @@ select {
   list-style: none;
 }
 
-.ProseMirror li[data-type="taskItem"] {
+.ProseMirror ul[data-type="taskList"] li[data-checked] {
   display: flex;
   align-items: flex-start;
   gap: 0.6rem;
   margin: 0.35rem 0;
 }
 
-.ProseMirror li[data-type="taskItem"] > label {
+.ProseMirror ul[data-type="taskList"] li[data-checked] > label {
   display: inline-flex;
   align-items: center;
   padding-top: 0.35rem;
 }
 
-.ProseMirror li[data-type="taskItem"] > label input {
+.ProseMirror ul[data-type="taskList"] li[data-checked] > label input {
   width: 1rem;
   height: 1rem;
   accent-color: var(--foreground);
 }
 
-.ProseMirror li[data-type="taskItem"] > div {
+.ProseMirror ul[data-type="taskList"] li[data-checked] > div {
   min-width: 0;
   flex: 1;
 }
 
-.ProseMirror li[data-type="taskItem"] p {
+.ProseMirror ul[data-type="taskList"] li[data-checked] p {
   margin: 0;
+}
+
+.ProseMirror
+  ul[data-type="taskList"][data-task-style="strike"]
+  > li[data-checked="true"]
+  > div
+  > p {
+  color: var(--muted);
+  text-decoration: line-through;
 }
 
 .ProseMirror .tableWrapper {
@@ -805,7 +814,7 @@ select {
 
   .ProseMirror table,
   .ProseMirror tr,
-  .ProseMirror li[data-type="taskItem"] {
+  .ProseMirror ul[data-type="taskList"] li[data-checked] {
     break-inside: avoid;
   }
 }

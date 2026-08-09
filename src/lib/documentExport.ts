@@ -21,14 +21,13 @@ import PDFDocument from "pdfkit";
 import type { JSONContent } from "@tiptap/react";
 
 import { loadDocumentImageAsPng } from "@/lib/documentFileImages";
-import { isBulletStyle, type BulletStyle } from "@/components/editor/extensions/StyledBulletList";
+import {
+  BULLET_STYLE_GLYPHS,
+  bulletGlyph,
+  isBulletStyle,
+} from "@/components/editor/extensions/StyledBulletList";
+import { isTaskStyle } from "@/components/editor/extensions/StyledTaskList";
 import { isSafeDocumentLink } from "@/lib/documentLinks";
-
-const bulletGlyphs: Record<BulletStyle, string> = {
-  disc: "•",
-  circle: "○",
-  square: "▪",
-};
 
 const wordHighlightColors: Record<string, (typeof HighlightColor)[keyof typeof HighlightColor]> = {
   "#fde68a": HighlightColor.YELLOW,
@@ -44,7 +43,11 @@ function wordFontFamily(value: unknown) {
   return undefined;
 }
 
-function textRuns(node: JSONContent, forceCode = false): ParagraphChild[] {
+function textRuns(
+  node: JSONContent,
+  forceCode = false,
+  forceStrike = false,
+): ParagraphChild[] {
   if (node.type === "hardBreak") return [new TextRun({ break: 1 })];
   if (node.type === "bookmark") {
     const bookmarkId = String(node.attrs?.bookmarkId ?? "");
@@ -77,7 +80,7 @@ function textRuns(node: JSONContent, forceCode = false): ParagraphChild[] {
       text: node.text ?? "",
       bold: markTypes.has("bold"),
       italics: markTypes.has("italic"),
-      strike: markTypes.has("strike"),
+      strike: forceStrike || markTypes.has("strike"),
       font:
         forceCode || markTypes.has("code")
           ? "Courier New"
@@ -101,7 +104,11 @@ function textRuns(node: JSONContent, forceCode = false): ParagraphChild[] {
       ? [new ExternalHyperlink({ link: href, children: [run] })]
       : [run];
   }
-  return node.content?.flatMap((child) => textRuns(child, forceCode)) ?? [];
+  return (
+    node.content?.flatMap((child) =>
+      textRuns(child, forceCode, forceStrike),
+    ) ?? []
+  );
 }
 
 function headingLevel(level: unknown) {
@@ -127,6 +134,7 @@ async function wordParagraph(
   options: {
     numbering?: { reference: string; level: number };
     blockquote?: boolean;
+    forceStrike?: boolean;
     prefix?: ParagraphChild[];
   } = {},
 ) {
@@ -151,7 +159,13 @@ async function wordParagraph(
         );
       }
     } else {
-      children.push(...textRuns(child, node.type === "codeBlock"));
+      children.push(
+        ...textRuns(
+          child,
+          node.type === "codeBlock",
+          options.forceStrike === true,
+        ),
+      );
     }
   }
 
@@ -278,6 +292,9 @@ async function wordBlocks(
       continue;
     }
     if (node.type === "taskList") {
+      const taskStyle = isTaskStyle(node.attrs?.taskStyle)
+        ? node.attrs.taskStyle
+        : "plain";
       for (const item of node.content ?? []) {
         let firstParagraph = true;
         for (const child of item.content ?? []) {
@@ -288,6 +305,8 @@ async function wordBlocks(
           } else {
             paragraphs.push(
               await wordParagraph(documentId, child, {
+                forceStrike:
+                  taskStyle === "strike" && item.attrs?.checked === true,
                 prefix: firstParagraph
                   ? [new TextRun({ text: item.attrs?.checked ? "☒ " : "☐ " })]
                   : undefined,
@@ -304,7 +323,11 @@ async function wordBlocks(
         ? node.attrs.bulletStyle
         : "disc";
       const reference =
-        node.type === "orderedList" ? "thido-ordered" : `thido-${style}`;
+        node.type === "orderedList"
+          ? "thido-ordered"
+          : style === "custom"
+            ? null
+            : `thido-${style}`;
       for (const item of node.content ?? []) {
         let firstParagraph = true;
         for (const child of item.content ?? []) {
@@ -315,9 +338,13 @@ async function wordBlocks(
           } else {
             paragraphs.push(
               await wordParagraph(documentId, child, {
-                numbering: firstParagraph
+                numbering: firstParagraph && reference
                   ? { reference, level: Math.min(level, 8) }
                   : undefined,
+                prefix:
+                  firstParagraph && node.type === "bulletList" && !reference
+                    ? [new TextRun({ text: `${bulletGlyph(node.attrs)} ` })]
+                    : undefined,
               }),
             );
             firstParagraph = false;
@@ -392,7 +419,7 @@ export async function createWordDocument({
           reference: "thido-ordered",
           levels: numberingLevels("decimal"),
         },
-        ...Object.entries(bulletGlyphs).map(([style, glyph]) => ({
+        ...Object.entries(BULLET_STYLE_GLYPHS).map(([style, glyph]) => ({
           reference: `thido-${style}`,
           levels: numberingLevels("bullet", glyph),
         })),
@@ -416,7 +443,11 @@ type PdfRun = {
   href?: string;
 };
 
-function pdfRuns(node: JSONContent, forceCode = false): PdfRun[] {
+function pdfRuns(
+  node: JSONContent,
+  forceCode = false,
+  forceStrike = false,
+): PdfRun[] {
   if (node.type === "hardBreak") {
     return [
       {
@@ -443,7 +474,7 @@ function pdfRuns(node: JSONContent, forceCode = false): PdfRun[] {
         bold: marks.has("bold"),
         italic: marks.has("italic"),
         code: forceCode || marks.has("code"),
-        strike: marks.has("strike"),
+        strike: forceStrike || marks.has("strike"),
         underline: marks.has("underline"),
         color:
           typeof textStyle?.attrs?.color === "string"
@@ -474,7 +505,11 @@ function pdfRuns(node: JSONContent, forceCode = false): PdfRun[] {
       },
     ];
   }
-  return node.content?.flatMap((child) => pdfRuns(child, forceCode)) ?? [];
+  return (
+    node.content?.flatMap((child) =>
+      pdfRuns(child, forceCode, forceStrike),
+    ) ?? []
+  );
 }
 
 function pdfFont(run: PdfRun) {
@@ -681,6 +716,9 @@ async function renderPdfBlocks(
       continue;
     }
     if (node.type === "taskList") {
+      const taskStyle = isTaskStyle(node.attrs?.taskStyle)
+        ? node.attrs.taskStyle
+        : "plain";
       for (const item of node.content ?? []) {
         let first = true;
         for (const child of item.content ?? []) {
@@ -696,7 +734,14 @@ async function renderPdfBlocks(
                 undefined,
                 { continued: true },
               );
-            renderPdfRuns(pdf, pdfRuns(child));
+            renderPdfRuns(
+              pdf,
+              pdfRuns(
+                child,
+                false,
+                taskStyle === "strike" && item.attrs?.checked === true,
+              ),
+            );
             pdf.moveDown(0.25);
             first = false;
           }
@@ -705,9 +750,6 @@ async function renderPdfBlocks(
       continue;
     }
     if (node.type === "bulletList" || node.type === "orderedList") {
-      const style = isBulletStyle(node.attrs?.bulletStyle)
-        ? node.attrs.bulletStyle
-        : "disc";
       let itemNumber = Number(node.attrs?.start) || 1;
       for (const item of node.content ?? []) {
         let first = true;
@@ -718,7 +760,7 @@ async function renderPdfBlocks(
             const prefix = first
               ? node.type === "orderedList"
                 ? `${itemNumber}. `
-                : `${bulletGlyphs[style]} `
+                : `${bulletGlyph(node.attrs)} `
               : "";
             pdf.font("Times-Roman").fontSize(11).text(prefix, 54 + level * 20, undefined, {
               continued: true,

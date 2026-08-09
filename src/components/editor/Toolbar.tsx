@@ -6,6 +6,7 @@ import type { Editor } from "@tiptap/react";
 import { DocumentFileMenu } from "@/components/documents/DocumentMoreActions";
 import type { RestoredDocument } from "@/components/documents/VersionHistoryControl";
 import { BookmarkDialog } from "./BookmarkDialog";
+import { CustomBulletDialog } from "./CustomBulletDialog";
 import { FindReplaceDialog } from "./FindReplaceDialog";
 import { FootnoteDialog } from "./FootnoteDialog";
 import { LinkControl } from "./LinkControl";
@@ -22,14 +23,31 @@ import {
 import type { TextCaseMode } from "./extensions/TextCase";
 import {
   BULLET_STYLES,
+  bulletGlyph,
   isBulletStyle,
+  normalizeCustomBulletGlyph,
   type BulletStyle,
 } from "./extensions/StyledBulletList";
+import {
+  isTaskStyle,
+  TASK_STYLES,
+  type TaskStyle,
+} from "./extensions/StyledTaskList";
 
 const bulletStyleLabels: Record<BulletStyle, string> = {
   disc: "● Disc",
   circle: "○ Circle",
   square: "■ Square",
+  diamond: "◆ Diamond",
+  arrow: "➤ Arrow",
+  star: "★ Star",
+  check: "✓ Check",
+  dash: "– Dash",
+  custom: "Custom…",
+};
+const taskStyleLabels: Record<TaskStyle, string> = {
+  plain: "No strikethrough",
+  strike: "Strikethrough when checked",
 };
 const DOCUMENT_ZOOM_OPTIONS = [75, 100, 125, 150] as const;
 const HEADING_LEVELS = [1, 2, 3, 4, 5, 6] as const;
@@ -364,6 +382,7 @@ export function Toolbar({
   const [imageError, setImageError] = useState<string | null>(null);
   const [findReplaceOpen, setFindReplaceOpen] = useState(false);
   const [bookmarkOpen, setBookmarkOpen] = useState(false);
+  const [customBulletOpen, setCustomBulletOpen] = useState(false);
   const [footnoteOpen, setFootnoteOpen] = useState(false);
   const [wordCountOpen, setWordCountOpen] = useState(false);
   const [, setEditorVersion] = useState(0);
@@ -371,6 +390,15 @@ export function Toolbar({
     editor && isBulletStyle(editor.getAttributes("bulletList").bulletStyle)
       ? (editor.getAttributes("bulletList").bulletStyle as BulletStyle)
       : "disc";
+  const activeBulletGlyph = editor
+    ? normalizeCustomBulletGlyph(
+        editor.getAttributes("bulletList").bulletGlyph,
+      )
+    : null;
+  const activeTaskStyle =
+    editor && isTaskStyle(editor.getAttributes("taskList").taskStyle)
+      ? (editor.getAttributes("taskList").taskStyle as TaskStyle)
+      : "plain";
   const activeHeadingLevel = HEADING_LEVELS.find((level) =>
     editor?.isActive("heading", { level }),
   );
@@ -469,11 +497,26 @@ export function Toolbar({
     triggers[nextIndex]?.focus();
   }
 
-  function setBulletStyle(bulletStyle: BulletStyle) {
+  function setBulletStyle(bulletStyle: BulletStyle, bulletGlyphValue?: string) {
     if (!editor) return;
     const chain = editor.chain().focus();
     if (!editor.isActive("bulletList")) chain.toggleBulletList();
-    chain.updateAttributes("bulletList", { bulletStyle }).run();
+    chain
+      .updateAttributes("bulletList", {
+        bulletStyle,
+        bulletGlyph:
+          bulletStyle === "custom"
+            ? normalizeCustomBulletGlyph(bulletGlyphValue)
+            : null,
+      })
+      .run();
+  }
+
+  function setTaskStyle(taskStyle: TaskStyle) {
+    if (!editor) return;
+    const chain = editor.chain().focus();
+    if (!editor.isActive("taskList")) chain.toggleTaskList();
+    chain.updateAttributes("taskList", { taskStyle }).run();
   }
 
   function setBlockStyle(value: string) {
@@ -787,9 +830,25 @@ export function Toolbar({
               {
                 label: "Lists and blocks",
                 children: [
-                  { label: "Bulleted list", onSelect: () => editor.chain().focus().toggleBulletList().run() },
+                  {
+                    label: "Bulleted list",
+                    children: [
+                      { label: "Toggle bulleted list", onSelect: () => editor.chain().focus().toggleBulletList().run() },
+                      ...BULLET_STYLES.filter((style) => style !== "custom").map((style) => ({
+                        label: `${bulletStyleLabels[style]}${editor.isActive("bulletList", { bulletStyle: style }) ? " ✓" : ""}`,
+                        onSelect: () => setBulletStyle(style),
+                      })),
+                      { label: "Custom bullet…", onSelect: () => setCustomBulletOpen(true) },
+                    ],
+                  },
                   { label: "Numbered list", onSelect: () => editor.chain().focus().toggleOrderedList().run() },
-                  { label: "Checklist", onSelect: () => editor.chain().focus().toggleTaskList().run() },
+                  {
+                    label: "Checklist",
+                    children: TASK_STYLES.map((style) => ({
+                      label: `${taskStyleLabels[style]}${editor.isActive("taskList", { taskStyle: style }) ? " ✓" : ""}`,
+                      onSelect: () => setTaskStyle(style),
+                    })),
+                  },
                   { label: "Block quote", onSelect: () => editor.chain().focus().toggleBlockquote().run() },
                   { label: "Code block", onSelect: () => editor.chain().focus().toggleCodeBlock().run() },
                 ],
@@ -893,6 +952,22 @@ export function Toolbar({
                       : "Show document outline",
                     onSelect: onToggleOutline,
                   },
+                  ...(canEdit && editor
+                    ? [
+                        {
+                          label: editor.isActive("heading")
+                            ? editor.getAttributes("heading").outlineHidden === true
+                              ? "Add current heading to outline"
+                              : "Remove current heading from outline"
+                            : "Remove current heading from outline",
+                          disabled: !editor.isActive("heading"),
+                          onSelect: () =>
+                            editor.commands.setCurrentHeadingInOutline(
+                              editor.getAttributes("heading").outlineHidden === true,
+                            ),
+                        },
+                      ]
+                    : []),
                 ],
               },
               {
@@ -1210,15 +1285,21 @@ export function Toolbar({
             value={activeBulletStyle}
             onChange={(event) => {
               const bulletStyle = event.target.value;
-              if (isBulletStyle(bulletStyle)) setBulletStyle(bulletStyle);
+              if (bulletStyle === "custom") {
+                setCustomBulletOpen(true);
+              } else if (isBulletStyle(bulletStyle)) {
+                setBulletStyle(bulletStyle);
+              }
             }}
             aria-label="Bullet style"
             title="Bullet style"
-            className="app-input h-8 w-16 shrink-0 rounded-sm px-1 text-sm outline-none"
+            className="app-input h-8 w-28 shrink-0 rounded-sm px-1 text-sm outline-none"
           >
             {BULLET_STYLES.map((bulletStyle) => (
               <option key={bulletStyle} value={bulletStyle}>
-                {bulletStyleLabels[bulletStyle]}
+                {bulletStyle === "custom" && activeBulletStyle === "custom"
+                  ? `${bulletGlyph({ bulletStyle, bulletGlyph: activeBulletGlyph })} Custom`
+                  : bulletStyleLabels[bulletStyle]}
               </option>
             ))}
           </select>
@@ -1240,6 +1321,23 @@ export function Toolbar({
               <span>☑</span><span>☰</span>
             </span>
           </ToolbarButton>
+          <select
+            value={activeTaskStyle}
+            onChange={(event) => {
+              if (isTaskStyle(event.target.value)) {
+                setTaskStyle(event.target.value);
+              }
+            }}
+            aria-label="Checklist style"
+            title="Checklist style"
+            className="app-input h-8 w-44 shrink-0 rounded-sm px-1 text-xs outline-none"
+          >
+            {TASK_STYLES.map((taskStyle) => (
+              <option key={taskStyle} value={taskStyle}>
+                {taskStyleLabels[taskStyle]}
+              </option>
+            ))}
+          </select>
           <ToolbarButton
             label="Block quote"
             isActive={editor.isActive("blockquote")}
@@ -1278,6 +1376,13 @@ export function Toolbar({
           mode="insert"
           onSubmit={(label) => editor.commands.insertBookmark(label)}
           onClose={() => setBookmarkOpen(false)}
+        />
+      ) : null}
+      {customBulletOpen && editor ? (
+        <CustomBulletDialog
+          initialGlyph={activeBulletGlyph ?? ""}
+          onSubmit={(glyph) => setBulletStyle("custom", glyph)}
+          onClose={() => setCustomBulletOpen(false)}
         />
       ) : null}
     </>

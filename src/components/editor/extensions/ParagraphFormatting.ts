@@ -131,6 +131,15 @@ export const FormattedHeading = Heading.extend({
             : {};
         },
       },
+      outlineHidden: {
+        default: false,
+        parseHTML: (element: HTMLElement) =>
+          element.getAttribute("data-outline-hidden") === "true",
+        renderHTML: (attributes: Record<string, unknown>) =>
+          attributes.outlineHidden === true
+            ? { "data-outline-hidden": "true" }
+            : {},
+      },
     };
   },
 });

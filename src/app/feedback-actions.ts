@@ -136,6 +136,7 @@ export async function sendUserFeedbackMessage(
   }
 
   revalidatePath("/feedback");
+  revalidatePath("/admin");
   revalidatePath("/admin/feedback");
   return {
     status: "success",
@@ -234,6 +235,7 @@ export async function sendFounderFeedbackReply(
   }
 
   revalidatePath("/feedback");
+  revalidatePath("/admin");
   revalidatePath("/admin/feedback");
   revalidatePath(`/admin/feedback/${parsed.data.threadId}`);
   return {

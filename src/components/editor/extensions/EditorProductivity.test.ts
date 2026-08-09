@@ -114,6 +114,25 @@ describe("document navigation and bookmarks", () => {
     expect(editor.state.selection.from).toBe(1);
   });
 
+  it("removes and restores a heading in the document outline", () => {
+    const editor = makeEditor({
+      type: "doc",
+      content: [
+        {
+          type: "heading",
+          attrs: { level: 2 },
+          content: [{ type: "text", text: "Optional section" }],
+        },
+      ],
+    });
+
+    editor.commands.setTextSelection(2);
+    expect(editor.commands.setCurrentHeadingInOutline(false)).toBe(true);
+    expect(editor.getAttributes("heading").outlineHidden).toBe(true);
+    expect(editor.commands.setCurrentHeadingInOutline(true)).toBe(true);
+    expect(editor.getAttributes("heading").outlineHidden).toBe(false);
+  });
+
   it("navigates document edges, paragraphs, and tables", () => {
     const table = (label: string) => ({
       type: "table",
