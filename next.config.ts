@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // PDFKit reads its built-in AFM font metrics from files beside the package.
   // Keep it external so server bundling does not rewrite those paths.
-  serverExternalPackages: ["pdfkit"],
+  serverExternalPackages: ["officeparser", "pdfkit", "word-extractor"],
   images: {
     remotePatterns: [
       {

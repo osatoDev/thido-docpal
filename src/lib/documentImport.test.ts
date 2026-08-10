@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { sanitizeImportedWordHtml } from "@/lib/documentImport";
+import {
+  importedPlainTextToDocument,
+  sanitizeImportedWordHtml,
+} from "@/lib/documentImport";
 import { markdownToTiptapJSON } from "@/lib/markdownToTiptap";
 
 describe("Word import sanitization", () => {
@@ -42,5 +45,39 @@ describe("Word import sanitization", () => {
       content: [{ type: "text", text: "Project plan" }],
     });
     expect(JSON.stringify(content)).not.toContain("alert");
+  });
+
+  it("turns UTF-8 and UTF-16 plain text into literal editable paragraphs", () => {
+    expect(
+      importedPlainTextToDocument(
+        new TextEncoder().encode("First <script>\r\nSecond"),
+      ),
+    ).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "First <script>" }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "Second" }],
+        },
+      ],
+    });
+
+    expect(
+      importedPlainTextToDocument(
+        new Uint8Array([0xff, 0xfe, 0x48, 0x00, 0x69, 0x00]),
+      ).content?.[0],
+    ).toMatchObject({ content: [{ text: "Hi" }] });
+  });
+
+  it("rejects binary data disguised as plain text", () => {
+    expect(() =>
+      importedPlainTextToDocument(
+        new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+      ),
+    ).toThrow("does not appear to contain plain text");
   });
 });

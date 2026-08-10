@@ -83,4 +83,17 @@ describe("document import observability", () => {
     });
     warning.mockRestore();
   });
+
+  it("records each supported document kind without filenames", () => {
+    for (const fileKind of ["doc", "docx", "odt", "rtf", "text"] as const) {
+      expect(
+        documentImportLogEntry({
+          event: "document_import_started",
+          fileKind,
+          level: "info",
+          requestId: "request_789",
+        }),
+      ).toMatchObject({ fileKind });
+    }
+  });
 });

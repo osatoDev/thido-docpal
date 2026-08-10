@@ -13,8 +13,8 @@ Thido's document editor should follow the familiar Google Docs hierarchy without
 
 Standalone **Download** and **More** buttons are removed. The **File** menu contains:
 
-- Import Word, when editing is allowed
-- Import Markdown, when editing is allowed
+- **Import document…**, when editing is allowed, for the explicitly supported
+  Word, OpenDocument, Rich Text, Markdown, and plain-text formats
 - Version history, when the viewer has editing access
 - Download as Microsoft Word
 - Download as PDF

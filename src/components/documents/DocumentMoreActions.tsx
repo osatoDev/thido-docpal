@@ -7,6 +7,11 @@ import {
   type RestoredDocument,
   VersionHistoryDialog,
 } from "@/components/documents/VersionHistoryControl";
+import {
+  DOCUMENT_IMPORT_ACCEPT,
+  DOCUMENT_IMPORT_EXTENSION_LABEL,
+  SUPPORTED_DOCUMENT_FILE_LABEL,
+} from "@/lib/documentFileTypes";
 
 type DocumentLanguageOption = {
   label: string;
@@ -36,8 +41,7 @@ export function DocumentFileMenu({
   onConflict: (message: string) => void;
   onLanguageChange: (language: string) => void;
 }) {
-  const wordInputRef = useRef<HTMLInputElement>(null);
-  const markdownInputRef = useRef<HTMLInputElement>(null);
+  const documentInputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -62,9 +66,7 @@ export function DocumentFileMenu({
   const [openDocumentsError, setOpenDocumentsError] = useState<string | null>(null);
   const [openDocumentSearch, setOpenDocumentSearch] = useState("");
   const [languageDraft, setLanguageDraft] = useState(documentLanguage);
-  const [importingType, setImportingType] = useState<
-    "Markdown" | "Word" | null
-  >(null);
+  const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const filteredOpenDocuments = useMemo(() => {
@@ -152,17 +154,16 @@ export function DocumentFileMenu({
   }, [openDocumentDialog]);
 
   async function importDocumentFile(file: File, input: HTMLInputElement) {
-    const isMarkdown = file.name.toLowerCase().endsWith(".md");
     if (
       !window.confirm(
-        `Importing this ${isMarkdown ? "Markdown" : "Word"} file will replace the current title and document body. You can restore the current version from Version history. Continue?`,
+        "Importing this document will replace the current title and document body. You can restore the current version from Version history. Continue?",
       )
     ) {
       input.value = "";
       return;
     }
 
-    setImportingType(isMarkdown ? "Markdown" : "Word");
+    setImporting(true);
     setMessage(null);
     setError(null);
     try {
@@ -199,7 +200,7 @@ export function DocumentFileMenu({
       setMessage(
         warnings.length > 0
           ? `Imported with notes: ${warnings.join(" ")}`
-          : `${isMarkdown ? "Markdown" : "Word"} document imported.`,
+          : "Document imported.",
       );
       setOpen(false);
     } catch (reason) {
@@ -209,7 +210,7 @@ export function DocumentFileMenu({
           : "Could not import this document.",
       );
     } finally {
-      setImportingType(null);
+      setImporting(false);
       input.value = "";
     }
   }
@@ -282,23 +283,11 @@ export function DocumentFileMenu({
         </button>
 
         <input
-          ref={wordInputRef}
+          ref={documentInputRef}
           type="file"
-          accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          accept={DOCUMENT_IMPORT_ACCEPT}
           className="sr-only"
-          aria-label="Choose a Word document to import"
-          onChange={(event) => {
-            const file = event.currentTarget.files?.[0];
-            if (file) void importDocumentFile(file, event.currentTarget);
-          }}
-        />
-
-        <input
-          ref={markdownInputRef}
-          type="file"
-          accept=".md,text/markdown,text/plain"
-          className="sr-only"
-          aria-label="Choose a Markdown document to import"
+          aria-label={`Choose a document to import. Supported formats: ${SUPPORTED_DOCUMENT_FILE_LABEL}.`}
           onChange={(event) => {
             const file = event.currentTarget.files?.[0];
             if (file) void importDocumentFile(file, event.currentTarget);
@@ -329,32 +318,23 @@ export function DocumentFileMenu({
               Open…
             </button>
             {canImport ? (
-              <>
-                <button
-                  type="button"
-                  role="menuitem"
-                  disabled={importingType !== null}
-                  aria-disabled={importingType !== null}
-                  onClick={() => wordInputRef.current?.click()}
-                  className="block w-full rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)] disabled:cursor-wait disabled:opacity-60"
-                >
-                  {importingType === "Word"
-                    ? "Importing Word…"
-                    : "Import Word (.docx)…"}
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  disabled={importingType !== null}
-                  aria-disabled={importingType !== null}
-                  onClick={() => markdownInputRef.current?.click()}
-                  className="block w-full rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)] disabled:cursor-wait disabled:opacity-60"
-                >
-                  {importingType === "Markdown"
-                    ? "Importing Markdown…"
-                    : "Import Markdown (.md)…"}
-                </button>
-              </>
+              <button
+                type="button"
+                role="menuitem"
+                disabled={importing}
+                aria-disabled={importing}
+                onClick={() => documentInputRef.current?.click()}
+                className="block w-full rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)] disabled:cursor-wait disabled:opacity-60"
+              >
+                <span className="block">
+                  {importing ? "Importing document…" : "Import document…"}
+                </span>
+                {!importing ? (
+                  <span className="mt-0.5 block text-xs text-[var(--muted)]">
+                    {DOCUMENT_IMPORT_EXTENSION_LABEL}
+                  </span>
+                ) : null}
+              </button>
             ) : null}
             {canViewHistory ? (
               <button

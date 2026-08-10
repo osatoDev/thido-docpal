@@ -1,12 +1,12 @@
 # Thido production checklist
 
-Last reviewed: 9 August 2026
+Last reviewed: 10 August 2026
 
 This is the running source of truth for production-readiness work. Completed boxes indicate repository evidence or a verified check. External configuration remains unchecked until it is explicitly verified.
 
 ## Immediate deployment blockers
 
-- [ ] Apply the `20260809180000_add_spreadsheets` migration to the production database before deploying spreadsheet creation, editing, or dashboard integration.
+- [ ] Apply the `20260809180000_add_spreadsheets` migration to the production database before deploying spreadsheet creation, editing, or dashboard integration. `npx prisma migrate status` confirmed on 10 August 2026 that it is pending on the currently configured `neondb` database.
 - [ ] Apply the `20260809160000_add_document_title_intent` migration before deploying persisted manual-title protection and heading-derived automatic titles.
 - [ ] Apply the `20260803170000_add_permissioned_share_links` migration to the production database before deploying permission-bearing link sharing.
 - [ ] Apply the `20260802190000_add_document_revisions` migration to the production database before deploying version history, optimistic concurrency, or Word import.
@@ -172,6 +172,10 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Add a Google Docs-style **File → Open** dialog with searchable Thido documents, and keep sanitized Word and Markdown replacement imports together under **File** so Markdown becomes regular editable Thido content.
 - [x] Browser-check **File → Open**, Markdown import (including replacement confirmation, sanitization, and heading-derived naming), the empty-comment default, and both root-opening preferences at desktop and 390 px against the isolated local database with no framework overlay or horizontal overflow.
 - [x] Let users drag a local Word `.docx` or Markdown `.md` file onto a blank editable document, reuse the secured revision-aware import path, and keep replacement of nonblank documents behind the explicit **File** flow.
+- [x] Replace the format-specific import actions with **Import document…** and extend the shared picker, drag-and-drop, API, signature validation, observability, and fidelity contract to `.txt`, legacy Word `.doc`, OpenDocument `.odt`, and Rich Text `.rtf`; keep macro-enabled files, templates, Pages, Google pointer files, and PDF outside the initial promise. Follow the [document import format recommendation](./document-import-format-recommendation.md).
+- [ ] Move untrusted `.doc`, `.odt`, and `.rtf` parsing from the bounded in-process implementation into a low-privilege isolated worker or sandbox before broad production use, retaining time, memory, decompression, and archive-entry limits.
+- [ ] Browser-check **Import document…** and blank-document drag-and-drop with representative `.docx`, `.doc`, `.odt`, `.rtf`, `.md`, and `.txt` files at desktop and 390 px, including fidelity warnings, signature rejection, replacement confirmation, version recovery, and no browser/framework errors.
+- [x] Confirm the broad document-import implementation passes signature/encoding/sanitization/conversion coverage, direct extraction of host-generated `.doc`, `.odt`, and `.rtf` samples, the full 172-test suite across 41 files, TypeScript, focused lint, and the Next.js production build.
 - [x] Detect high-confidence tab-separated, Markdown, CSV, and aligned-column text on paste and ask whether to convert it to a semantic table or keep the original lines as text.
 - [x] Browser-check the table-conversion prompt and Markdown file drop against the isolated local database at desktop and 390 px, including heading-derived naming, editable imported content, responsive dialogs, no horizontal overflow, and no browser or framework errors.
 - [x] Use the Google Docs-inspired hierarchy in [the document action layout recommendation](./document-action-layout.md): identity and collaboration controls on the first row, implemented **File / Edit / View / Insert / Format / Tools** menus below, and a compact icon formatting toolbar without standalone **Download**, **More**, or literal list buttons.

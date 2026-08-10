@@ -18,7 +18,16 @@ import {
 } from "@/lib/documentAiJobs";
 import { recordDocumentRevision } from "@/lib/documentRevisions";
 import { getEditorExtensions } from "@/lib/editorExtensions";
-import { sanitizeImportedWordHtml } from "@/lib/documentImport";
+import {
+  importedPlainTextToDocument,
+  importedPlainTextStringToDocument,
+  sanitizeImportedWordHtml,
+} from "@/lib/documentImport";
+import {
+  documentImportFormatForFileName,
+  documentImportTitleFromFileName,
+  SUPPORTED_DOCUMENT_FILE_LABEL,
+} from "@/lib/documentFileTypes";
 import {
   documentImportRequestId,
   type DocumentImportFileKind,
@@ -26,6 +35,11 @@ import {
   writeDocumentImportLog,
 } from "@/lib/documentImportObservability";
 import { inferDocumentTitle } from "@/lib/documentPersistence";
+import {
+  convertStructuredOfficeDocument,
+  extractLegacyWordText,
+  validateOfficeDocumentSignature,
+} from "@/lib/legacyDocumentImport";
 import { markdownToTiptapJSON } from "@/lib/markdownToTiptap";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
@@ -33,8 +47,6 @@ import { reportServerError } from "@/lib/rollbar/server";
 
 export const runtime = "nodejs";
 
-const MAX_WORD_FILE_BYTES = 15 * 1024 * 1024;
-const MAX_MARKDOWN_FILE_BYTES = 2 * 1024 * 1024;
 const MAX_IMPORTED_IMAGE_BYTES = 8 * 1024 * 1024;
 
 type Params = { params: Promise<{ id: string }> };
@@ -42,9 +54,7 @@ type ImportStage = "comment_reconciliation" | "conversion" | "persistence";
 
 function titleFromFilename(filename: string) {
   return (
-    filename
-      .replace(/\.docx$/i, "")
-      .replace(/\.md$/i, "")
+    documentImportTitleFromFileName(filename)
       .replace(/[\u0000-\u001f]/g, "")
       .trim()
       .slice(0, 200) || "Imported document"
@@ -131,13 +141,14 @@ export async function POST(request: Request, { params }: Params) {
     typeof baseRevisionValue === "string" && /^\d+$/.test(baseRevisionValue)
       ? Number(baseRevisionValue)
       : null;
-  const extension = file instanceof File ? file.name.toLowerCase() : "";
-  const isWordFile = extension.endsWith(".docx");
-  const isMarkdownFile = extension.endsWith(".md");
-  fileKind = isWordFile ? "docx" : isMarkdownFile ? "markdown" : "unknown";
-  if (!(file instanceof File) || (!isWordFile && !isMarkdownFile)) {
+  const format =
+    file instanceof File
+      ? documentImportFormatForFileName(file.name)
+      : undefined;
+  fileKind = format?.kind ?? "unknown";
+  if (!(file instanceof File) || !format) {
     return errorResponse(
-      "Choose a Word .docx or Markdown .md file.",
+      `Choose a supported document: ${SUPPORTED_DOCUMENT_FILE_LABEL}.`,
       400,
       "invalid_file",
     );
@@ -149,14 +160,9 @@ export async function POST(request: Request, { params }: Params) {
       "invalid_revision",
     );
   }
-  const maximumSize = isMarkdownFile
-    ? MAX_MARKDOWN_FILE_BYTES
-    : MAX_WORD_FILE_BYTES;
-  if (file.size <= 0 || file.size > maximumSize) {
+  if (file.size <= 0 || file.size > format.maximumBytes) {
     return errorResponse(
-      isMarkdownFile
-        ? "Markdown files must be smaller than 2 MB."
-        : "Word files must be smaller than 15 MB.",
+      format.sizeError,
       413,
       "file_too_large_or_empty",
     );
@@ -175,11 +181,32 @@ export async function POST(request: Request, { params }: Params) {
   try {
     let content: JSONContent;
     let warnings: string[] = [];
-    if (isMarkdownFile) {
+    if (format.kind === "markdown") {
       const markdown = (await file.text()).replace(/^\uFEFF/, "");
       content = await markdownToTiptapJSON(markdown, { sanitize: true });
+    } else if (format.kind === "text") {
+      content = importedPlainTextToDocument(
+        new Uint8Array(await file.arrayBuffer()),
+      );
+    } else if (format.kind === "doc") {
+      const input = new Uint8Array(await file.arrayBuffer());
+      content = importedPlainTextStringToDocument(
+        await extractLegacyWordText(input),
+      );
+      warnings = [
+        "Legacy Word import preserves editable text but may simplify formatting and omit images.",
+      ];
+    } else if (format.kind === "odt" || format.kind === "rtf") {
+      const conversion = await convertStructuredOfficeDocument(
+        new Uint8Array(await file.arrayBuffer()),
+        format.kind,
+      );
+      const safeHtml = sanitizeImportedWordHtml(conversion.html);
+      content = generateJSON(safeHtml, getEditorExtensions()) as JSONContent;
+      warnings = conversion.warnings;
     } else {
       const input = Buffer.from(await file.arrayBuffer());
+      validateOfficeDocumentSignature(input, "docx");
       const conversion = await mammoth.convertToHtml(
         { buffer: input },
         {

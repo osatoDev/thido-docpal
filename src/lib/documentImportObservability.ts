@@ -1,4 +1,8 @@
-export type DocumentImportFileKind = "docx" | "markdown" | "unknown";
+import type { DocumentImportFileKind as SupportedDocumentImportFileKind } from "@/lib/documentFileTypes";
+
+export type DocumentImportFileKind =
+  | SupportedDocumentImportFileKind
+  | "unknown";
 export type DocumentImportLogLevel = "error" | "info" | "warning";
 
 type DocumentImportLogInput = {
