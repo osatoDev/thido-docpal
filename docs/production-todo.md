@@ -362,6 +362,8 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Disclose Stripe-hosted billing, the billing identifiers Thido stores, and that Thido does not store full card numbers.
 - [x] Enrich the first-time document-start page with a returning-user header action, a dropdown of more than ten document starters that replace the current outline, guest-flow reassurance, and a concise explanation of what happens after submission.
 - [x] Default first-time visitors to light mode while retaining an explicit light or dark preference across visits.
+- [x] Browser-check the top-right theme control on the anonymous landing page at desktop and 390 px: confirm it remains in header flow, does not overlap **How it works** or **Sign in**, creates no horizontal overflow or framework overlay, and switches the document theme.
+- [ ] Browser-check the top-right theme control beside the account menu on authenticated document, spreadsheet, dashboard, settings, feedback, and admin layouts before treating the relocation as fully production-verified.
 - [x] Make guided brief and follow-up fields optional, clearly identify that Thido can infer omitted details, and require only one initial piece of direction before generation.
 - [x] Use a consistent wide responsive shell across full-page surfaces and require an accessible confirmation with a visible pending state before deleting documents.
 - [ ] Have qualified counsel review the policies for Thido's intended markets before public launch.

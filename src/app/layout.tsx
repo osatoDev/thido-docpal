@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { SignedInPageActions } from "@/components/SignedInPageActions";
 import {
   APPLICATION_STYLE_COOKIE_NAME,
@@ -59,7 +58,6 @@ export default async function RootLayout({
       <body className="flex min-h-full flex-col">
         {children}
         <SignedInPageActions signedIn={Boolean(session?.user?.id)} />
-        <ThemeToggle />
         <Analytics />
       </body>
     </html>

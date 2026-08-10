@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Brand } from "@/components/Brand";
 import { HowItWorksControl } from "@/components/HowItWorksControl";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserMenu, type UserMenuProfile } from "@/components/account/UserMenu";
 import { InitialPromptForm } from "@/components/wizard/InitialPromptForm";
 import { HOW_IT_WORKS_STEPS } from "@/lib/howItWorks";
@@ -36,6 +37,7 @@ export function NewDocumentLanding({
         ) : (
           <div className="flex items-center gap-2">
             <HowItWorksControl />
+            <ThemeToggle />
             <Link
               href={RESUME_LOGIN_HREF}
               className="secondary-button rounded-md px-3.5 py-2 text-sm font-medium"

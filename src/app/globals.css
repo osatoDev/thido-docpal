@@ -331,10 +331,9 @@ select {
 }
 
 .theme-toggle {
-  position: fixed;
-  z-index: 50;
-  right: 1.25rem;
-  bottom: 1.25rem;
+  position: static;
+  inset: auto;
+  z-index: auto;
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;

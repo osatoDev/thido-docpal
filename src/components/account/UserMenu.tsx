@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { logout } from "@/app/account-actions";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { getUserInitials } from "@/lib/userProfile";
 
 export type UserMenuProfile = {
@@ -47,7 +48,11 @@ export function UserMenu({ user }: { user: UserMenuProfile }) {
   }, [open]);
 
   return (
-    <div ref={containerRef} className="relative shrink-0">
+    <div
+      ref={containerRef}
+      className="relative flex shrink-0 items-center gap-2"
+    >
+      <ThemeToggle />
       <button
         ref={buttonRef}
         type="button"
