@@ -24,6 +24,26 @@ const GOOGLE_DOCS_HTML = `
   </b>
 `;
 
+const GOOGLE_DOCS_CHECKLIST_HTML = `
+  <meta charset="utf-8">
+  <b id="docs-internal-guid-checklist" style="font-weight: normal">
+    <p><span style="font-weight: 700">Mon 10 Aug ()</span></p>
+    <ul style="margin-top: 0; margin-bottom: 0; padding-inline-start: 48px">
+      <li aria-level="1" style="list-style-type: none">
+        <p role="presentation"><span>11: Ab workout</span></p>
+      </li>
+      <li aria-level="1" style="list-style-type: none">
+        <p role="presentation"><span>21: fruits + Netflix/CM?</span></p>
+      </li>
+      <ul style="margin-top: 0; margin-bottom: 0; padding-inline-start: 48px">
+        <li aria-level="2" style="list-style-type: none">
+          <p role="presentation"><span>Buy Sebastian Battaglia</span></p>
+        </li>
+      </ul>
+    </ul>
+  </b>
+`;
+
 beforeAll(() => {
   const window = new Window();
   vi.stubGlobal("DOMParser", window.DOMParser);
@@ -106,6 +126,54 @@ describe("Google Docs clipboard compatibility", () => {
     expect(rendered).toContain("background-color: #fff2cc");
     expect(rendered).toContain("font-family: Georgia");
     expect(rendered).toContain("<table");
+  });
+
+  it("converts Google Docs checkbox lists without losing nesting", () => {
+    const normalized = normalizeGoogleDocsPastedHtml(
+      GOOGLE_DOCS_CHECKLIST_HTML,
+    );
+    const content = generateJSON(normalized, getEditorExtensions());
+    const checklist = content.content?.[1];
+
+    expect(normalized).toContain('data-type="taskList"');
+    expect(normalized).toContain('data-type="taskItem"');
+    expect(checklist).toMatchObject({
+      type: "taskList",
+      attrs: { taskStyle: "plain" },
+      content: [
+        {
+          type: "taskItem",
+          attrs: { checked: false },
+        },
+        {
+          type: "taskItem",
+          attrs: { checked: false },
+          content: [
+            { type: "paragraph" },
+            {
+              type: "taskList",
+              content: [
+                {
+                  type: "taskItem",
+                  attrs: { checked: false },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it("keeps Google Docs bullet lists as bullet lists", () => {
+    const normalized = normalizeGoogleDocsPastedHtml(GOOGLE_DOCS_HTML);
+    const content = generateJSON(normalized, getEditorExtensions());
+
+    expect(content.content?.[2]).toMatchObject({
+      type: "bulletList",
+      attrs: { bulletStyle: "square" },
+    });
+    expect(normalized).not.toContain('data-type="taskList"');
   });
 
   it("leaves ordinary clipboard HTML unchanged", () => {

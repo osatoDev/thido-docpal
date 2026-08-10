@@ -19,6 +19,44 @@ function removeStyleProperty(element: HTMLElement, property: string) {
   }
 }
 
+function directListItems(list: HTMLUListElement) {
+  return Array.from(list.children).filter(
+    (child): child is HTMLLIElement => child.tagName === "LI",
+  );
+}
+
+function isGoogleDocsCheckboxList(list: HTMLUListElement) {
+  const items = directListItems(list);
+  if (items.length === 0) return false;
+
+  return (
+    list.style.listStyleType === "none" ||
+    items.every((item) => item.style.listStyleType === "none")
+  );
+}
+
+function normalizeGoogleDocsCheckboxLists(document: Document) {
+  document.querySelectorAll<HTMLUListElement>("ul").forEach((list) => {
+    if (!isGoogleDocsCheckboxList(list)) return;
+
+    list.setAttribute("data-type", "taskList");
+    list.setAttribute("data-task-style", "plain");
+
+    directListItems(list).forEach((item) => {
+      const checked =
+        item.getAttribute("aria-checked") === "true" ||
+        item.querySelector<HTMLInputElement>('input[type="checkbox"]')
+          ?.checked === true;
+
+      item.setAttribute("data-type", "taskItem");
+      item.setAttribute("data-checked", String(checked));
+      removeStyleProperty(item, "list-style-type");
+    });
+
+    removeStyleProperty(list, "list-style-type");
+  });
+}
+
 /**
  * Google Docs represents highlighting as a background color on a span. Tiptap
  * intentionally models highlighting as a mark, so convert only that style and
@@ -51,6 +89,8 @@ export function normalizeGoogleDocsPastedHtml(html: string) {
     mark.append(...Array.from(span.childNodes));
     span.append(mark);
   });
+
+  normalizeGoogleDocsCheckboxLists(document);
 
   return document.body.innerHTML;
 }
