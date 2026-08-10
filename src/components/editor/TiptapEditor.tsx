@@ -51,6 +51,7 @@ import {
   isSupportedDocumentFileName,
   SUPPORTED_DOCUMENT_FILE_LABEL,
 } from "@/lib/documentFileTypes";
+import { hasHtmlTable } from "./extensions/GoogleDocsPaste";
 
 type Props = {
   documentId: string;
@@ -216,6 +217,8 @@ export function TiptapEditor({
           return false;
         }
         const originalText = event.clipboardData?.getData("text/plain") ?? "";
+        const clipboardHtml = event.clipboardData?.getData("text/html") ?? "";
+        if (hasHtmlTable(clipboardHtml)) return false;
         const table = detectTextTable(originalText);
         if (!table) return false;
 

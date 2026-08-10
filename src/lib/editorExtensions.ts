@@ -24,6 +24,7 @@ import {
   Footnotes,
 } from "@/components/editor/extensions/Footnotes";
 import { HeadingAnchors } from "@/components/editor/extensions/HeadingAnchors";
+import { GoogleDocsPaste } from "@/components/editor/extensions/GoogleDocsPaste";
 import { DocumentNavigation } from "@/components/editor/extensions/DocumentNavigation";
 import { PageBreak } from "@/components/editor/extensions/PageBreak";
 import {
@@ -80,6 +81,7 @@ export function getEditorExtensions(): Extensions {
     }),
     FormattedParagraph,
     FormattedHeading.configure({ levels: [1, 2, 3, 4, 5, 6] }),
+    GoogleDocsPaste,
     HeadingAnchors,
     DocumentNavigation,
     BlockOperations,

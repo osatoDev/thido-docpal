@@ -4,7 +4,7 @@ import Paragraph from "@tiptap/extension-paragraph";
 
 const FORMATTABLE_NODES = new Set(["paragraph", "heading"]);
 export const LINE_HEIGHT_OPTIONS = [1, 1.15, 1.5, 2] as const;
-const MAX_PARAGRAPH_SPACE = 3;
+const MAX_PARAGRAPH_SPACE = 6;
 
 declare module "@tiptap/core" {
   interface Commands<ReturnType> {
@@ -18,10 +18,8 @@ declare module "@tiptap/core" {
 
 function normalizeLineHeight(value: unknown) {
   const lineHeight = Number(value);
-  return LINE_HEIGHT_OPTIONS.includes(
-    lineHeight as (typeof LINE_HEIGHT_OPTIONS)[number],
-  )
-    ? lineHeight
+  return Number.isFinite(lineHeight) && lineHeight >= 0.8 && lineHeight <= 3
+    ? Math.round(lineHeight * 100) / 100
     : null;
 }
 
@@ -29,8 +27,27 @@ function normalizeParagraphSpace(value: unknown) {
   if (value === null || value === undefined || value === "") return null;
   const space = Number(value);
   return Number.isFinite(space)
-    ? Math.min(MAX_PARAGRAPH_SPACE, Math.max(0, space))
+    ? Math.round(
+        Math.min(MAX_PARAGRAPH_SPACE, Math.max(0, space)) * 100,
+      ) / 100
     : null;
+}
+
+function parseParagraphSpace(value: string) {
+  const match = /^(-?\d+(?:\.\d+)?)(rem|em|px|pt)?$/i.exec(value.trim());
+  if (!match) return null;
+  const amount = Number(match[1]);
+  const unit = match[2]?.toLowerCase();
+  const rem = unit === "px" ? amount / 16 : unit === "pt" ? amount / 12 : amount;
+  return normalizeParagraphSpace(rem);
+}
+
+function parseLineHeight(value: string) {
+  const normalized = value.trim();
+  if (normalized.endsWith("%")) {
+    return normalizeLineHeight(Number(normalized.slice(0, -1)) / 100);
+  }
+  return normalizeLineHeight(normalized);
 }
 
 function updateSelectedBlocks(
@@ -75,7 +92,7 @@ function formattingAttributes() {
     lineHeight: {
       default: null,
       parseHTML: (element: HTMLElement) =>
-        normalizeLineHeight(element.style.lineHeight),
+        parseLineHeight(element.style.lineHeight),
       renderHTML: (attributes: Record<string, unknown>) => {
         const lineHeight = normalizeLineHeight(attributes.lineHeight);
         return lineHeight ? { style: `line-height: ${lineHeight}` } : {};
@@ -84,7 +101,7 @@ function formattingAttributes() {
     spaceBefore: {
       default: null,
       parseHTML: (element: HTMLElement) =>
-        normalizeParagraphSpace(element.style.marginTop.replace("rem", "")),
+        parseParagraphSpace(element.style.marginTop),
       renderHTML: (attributes: Record<string, unknown>) => {
         const space = normalizeParagraphSpace(attributes.spaceBefore);
         return space === null ? {} : { style: `margin-top: ${space}rem` };
@@ -93,7 +110,7 @@ function formattingAttributes() {
     spaceAfter: {
       default: null,
       parseHTML: (element: HTMLElement) =>
-        normalizeParagraphSpace(element.style.marginBottom.replace("rem", "")),
+        parseParagraphSpace(element.style.marginBottom),
       renderHTML: (attributes: Record<string, unknown>) => {
         const space = normalizeParagraphSpace(attributes.spaceAfter);
         return space === null ? {} : { style: `margin-bottom: ${space}rem` };
