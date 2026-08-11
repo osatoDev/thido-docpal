@@ -18,6 +18,7 @@ import {
 } from "@/lib/documentAuth";
 import { NewDocumentMenu } from "@/components/documents/NewDocumentMenu";
 import { documentEditPath } from "@/lib/documentUrls";
+import { countDocumentWords } from "@/lib/documentWordCount";
 import {
   createDocumentFolder,
   deleteDocumentFolder,
@@ -142,6 +143,7 @@ export default async function DashboardPage() {
     }),
     status: document.status,
     kind: "DOCUMENT",
+    wordCount: countDocumentWords(document.content),
   }));
   const spreadsheetRows: DashboardDocumentRow[] = spreadsheets.map(
     (spreadsheet) => ({
@@ -155,6 +157,7 @@ export default async function DashboardPage() {
       permission: "FULL",
       status: "READY",
       kind: "SPREADSHEET",
+      wordCount: null,
     }),
   );
   const libraryRows = [...documentRows, ...spreadsheetRows];

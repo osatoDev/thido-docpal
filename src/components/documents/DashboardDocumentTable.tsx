@@ -51,6 +51,7 @@ export type DashboardDocumentRow = {
   permission: "VIEW" | "COMMENT" | "EDIT" | "FULL";
   status: "DRAFTING" | "GENERATING" | "READY";
   kind: "DOCUMENT" | "SPREADSHEET";
+  wordCount: number | null;
 };
 
 function sortDocuments(
@@ -699,12 +700,15 @@ export function DashboardDocumentTable({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[48rem] border-collapse">
+            <table className="w-full min-w-[54rem] border-collapse">
               <thead>
                 <tr className="border-b border-[var(--border)]">
                   <SortableHeader activeSort={sort} label="Title" sortKey="title" onSort={toggleSort} />
                   <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--muted)]">
                     Folder
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-[var(--muted)]">
+                    Words
                   </th>
                   <SortableHeader activeSort={sort} label="Last accessed" sortKey="lastAccessedAt" onSort={toggleSort} />
                   <th scope="col" className="w-20 px-4 py-3 text-right text-xs font-medium text-[var(--muted)]">
@@ -769,6 +773,11 @@ export function DashboardDocumentTable({
                       ) : (
                         <span className="text-xs text-[var(--muted)]">Shared with me</span>
                       )}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-5 text-right align-top text-xs tabular-nums text-[var(--muted)]">
+                      {document.wordCount === null
+                        ? "Not applicable"
+                        : document.wordCount.toLocaleString()}
                     </td>
                     <td className="whitespace-nowrap px-4 py-5 align-top text-xs text-[var(--muted)]">
                       <time dateTime={document.lastAccessedAt}>

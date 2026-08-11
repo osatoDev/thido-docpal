@@ -80,7 +80,7 @@ export function UserMenu({ user }: { user: UserMenuProfile }) {
       {open ? (
         <div
           id={menuId}
-          className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] shadow-xl"
+          className="absolute top-full right-0 z-50 mt-2 w-64 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] shadow-xl"
         >
           <div className="border-b border-[var(--border)] px-4 py-3">
             <p className="truncate text-sm font-semibold">{displayName}</p>
