@@ -104,7 +104,7 @@ export function SettingsForm({
           >
             {APPLICATION_STYLE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label} — {option.description}
+                {option.label}: {option.description}
               </option>
             ))}
           </select>
@@ -131,7 +131,7 @@ export function SettingsForm({
           >
             {AI_MODELS.map((model) => (
               <option key={model.id} value={model.id}>
-                {model.label} — {model.description}
+                {model.label}: {model.description}
               </option>
             ))}
           </select>
@@ -158,7 +158,7 @@ export function SettingsForm({
             className="app-input rounded-md px-3 py-2.5 text-sm outline-none"
           >
             <option value="AUTO">
-              Auto — decide from my prompt (recommended)
+              Auto: decide from my prompt (recommended)
             </option>
             <option value="PROPOSE">Always ask for my approval</option>
             <option value="AUTO_APPLY">Always apply automatically</option>

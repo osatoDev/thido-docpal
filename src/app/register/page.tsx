@@ -29,7 +29,7 @@ export default async function RegisterPage({
           </h1>
           <p className="max-w-sm text-sm leading-6 text-[var(--muted)]">
             {seatsRemaining > 0
-              ? `Join the free beta—no card required. ${seatsRemaining} of 100 automatic places remain.`
+              ? `Join the free beta. No card required. ${seatsRemaining} of 100 automatic places remain.`
               : "The first 100 places are full. Join the waitlist and the founding team will review your request."}
           </p>
         </div>

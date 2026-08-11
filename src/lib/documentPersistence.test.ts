@@ -28,8 +28,13 @@ describe("document persistence", () => {
       new Date("2026-08-07T08:42:31.000Z"),
     );
 
-    expect(title).toBe("Untitled Document — 2026-08-07 08:42 UTC");
+    expect(title).toBe("Untitled Document - 2026-08-07 08:42 UTC");
     expect(isDefaultDocumentTitle(title)).toBe(true);
+    expect(
+      isDefaultDocumentTitle(
+        `Untitled Document ${String.fromCodePoint(0x2014)} 2026-08-07 08:42 UTC`,
+      ),
+    ).toBe(true);
     expect(shouldPromotePlaceholder({ title })).toBe(false);
   });
 
@@ -40,7 +45,7 @@ describe("document persistence", () => {
       "America/Los_Angeles",
     );
 
-    expect(title).toBe("Untitled Document — Aug 7, 2026, 1:42 AM PDT");
+    expect(title).toBe("Untitled Document - Aug 7, 2026, 1:42 AM PDT");
   });
 
   it("ignores whitespace-only text and empty structural nodes", () => {

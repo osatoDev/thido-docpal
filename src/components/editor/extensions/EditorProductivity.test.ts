@@ -299,7 +299,7 @@ describe("text cleanup commands", () => {
       '"Hello" \'world\'',
     );
     expect(transformCleanupText("one--two", "normalizeDashes")).toBe(
-      "one—two",
+      "one\u2014two",
     );
     expect(transformCleanupText("Wait...", "normalizeEllipses")).toBe(
       "Wait…",

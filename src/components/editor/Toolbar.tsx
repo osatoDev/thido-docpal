@@ -908,8 +908,8 @@ export function Toolbar({
                 label: "Special characters",
                 children: [
                   {
-                    label: "Em dash —",
-                    onSelect: () => insertLocalizedText("—"),
+                    label: "Em dash",
+                    onSelect: () => insertLocalizedText("\u2014"),
                   },
                   {
                     label: "En dash –",

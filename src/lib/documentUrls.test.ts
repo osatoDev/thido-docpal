@@ -2,11 +2,22 @@ import { describe, expect, it } from "vitest";
 
 import {
   documentEditPath,
+  documentTabTitle,
   documentTitleSlug,
   MAX_DOCUMENT_TITLE_SLUG_LENGTH,
 } from "@/lib/documentUrls";
 
 describe("document title URLs", () => {
+  it("uses the document title in the browser tab", () => {
+    expect(documentTabTitle("  Client proposal  ")).toBe(
+      "Client proposal | Thido",
+    );
+    expect(documentTabTitle("Line one\nLine two")).toBe(
+      "Line one Line two | Thido",
+    );
+    expect(documentTabTitle(" ")).toBe("Untitled Document | Thido");
+  });
+
   it("creates readable, URL-safe slugs", () => {
     expect(documentTitleSlug("  Client’s Q3 Proposal!  ")).toBe(
       "clients-q3-proposal",
@@ -30,7 +41,7 @@ describe("document title URLs", () => {
     expect(
       documentEditPath(
         "doc-123",
-        "Untitled Document — 2026-08-11 19:20 UTC",
+        "Untitled Document - 2026-08-11 19:20 UTC",
       ),
     ).toBe("/documents/doc-123/edit");
   });

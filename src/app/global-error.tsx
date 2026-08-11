@@ -25,7 +25,7 @@ export default function GlobalError({
   return (
     <html lang="en">
       <body>
-        <title>Something went wrong — Thido</title>
+        <title>Something went wrong | Thido</title>
         <main
           style={{
             alignItems: "center",

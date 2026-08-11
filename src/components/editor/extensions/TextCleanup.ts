@@ -49,15 +49,15 @@ export function transformCleanupText(text: string, mode: TextCleanupMode) {
     case "normalizeUnicodeSpaces":
       return text.replace(/[\u2000-\u200A\u202F\u205F\u3000]/gu, " ");
     case "smartQuotes": {
-      let result = text.replace(/(^|[\s([{—–])"(?=\S)/gu, "$1“");
+      let result = text.replace(/(^|[\s([{\u2014–])"(?=\S)/gu, "$1“");
       result = result.replace(/"/gu, "”");
-      result = result.replace(/(^|[\s([{—–])'(?=\S)/gu, "$1‘");
+      result = result.replace(/(^|[\s([{\u2014–])'(?=\S)/gu, "$1‘");
       return result.replace(/'/gu, "’");
     }
     case "straightQuotes":
       return text.replace(/[“”]/gu, '"').replace(/[‘’]/gu, "'");
     case "normalizeDashes":
-      return text.replace(/---/gu, "—").replace(/--/gu, "—");
+      return text.replace(/---/gu, "\u2014").replace(/--/gu, "\u2014");
     case "normalizeEllipses":
       return text.replace(/\.{3}/gu, "…");
   }

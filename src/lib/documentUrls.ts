@@ -1,6 +1,14 @@
-import { isDefaultDocumentTitle } from "@/lib/documentPersistence";
+import {
+  DEFAULT_DOCUMENT_TITLE,
+  isDefaultDocumentTitle,
+} from "@/lib/documentPersistence";
 
 export const MAX_DOCUMENT_TITLE_SLUG_LENGTH = 80;
+
+export function documentTabTitle(title?: string | null) {
+  const normalizedTitle = title?.replace(/\s+/gu, " ").trim();
+  return `${normalizedTitle || DEFAULT_DOCUMENT_TITLE} | Thido`;
+}
 
 export function documentTitleSlug(title: string) {
   const normalized = title

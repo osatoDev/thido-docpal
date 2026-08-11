@@ -10,7 +10,7 @@ import { sanitizeFeedbackPath } from "@/lib/feedback";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
-  title: "Suggest a feature — Thido",
+  title: "Suggest a feature | Thido",
 };
 
 const messageDateFormatter = new Intl.DateTimeFormat("en", {

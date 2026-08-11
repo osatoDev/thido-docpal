@@ -347,7 +347,7 @@ async function generateAiResponse({
       commentId,
     });
     if (!checkRateLimit(`ai:${userId}`, 15, 60_000)) {
-      throw new Error("Rate limited — skipping AI response for this comment");
+      throw new Error("Rate limited. Skipping AI response for this comment.");
     }
     const message = await anthropic.messages.parse({
       model,

@@ -27,7 +27,7 @@ export function createEmptySpreadsheetContent(): SpreadsheetContent {
 }
 
 export function createDefaultSpreadsheetTitle(date = new Date()) {
-  return `Untitled Spreadsheet — ${date
+  return `Untitled Spreadsheet - ${date
     .toISOString()
     .slice(0, 16)
     .replace("T", " ")} UTC`;

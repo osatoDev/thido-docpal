@@ -1,9 +1,9 @@
 export const DEFAULT_DOCUMENT_TITLE = "Untitled Document";
 const TIMESTAMPED_DEFAULT_TITLE =
-  /^Untitled Document — \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/;
+  /^Untitled Document (?:-|\u2014) \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC$/;
 
 export function createDefaultDocumentTitle(date = new Date()) {
-  return `${DEFAULT_DOCUMENT_TITLE} — ${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
+  return `${DEFAULT_DOCUMENT_TITLE} - ${date.toISOString().slice(0, 16).replace("T", " ")} UTC`;
 }
 
 export function createLocalizedDefaultDocumentTitle(
@@ -26,7 +26,7 @@ export function createLocalizedDefaultDocumentTitle(
     .formatToParts(date)
     .find((part) => part.type === "timeZoneName")?.value;
 
-  return `${DEFAULT_DOCUMENT_TITLE} — ${dateTime}${zoneName ? ` ${zoneName}` : ""}`;
+  return `${DEFAULT_DOCUMENT_TITLE} - ${dateTime}${zoneName ? ` ${zoneName}` : ""}`;
 }
 
 export function isDefaultDocumentTitle(title: string) {

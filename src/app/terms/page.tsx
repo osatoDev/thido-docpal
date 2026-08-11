@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { LegalDocument } from "@/components/legal/LegalDocument";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — Thido",
+  title: "Terms of Service | Thido",
   description: "The terms that apply when you use Thido.",
 };
 

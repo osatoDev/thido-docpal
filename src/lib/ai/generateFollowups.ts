@@ -11,7 +11,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 
 /**
  * Generates (and persists) the AI follow-up questions for a document, based
- * on its initial brief or prompt answers. Idempotent — returns the existing
+ * on its initial brief or prompt answers. Idempotent: returns the existing
  * follow-ups if they were already generated.
  */
 export async function generateFollowupQuestions(documentId: string) {
@@ -32,7 +32,7 @@ export async function generateFollowupQuestions(documentId: string) {
   const qaText = initialAnswers
     .map(
       (a) =>
-        `Q: ${a.question}\nA: ${a.answer.trim() || "Not provided — infer a reasonable default."}`,
+        `Q: ${a.question}\nA: ${a.answer.trim() || "Not provided. Infer a reasonable default."}`,
     )
     .join("\n\n");
 
@@ -63,7 +63,7 @@ export async function generateFollowupQuestions(documentId: string) {
         "they want, ask 3-5 tailored follow-up questions that would " +
         "meaningfully improve the quality and specificity of the final " +
         "document. Ask about concrete details the initial answers left " +
-        "vague — not generic restatements of the same questions. The user may " +
+        "vague, not generic restatements of the same questions. The user may " +
         "skip any follow-up, so make reasonable assumptions when needed.",
       messages: [{ role: "user", content: qaText }],
       output_config: { format: zodOutputFormat(followupQuestionsSchema) },

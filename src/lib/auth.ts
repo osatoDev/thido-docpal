@@ -27,7 +27,7 @@ import {
 
 // Test login lets you sign in as any email with no OAuth round-trip, purely
 // for local/CI testing. Never enabled in production, even if the env var
-// leaks into a prod environment by mistake — NODE_ENV is the hard backstop.
+// leaks into a prod environment by mistake. NODE_ENV is the hard backstop.
 export const isTestLoginEnabled =
   process.env.NODE_ENV !== "production" &&
   process.env.ENABLE_TEST_LOGIN === "true";

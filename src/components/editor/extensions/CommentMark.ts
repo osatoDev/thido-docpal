@@ -16,7 +16,7 @@ declare module "@tiptap/core" {
 /**
  * A ProseMirror mark that anchors a Comment to a span of text. Modeled on
  * the open-source `@tiptap/extension-highlight` mark rather than Tiptap
- * Pro's paid Comments extension — same mechanism (a mark carrying an
+ * Pro's paid Comments extension. It uses the same mechanism (a mark carrying an
  * attribute), just scoped to what this app needs.
  */
 export const CommentMark = Mark.create<CommentMarkOptions>({

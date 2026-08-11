@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
 import type { JSONContent } from "@tiptap/react";
 
@@ -18,6 +19,42 @@ export type EditDocumentSearchParams = Record<
   string,
   string | string[] | undefined
 >;
+
+export const getAccessibleEditDocument = cache(
+  async (id: string, userId: string, email: string | null | undefined) =>
+    prisma.document.findFirst({
+      where: {
+        id,
+        AND: documentAccessWhere(userId, email, "VIEW"),
+      },
+      include: {
+        collaborators: {
+          orderBy: { createdAt: "asc" },
+          select: { id: true, email: true, permission: true },
+        },
+        linkAccesses: {
+          orderBy: { lastAccessedAt: "desc" },
+          select: {
+            userId: true,
+            lastAccessedAt: true,
+            user: { select: { name: true, email: true } },
+          },
+        },
+        comments: {
+          where: { parentId: null },
+          orderBy: { createdAt: "asc" },
+          include: {
+            author: { select: { name: true } },
+            replies: {
+              orderBy: { createdAt: "asc" },
+              include: { author: { select: { name: true } } },
+            },
+            suggestion: true,
+          },
+        },
+      },
+    }),
+);
 
 function searchSuffix(searchParams: EditDocumentSearchParams) {
   const params = new URLSearchParams();
@@ -54,38 +91,11 @@ export async function EditDocumentPageContent({
     );
   }
 
-  const document = await prisma.document.findFirst({
-    where: {
-      id,
-      AND: documentAccessWhere(session.user.id, session.user.email, "VIEW"),
-    },
-    include: {
-      collaborators: {
-        orderBy: { createdAt: "asc" },
-        select: { id: true, email: true, permission: true },
-      },
-      linkAccesses: {
-        orderBy: { lastAccessedAt: "desc" },
-        select: {
-          userId: true,
-          lastAccessedAt: true,
-          user: { select: { name: true, email: true } },
-        },
-      },
-      comments: {
-        where: { parentId: null },
-        orderBy: { createdAt: "asc" },
-        include: {
-          author: { select: { name: true } },
-          replies: {
-            orderBy: { createdAt: "asc" },
-            include: { author: { select: { name: true } } },
-          },
-          suggestion: true,
-        },
-      },
-    },
-  });
+  const document = await getAccessibleEditDocument(
+    id,
+    session.user.id,
+    session.user.email,
+  );
 
   if (!document) {
     notFound();

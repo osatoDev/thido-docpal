@@ -142,7 +142,7 @@ export async function POST(request: Request, { params }: Params) {
       getUserAiModel(session.user.id),
     ]);
     if (!checkRateLimit(`ai:${session.user.id}`, 15, 60_000)) {
-      throw new Error("Rate limited — skipping AI response for this message");
+      throw new Error("Rate limited. Skipping AI response for this message.");
     }
     telemetry = await startAiGeneration({
       feature: "COMMENT_RESPOND",

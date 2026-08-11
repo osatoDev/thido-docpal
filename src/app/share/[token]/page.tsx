@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import type { JSONContent } from "@tiptap/react";
 
 import { Brand } from "@/components/Brand";
@@ -10,11 +11,34 @@ import { prisma } from "@/lib/prisma";
 import { toPublicDocumentContent } from "@/lib/publicDocument";
 import { isShareToken } from "@/lib/shareTokens";
 import { recordDocumentAccess } from "@/lib/documentAccess";
+import { documentTabTitle } from "@/lib/documentUrls";
 
-export const metadata: Metadata = {
-  title: "Shared document — Thido",
-  robots: { index: false, follow: false },
-};
+const getSharedDocument = cache((token: string) =>
+  prisma.document.findFirst({
+    where: { shareToken: token, status: "READY" },
+    select: {
+      id: true,
+      title: true,
+      content: true,
+      updatedAt: true,
+      sharePermission: true,
+      owner: { select: { name: true } },
+    },
+  }),
+);
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}): Promise<Metadata> {
+  const { token } = await params;
+  const document = isShareToken(token) ? await getSharedDocument(token) : null;
+  return {
+    title: documentTabTitle(document?.title ?? "Shared document"),
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function SharedDocumentPage({
   params,
@@ -28,17 +52,7 @@ export default async function SharedDocumentPage({
     notFound();
   }
 
-  const document = await prisma.document.findFirst({
-    where: { shareToken: token, status: "READY" },
-    select: {
-      id: true,
-      title: true,
-      content: true,
-      updatedAt: true,
-      sharePermission: true,
-      owner: { select: { name: true } },
-    },
-  });
+  const document = await getSharedDocument(token);
 
   if (!document) {
     notFound();

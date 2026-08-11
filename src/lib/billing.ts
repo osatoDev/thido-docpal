@@ -64,7 +64,7 @@ export async function getBillingOffer(): Promise<BillingOffer | null> {
 
     return {
       priceId,
-      label: `${productName} — ${amount}`,
+      label: `${productName}: ${amount}`,
       interval: price.recurring.interval,
     };
   } catch (error) {

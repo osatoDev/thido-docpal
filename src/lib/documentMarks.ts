@@ -47,7 +47,7 @@ function trimTrailing(text: string, maxLength: number) {
 /**
  * Locates the current text span carrying a `comment` mark with the given
  * commentId. Because the mark is part of the document's node structure,
- * this reflects the anchor's *current* position — even if surrounding text
+ * this reflects the anchor's *current* position, even if surrounding text
  * has been edited since the comment was created. Returns null if the span
  * no longer exists (e.g. the commented text was deleted).
  */

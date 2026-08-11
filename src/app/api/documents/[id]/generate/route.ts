@@ -27,7 +27,7 @@ export async function POST(_request: Request, { params }: Params) {
 
   if (!checkRateLimit(`ai:${session.user.id}`, 15, 60_000)) {
     return NextResponse.json(
-      { error: "Too many AI requests — please slow down" },
+      { error: "Too many AI requests. Please slow down." },
       { status: 429 },
     );
   }
@@ -57,7 +57,7 @@ export async function POST(_request: Request, { params }: Params) {
   const qaText = promptAnswers
     .map(
       (a) =>
-        `Q: ${a.question}\nA: ${a.answer.trim() || "Not provided — infer a reasonable default."}`,
+        `Q: ${a.question}\nA: ${a.answer.trim() || "Not provided. Infer a reasonable default."}`,
     )
     .join("\n\n");
 
@@ -87,7 +87,7 @@ export async function POST(_request: Request, { params }: Params) {
         "left an answer blank, without calling attention to the missing input. " +
         "Respond with only the document " +
         "itself, formatted as Markdown (headings, paragraphs, and lists as " +
-        "appropriate) — no preamble, no meta-commentary about the document, " +
+        "appropriate). Do not include a preamble, meta-commentary about the document, " +
         "and no closing remarks.",
       messages: [{ role: "user", content: qaText }],
     });

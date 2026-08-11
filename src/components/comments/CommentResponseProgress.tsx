@@ -15,8 +15,8 @@ export function CommentResponseProgress({
     : succeeded
       ? "Thido finished responding"
     : processing
-      ? "Saved — Thido is responding in the background"
-      : "Saved — waiting for Thido to start";
+      ? "Saved. Thido is responding in the background."
+      : "Saved. Waiting for Thido to start.";
 
   return (
     <details className="group rounded-sm border border-[var(--border)] bg-[var(--surface)] text-xs">

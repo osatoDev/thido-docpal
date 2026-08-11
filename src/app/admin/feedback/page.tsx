@@ -8,7 +8,7 @@ import { parseFounderInboxView } from "@/lib/feedback";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
-  title: "Founder inbox — Thido",
+  title: "Founder inbox | Thido",
 };
 
 function formatDate(date: Date) {

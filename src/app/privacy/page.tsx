@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { LegalDocument } from "@/components/legal/LegalDocument";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Thido",
+  title: "Privacy Policy | Thido",
   description: "How Thido collects, uses, shares, and protects personal data.",
 };
 

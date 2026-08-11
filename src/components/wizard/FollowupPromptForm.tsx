@@ -92,7 +92,7 @@ export function FollowupPromptForm({
           <span>
             <span className="block text-sm font-medium leading-5">{f.question}</span>
             <span className="mt-1 block text-xs leading-5 text-[var(--muted)]">
-              Optional — leave blank for Thido
+              Optional. Leave blank for Thido
             </span>
           </span>
           <textarea

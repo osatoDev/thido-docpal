@@ -41,7 +41,7 @@ import {
   inferDocumentTitle,
   isDefaultDocumentTitle,
 } from "@/lib/documentPersistence";
-import { documentEditPath } from "@/lib/documentUrls";
+import { documentEditPath, documentTabTitle } from "@/lib/documentUrls";
 import {
   detectTextTable,
   plainTextToTiptapNodes,
@@ -213,6 +213,10 @@ export function TiptapEditor({
       window.history.replaceState(null, "", nextUrl);
     }
   }
+
+  useEffect(() => {
+    document.title = documentTabTitle(visibleTitle);
+  }, [visibleTitle]);
 
   useEffect(() => {
     if (!documentImportDismissAfterMs || !documentImportMessageText) return;

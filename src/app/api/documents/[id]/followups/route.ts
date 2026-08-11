@@ -15,7 +15,7 @@ export async function POST(_request: Request, { params }: Params) {
 
   if (!checkRateLimit(`ai:${session.user.id}`, 15, 60_000)) {
     return NextResponse.json(
-      { error: "Too many AI requests — please slow down" },
+      { error: "Too many AI requests. Please slow down." },
       { status: 429 },
     );
   }

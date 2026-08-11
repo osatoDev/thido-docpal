@@ -14,7 +14,7 @@ import {
 } from "@/app/admin/waitlist-actions";
 
 export const metadata: Metadata = {
-  title: "Admin — Thido",
+  title: "Admin | Thido",
 };
 
 function formatDate(date: Date) {
@@ -26,7 +26,7 @@ function formatDate(date: Date) {
 
 function formatPercent(value: number | null) {
   return value === null
-    ? "—"
+    ? "Not available"
     : new Intl.NumberFormat("en", {
         style: "percent",
         maximumFractionDigits: 1,
@@ -34,7 +34,7 @@ function formatPercent(value: number | null) {
 }
 
 function formatDuration(milliseconds: number | null) {
-  if (milliseconds === null) return "—";
+  if (milliseconds === null) return "Not available";
   return milliseconds < 1_000
     ? `${milliseconds} ms`
     : `${(milliseconds / 1_000).toFixed(1)} s`;
@@ -389,7 +389,7 @@ export default async function AdminPage() {
                     {formatCost(feature.estimatedCostMicroUsd)}
                   </td>
                   <td className="px-5 py-4 font-mono text-xs text-[var(--muted)] sm:px-7">
-                    {feature.topFailure ?? "—"}
+                    {feature.topFailure ?? "None"}
                   </td>
                 </tr>
               ))}

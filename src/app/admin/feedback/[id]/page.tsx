@@ -9,7 +9,7 @@ import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
-  title: "Founder conversation — Thido",
+  title: "Founder conversation | Thido",
 };
 
 function formatDate(date: Date) {
