@@ -373,6 +373,7 @@ This is the running source of truth for production-readiness work. Completed box
 ## Product, privacy, and support
 
 - [x] Publish Terms of Service and a Privacy Policy at `/terms` and `/privacy`.
+- [ ] Define and implement the employee and administrator access model for document content before making any claim that Thido personnel cannot read documents. Include default-deny production access, short-lived approved access, a recorded business justification, two-person approval for content reads, immutable audit logs, content redaction from logs and error reports, and a documented decision between provider-managed encryption and client-side customer-controlled encryption. Follow [the Google employee-access comparison](./how-google-limits-employee-access-to-files.md).
 - [x] State how documents, prompts, account data, analytics, and AI-provider processing are handled.
 - [x] Disclose Stripe-hosted billing, the billing identifiers Thido stores, and that Thido does not store full card numbers.
 - [x] Enrich the first-time document-start page with a returning-user header action, a dropdown of more than ten document starters that replace the current outline, guest-flow reassurance, and a concise explanation of what happens after submission.
