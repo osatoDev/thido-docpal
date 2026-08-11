@@ -32,16 +32,18 @@ export function Brand({ href = "/" }: { href?: string }) {
     <Link
       href={href}
       className="brand-lockup inline-flex items-center gap-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--background)]"
-      aria-label="Thido beta home"
+      aria-label="Thido home"
     >
       <ThidoMark />
       <span className="brand-wordmark">Thido</span>
-      <span
-        aria-hidden="true"
-        className="inline-flex h-5 items-center rounded-full border border-[var(--border-strong)] px-1.5 font-mono text-[0.6rem] font-semibold leading-none tracking-[0.12em] text-[var(--accent-strong)] uppercase"
-      >
-        Beta
-      </span>
+      {/*
+        <span
+          aria-hidden="true"
+          className="inline-flex h-5 items-center rounded-full border border-[var(--border-strong)] px-1.5 font-mono text-[0.6rem] font-semibold leading-none tracking-[0.12em] text-[var(--accent-strong)] uppercase"
+        >
+          Beta
+        </span>
+      */}
     </Link>
   );
 }

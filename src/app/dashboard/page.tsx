@@ -16,7 +16,6 @@ import {
   getDocumentForUser,
   normalizeCollaboratorEmail,
 } from "@/lib/documentAuth";
-import { NewDocumentMenu } from "@/components/documents/NewDocumentMenu";
 import { documentEditPath } from "@/lib/documentUrls";
 import { countDocumentWords } from "@/lib/documentWordCount";
 import {
@@ -177,7 +176,6 @@ export default async function DashboardPage() {
               Admin
             </Link>
           )}
-          <NewDocumentMenu />
           <UserMenu user={session.user} />
         </div>
       </header>

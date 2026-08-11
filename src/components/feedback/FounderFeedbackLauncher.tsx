@@ -83,15 +83,15 @@ export function FounderFeedbackLauncher() {
         ref={triggerRef}
         type="button"
         onClick={openPanel}
-        className="fixed bottom-5 left-5 z-50 inline-flex items-center gap-2 rounded-md border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface-raised)_92%,transparent)] px-3 py-2 text-xs font-semibold text-[var(--muted)] shadow-sm backdrop-blur-md hover:border-[var(--accent-strong)] hover:text-[var(--foreground)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
+        className="inline-flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2 text-xs font-semibold text-[var(--muted)] shadow-sm hover:border-[var(--accent-strong)] hover:text-[var(--foreground)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls="founder-feedback-panel"
       >
         <svg
           viewBox="0 0 24 24"
-          width="16"
-          height="16"
+          width="15"
+          height="15"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.8"
@@ -100,7 +100,7 @@ export function FounderFeedbackLauncher() {
           <path d="M5 5.5h14v10H9l-4 3v-13Z" strokeLinejoin="round" />
           <path d="M8 9h8M8 12h5" strokeLinecap="round" />
         </svg>
-        Want a feature? Suggest it here
+        Feedback
       </button>
 
       {open ? (

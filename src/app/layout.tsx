@@ -56,8 +56,8 @@ export default async function RootLayout({
       data-app-style={applicationStyle}
     >
       <body className="flex min-h-full flex-col">
-        {children}
         <SignedInPageActions signedIn={Boolean(session?.user?.id)} />
+        {children}
         <Analytics />
       </body>
     </html>

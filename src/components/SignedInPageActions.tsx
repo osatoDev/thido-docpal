@@ -5,11 +5,11 @@ export function SignedInPageActions({ signedIn }: { signedIn: boolean }) {
   if (!signedIn) return null;
 
   return (
-    <>
-      <div className="print-hidden fixed right-5 bottom-[4.35rem] z-50">
-        <NewDocumentMenu compact placement="above" />
+    <div className="print-hidden w-full shrink-0">
+      <div className="mx-auto flex w-full max-w-[90rem] items-center justify-end gap-2 px-5 pt-3 sm:px-6 lg:px-8">
+        <NewDocumentMenu compact />
+        <FounderFeedbackLauncher />
       </div>
-      <FounderFeedbackLauncher />
-    </>
+    </div>
   );
 }

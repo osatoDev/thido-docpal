@@ -57,9 +57,7 @@ export function NewDocumentMenu({
         >
           <path d="M10 4v12M4 10h12" />
         </svg>
-        <span className={compact ? "hidden sm:inline" : undefined}>
-          New document
-        </span>
+        <span>New document</span>
         <svg
           aria-hidden="true"
           viewBox="0 0 20 20"
