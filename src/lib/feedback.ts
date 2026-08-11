@@ -35,6 +35,12 @@ export function sanitizeFeedbackPath(value: string | undefined) {
   try {
     const pathname = new URL(value, "https://thido.invalid").pathname;
     if (pathname.startsWith("/share/")) return "/share/[token]";
+    if (/^\/documents\/[^/]+\/edit(?:\/[^/]+)?$/.test(pathname)) {
+      return "/documents/[id]/edit";
+    }
+    if (/^\/documents\/[^/]+\/wizard$/.test(pathname)) {
+      return "/documents/[id]/wizard";
+    }
     if (pathname.startsWith("/reset-password")) return "/reset-password";
     if (pathname.startsWith("/verify-email")) return "/verify-email";
     return pathname.slice(0, 500);

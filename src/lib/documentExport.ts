@@ -15,6 +15,7 @@ import {
   TableRow as WordTableRow,
   TextRun,
   WidthType,
+  convertMillimetersToTwip,
   type ParagraphChild,
 } from "docx";
 import PDFDocument from "pdfkit";
@@ -28,6 +29,7 @@ import {
 } from "@/components/editor/extensions/StyledBulletList";
 import { isTaskStyle } from "@/components/editor/extensions/StyledTaskList";
 import { isSafeDocumentLink } from "@/lib/documentLinks";
+import { getDocumentSideMarginMillimeters } from "@/components/editor/extensions/DocumentPreferences";
 
 const wordHighlightColors: Record<string, (typeof HighlightColor)[keyof typeof HighlightColor]> = {
   "#fde68a": HighlightColor.YELLOW,
@@ -405,6 +407,7 @@ export async function createWordDocument({
   title: string;
   content: JSONContent | null;
 }) {
+  const sideMarginMillimeters = getDocumentSideMarginMillimeters(content);
   const children = [
     ...(content?.content
       ? await wordBlocks(documentId, content.content)
@@ -425,7 +428,19 @@ export async function createWordDocument({
         })),
       ],
     },
-    sections: [{ children }],
+    sections: [
+      {
+        properties: {
+          page: {
+            margin: {
+              left: convertMillimetersToTwip(sideMarginMillimeters),
+              right: convertMillimetersToTwip(sideMarginMillimeters),
+            },
+          },
+        },
+        children,
+      },
+    ],
   });
   return Packer.toBuffer(document);
 }
@@ -814,8 +829,8 @@ async function renderPdfBlocks(
     }
     if (node.type === "horizontalRule") {
       pdf
-        .moveTo(54, pdf.y)
-        .lineTo(pdf.page.width - 54, pdf.y)
+        .moveTo(pdf.page.margins.left, pdf.y)
+        .lineTo(pdf.page.width - pdf.page.margins.right, pdf.y)
         .strokeColor("#aaaaaa")
         .stroke();
       pdf.moveDown(0.8);
@@ -846,9 +861,16 @@ export async function createPdfDocument({
   title: string;
   content: JSONContent | null;
 }) {
+  const sideMarginMillimeters = getDocumentSideMarginMillimeters(content);
+  const sideMarginPoints = (sideMarginMillimeters / 25.4) * 72;
   const pdf = new PDFDocument({
     size: "A4",
-    margins: { top: 54, right: 54, bottom: 54, left: 54 },
+    margins: {
+      top: 54,
+      right: sideMarginPoints,
+      bottom: 54,
+      left: sideMarginPoints,
+    },
     info: { Title: title, Creator: "Thido" },
   });
   const chunks: Buffer[] = [];

@@ -10,12 +10,20 @@ import {
 import {
   DOCUMENT_IMPORT_ACCEPT,
   DOCUMENT_IMPORT_EXTENSION_LABEL,
+  DOCUMENT_IMPORT_NOTES_NOTICE_MS,
+  DOCUMENT_IMPORT_SUCCESS_NOTICE_MS,
   SUPPORTED_DOCUMENT_FILE_LABEL,
 } from "@/lib/documentFileTypes";
+import { documentEditPath } from "@/lib/documentUrls";
 
 type DocumentLanguageOption = {
   label: string;
   value: string;
+};
+
+type ImportNotice = {
+  dismissAfterMs: number;
+  text: string;
 };
 
 export function DocumentFileMenu({
@@ -67,8 +75,10 @@ export function DocumentFileMenu({
   const [openDocumentSearch, setOpenDocumentSearch] = useState("");
   const [languageDraft, setLanguageDraft] = useState(documentLanguage);
   const [importing, setImporting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<ImportNotice | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const messageDismissAfterMs = message?.dismissAfterMs;
+  const messageText = message?.text;
   const filteredOpenDocuments = useMemo(() => {
     const query = openDocumentSearch.trim().toLocaleLowerCase();
     return query
@@ -115,6 +125,16 @@ export function DocumentFileMenu({
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [languageOpen]);
+
+  useEffect(() => {
+    if (!messageDismissAfterMs || !messageText) return;
+    const timeout = window.setTimeout(() => {
+      setMessage((current) =>
+        current?.text === messageText ? null : current,
+      );
+    }, messageDismissAfterMs);
+    return () => window.clearTimeout(timeout);
+  }, [messageDismissAfterMs, messageText]);
 
   useEffect(() => {
     if (!openDocumentDialog) return;
@@ -197,11 +217,16 @@ export function DocumentFileMenu({
       const warnings = Array.isArray(body.warnings)
         ? body.warnings.filter((warning: unknown) => typeof warning === "string")
         : [];
-      setMessage(
-        warnings.length > 0
-          ? `Imported with notes: ${warnings.join(" ")}`
-          : "Document imported.",
-      );
+      setMessage({
+        dismissAfterMs:
+          warnings.length > 0
+            ? DOCUMENT_IMPORT_NOTES_NOTICE_MS
+            : DOCUMENT_IMPORT_SUCCESS_NOTICE_MS,
+        text:
+          warnings.length > 0
+            ? `Imported with notes: ${warnings.join(" ")}`
+            : "Document imported.",
+      });
       setOpen(false);
     } catch (reason) {
       setError(
@@ -461,7 +486,7 @@ export function DocumentFileMenu({
             className="absolute top-full left-0 z-20 mt-2 w-80 rounded-md border border-[var(--border)] bg-[var(--surface)] p-3 text-xs leading-5 text-[var(--muted)] shadow-sm"
             role="status"
           >
-            {message}
+            {message.text}
           </p>
         ) : null}
         {error ? (
@@ -616,7 +641,7 @@ export function DocumentFileMenu({
                         <Link
                           href={
                             document.status === "READY"
-                              ? `/documents/${document.id}/edit`
+                              ? documentEditPath(document.id, document.title)
                               : `/documents/${document.id}/wizard`
                           }
                           className="flex items-center justify-between gap-4 rounded-md px-3 py-3 hover:bg-[var(--surface-subtle)]"

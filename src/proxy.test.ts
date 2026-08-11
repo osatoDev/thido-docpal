@@ -34,6 +34,7 @@ describe("proxy route scope", () => {
     "/admin/feedback/123",
     "/dashboard",
     "/documents/123/edit",
+    "/documents/123/edit/project-plan",
     "/documents/123/wizard",
     "/feedback",
     "/settings",

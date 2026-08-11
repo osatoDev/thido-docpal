@@ -17,6 +17,7 @@ import {
   normalizeCollaboratorEmail,
 } from "@/lib/documentAuth";
 import { NewDocumentMenu } from "@/components/documents/NewDocumentMenu";
+import { documentEditPath } from "@/lib/documentUrls";
 import {
   createDocumentFolder,
   deleteDocumentFolder,
@@ -124,7 +125,7 @@ export default async function DashboardPage() {
     title: document.title,
     href:
       document.status === "READY"
-        ? `/documents/${document.id}/edit`
+        ? documentEditPath(document.id, document.title)
         : `/documents/${document.id}/wizard`,
     folderId: document.ownerId === session.user.id ? document.folderId : null,
     lastAccessedAt: document.lastAccessedAt.toISOString(),

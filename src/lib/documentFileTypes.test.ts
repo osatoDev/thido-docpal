@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   DOCUMENT_IMPORT_ACCEPT,
   DOCUMENT_IMPORT_EXTENSION_LABEL,
+  DOCUMENT_IMPORT_NOTES_NOTICE_MS,
+  DOCUMENT_IMPORT_SUCCESS_NOTICE_MS,
   documentImportFormatForFileName,
   documentImportTitleFromFileName,
   isSupportedDocumentFileName,
@@ -37,5 +39,7 @@ describe("supported document file names", () => {
     expect(DOCUMENT_IMPORT_EXTENSION_LABEL).toBe(
       ".docx, .doc, .odt, .rtf, .md, .txt",
     );
+    expect(DOCUMENT_IMPORT_SUCCESS_NOTICE_MS).toBe(4_000);
+    expect(DOCUMENT_IMPORT_NOTES_NOTICE_MS).toBe(10_000);
   });
 });

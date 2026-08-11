@@ -1,28 +1,56 @@
 import { notFound, redirect } from "next/navigation";
 import type { JSONContent } from "@tiptap/react";
+
+import { TiptapEditor } from "@/components/editor/TiptapEditor";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { recordDocumentAccess } from "@/lib/documentAccess";
+import { isCommentAiJobActive } from "@/lib/documentAiJobs";
 import {
   documentAccessWhere,
   effectiveDocumentPermission,
   normalizeCollaboratorEmail,
 } from "@/lib/documentAuth";
-import { TiptapEditor } from "@/components/editor/TiptapEditor";
-import { recordDocumentAccess } from "@/lib/documentAccess";
-import { isCommentAiJobActive } from "@/lib/documentAiJobs";
+import { documentEditPath } from "@/lib/documentUrls";
+import { prisma } from "@/lib/prisma";
 import type { CommentAiProgress } from "@/lib/types";
 
-type Props = {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ start?: string | string[] }>;
-};
+export type EditDocumentSearchParams = Record<
+  string,
+  string | string[] | undefined
+>;
 
-export default async function EditDocumentPage({ params, searchParams }: Props) {
+function searchSuffix(searchParams: EditDocumentSearchParams) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (Array.isArray(value)) {
+      for (const item of value) params.append(key, item);
+    } else if (typeof value === "string") {
+      params.set(key, value);
+    }
+  }
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+export async function EditDocumentPageContent({
+  id,
+  slugSegments,
+  searchParams,
+}: {
+  id: string;
+  slugSegments: readonly string[];
+  searchParams: EditDocumentSearchParams;
+}) {
+  const suffix = searchSuffix(searchParams);
+  const requestedPath = `${documentEditPath(id)}${
+    slugSegments.length > 0
+      ? `/${slugSegments.map(encodeURIComponent).join("/")}`
+      : ""
+  }`;
   const session = await auth();
-  const [{ id }, query] = await Promise.all([params, searchParams]);
   if (!session?.user?.id) {
     redirect(
-      `/login?notice=sign-in-required&callbackUrl=${encodeURIComponent(`/documents/${id}/edit`)}`,
+      `/login?notice=sign-in-required&callbackUrl=${encodeURIComponent(`${requestedPath}${suffix}`)}`,
     );
   }
 
@@ -64,7 +92,12 @@ export default async function EditDocumentPage({ params, searchParams }: Props) 
   }
 
   if (document.status !== "READY") {
-    redirect(`/documents/${id}/wizard`);
+    redirect(`/documents/${encodeURIComponent(id)}/wizard`);
+  }
+
+  const canonicalPath = documentEditPath(document.id, document.title);
+  if (requestedPath !== canonicalPath) {
+    redirect(`${canonicalPath}${suffix}`);
   }
 
   recordDocumentAccess(document.id);
@@ -109,6 +142,7 @@ export default async function EditDocumentPage({ params, searchParams }: Props) 
     (comment) =>
       comment.scope === "DOCUMENT" && isCommentAiJobActive(comment),
   );
+  const start = searchParams.start;
 
   return (
     <TiptapEditor
@@ -139,7 +173,7 @@ export default async function EditDocumentPage({ params, searchParams }: Props) 
       accessPermission={accessPermission}
       currentUser={session.user}
       startedFromPaste={
-        (Array.isArray(query.start) ? query.start[0] : query.start) === "paste"
+        (Array.isArray(start) ? start[0] : start) === "paste"
       }
     />
   );

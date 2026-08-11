@@ -94,9 +94,11 @@ document images, headings 1–6, text alignment, paragraph indentation, font
 family, font size, text color, highlight color, line spacing, paragraph spacing,
 page breaks, and named Thido bookmarks. Safe custom bullet symbols use a visible
 text-prefix fallback in Word because they are not part of the document's fixed
-numbering definitions. Inserted Thido tables of contents become indented heading lists,
-and Thido footnotes become numbered notes with superscript references; these are
-portable fallbacks rather than native Word TOC or footnote fields. Thido
+numbering definitions. The document's Narrow, Standard, or Wide side-margin
+setting is applied to the Word section. Inserted Thido tables of contents become
+indented heading lists, and Thido footnotes become numbered notes with
+superscript references; these are portable fallbacks rather than native Word
+TOC or footnote fields. Thido
 checklist items are represented with checked or unchecked box characters, and
 completed-item strikethrough is preserved when that checklist style is selected;
 importing that Word file again retains their text but does not reconstruct
@@ -111,8 +113,9 @@ basic tables, blockquotes, horizontal rules, tables of
 contents, numbered footnotes, and stored images onto A4 pages. Named bookmark
 markers are omitted from PDF because the current PDF exporter does not create
 internal anchor destinations. Highlight and superscript/subscript remain visible
-in the editor and Word export but currently fall back to plain text in PDF. Browser printing
-remains available when a user needs printer-specific controls.
+in the editor and Word export but currently fall back to plain text in PDF. The
+selected side-margin preset is also applied to PDF output and browser printing.
+Browser printing remains available when a user needs printer-specific controls.
 
 Comments, private comment anchors, AI metadata, collaborator details, and
 version history are excluded from both export formats.

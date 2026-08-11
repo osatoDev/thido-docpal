@@ -25,6 +25,7 @@ import { LinkControl } from "./LinkControl";
 import { WordCountDialog } from "./WordCountDialog";
 import {
   DOCUMENT_LANGUAGE_OPTIONS,
+  DOCUMENT_SIDE_MARGIN_OPTIONS,
   getDocumentPreferences,
 } from "./extensions/DocumentPreferences";
 import { LINE_HEIGHT_OPTIONS } from "./extensions/ParagraphFormatting";
@@ -1160,6 +1161,18 @@ export function Toolbar({
                   onSelect: () => onZoomChange(nextZoom),
                 })),
               },
+              ...(canEdit && documentPreferences
+                ? [
+                    {
+                      label: "Side margins",
+                      children: DOCUMENT_SIDE_MARGIN_OPTIONS.map((option) => ({
+                        label: `${option.label}${documentPreferences.sideMargin === option.value ? " ✓" : ""}`,
+                        onSelect: () =>
+                          editor?.commands.setDocumentSideMargin(option.value),
+                      })),
+                    },
+                  ]
+                : []),
               ...(editor
                 ? [
                     {

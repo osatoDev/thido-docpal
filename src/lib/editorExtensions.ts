@@ -34,7 +34,10 @@ import {
 } from "@/components/editor/extensions/ParagraphFormatting";
 import { RichTextStyle } from "@/components/editor/extensions/RichTextStyle";
 import { StyledBulletList } from "@/components/editor/extensions/StyledBulletList";
-import { StyledTaskList } from "@/components/editor/extensions/StyledTaskList";
+import {
+  StyledTaskList,
+  TaskItemIndentation,
+} from "@/components/editor/extensions/StyledTaskList";
 import { TextCase } from "@/components/editor/extensions/TextCase";
 import { TextCleanup } from "@/components/editor/extensions/TextCleanup";
 import { TextIndent } from "@/components/editor/extensions/TextIndent";
@@ -103,6 +106,7 @@ export function getEditorExtensions(): Extensions {
           `${checked ? "Mark incomplete" : "Mark complete"}: ${node.textContent || "empty task"}`,
       },
     }),
+    TaskItemIndentation,
     TableKit.configure({
       table: {
         allowTableNodeSelection: true,

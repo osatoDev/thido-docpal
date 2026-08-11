@@ -17,6 +17,11 @@ describe("Rollbar payload sanitization", () => {
     expect(
       sanitizeRollbarString("/api/documents/doc-123/comments"),
     ).toBe("/api/documents/[id]/comments");
+    expect(
+      sanitizeRollbarString(
+        "/documents/doc-123/edit/private-project-plan?panel=comments",
+      ),
+    ).toBe("/documents/[id]/edit?panel=comments");
   });
 
   it("redacts content-bearing and identity fields recursively", () => {

@@ -41,6 +41,7 @@ import {
   inferDocumentTitle,
   isDefaultDocumentTitle,
 } from "@/lib/documentPersistence";
+import { documentEditPath } from "@/lib/documentUrls";
 import {
   detectTextTable,
   plainTextToTiptapNodes,
@@ -48,6 +49,8 @@ import {
   type DetectedTextTable,
 } from "@/lib/textTable";
 import {
+  DOCUMENT_IMPORT_NOTES_NOTICE_MS,
+  DOCUMENT_IMPORT_SUCCESS_NOTICE_MS,
   isSupportedDocumentFileName,
   SUPPORTED_DOCUMENT_FILE_LABEL,
 } from "@/lib/documentFileTypes";
@@ -165,9 +168,13 @@ export function TiptapEditor({
     useState<PendingTablePaste | null>(null);
   const [fileDragActive, setFileDragActive] = useState(false);
   const [documentImportMessage, setDocumentImportMessage] = useState<{
+    dismissAfterMs?: number;
     kind: "error" | "loading" | "success";
     text: string;
   } | null>(null);
+  const documentImportDismissAfterMs =
+    documentImportMessage?.dismissAfterMs;
+  const documentImportMessageText = documentImportMessage?.text;
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSaveRef = useRef<{
     title?: string;
@@ -197,6 +204,25 @@ export function TiptapEditor({
     revisionRef.current = nextRevision;
     setRevision(nextRevision);
   }, []);
+
+  function replaceDocumentUrl(savedTitle: string) {
+    const path = documentEditPath(documentId, savedTitle);
+    const nextUrl = `${path}${window.location.search}${window.location.hash}`;
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (currentUrl !== nextUrl) {
+      window.history.replaceState(null, "", nextUrl);
+    }
+  }
+
+  useEffect(() => {
+    if (!documentImportDismissAfterMs || !documentImportMessageText) return;
+    const timeout = window.setTimeout(() => {
+      setDocumentImportMessage((current) =>
+        current?.text === documentImportMessageText ? null : current,
+      );
+    }, documentImportDismissAfterMs);
+    return () => window.clearTimeout(timeout);
+  }, [documentImportDismissAfterMs, documentImportMessageText]);
 
   const editor = useEditor({
     extensions: getEditorExtensions(),
@@ -402,10 +428,13 @@ export function TiptapEditor({
 
         if (response.ok) {
           const savedDocument = body?.document as
-            | { revision?: unknown }
+            | { revision?: unknown; title?: unknown }
             | undefined;
           if (typeof savedDocument?.revision === "number") {
             updateRevision(savedDocument.revision);
+          }
+          if (typeof savedDocument?.title === "string") {
+            replaceDocumentUrl(savedDocument.title);
           }
           setSaveState("saved");
           return { ok: true, body };
@@ -460,6 +489,7 @@ export function TiptapEditor({
       setTitle(latest.title);
       titleRef.current = latest.title;
       titleManuallySetRef.current = latest.titleManuallySet;
+      replaceDocumentUrl(latest.title);
       editorRef.current?.commands.setContent(latest.content ?? "", {
         emitUpdate: false,
       });
@@ -480,6 +510,7 @@ export function TiptapEditor({
   function handleDocumentRestored(document: RestoredDocument) {
     setTitle(document.title);
     titleRef.current = document.title;
+    replaceDocumentUrl(document.title);
     if (typeof document.titleManuallySet === "boolean") {
       titleManuallySetRef.current = document.titleManuallySet;
     }
@@ -538,6 +569,10 @@ export function TiptapEditor({
         ? body.warnings.filter((warning: unknown) => typeof warning === "string")
         : [];
       setDocumentImportMessage({
+        dismissAfterMs:
+          warnings.length > 0
+            ? DOCUMENT_IMPORT_NOTES_NOTICE_MS
+            : DOCUMENT_IMPORT_SUCCESS_NOTICE_MS,
         kind: "success",
         text:
           warnings.length > 0
@@ -1201,7 +1236,7 @@ export function TiptapEditor({
                 onClose={() => setDocumentOutlineOpen(false)}
               />
             ) : null}
-            <div className="print-document-content min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-5 sm:py-8 lg:px-6">
+            <div className="print-document-content min-w-0 flex-1 overflow-y-auto py-6 sm:py-8">
               <div
                 className="editor-zoom"
                 style={{ zoom: editorZoom / 100 }}

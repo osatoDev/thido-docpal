@@ -102,7 +102,7 @@ export default async function SharedDocumentPage({
           </div>
         </header>
 
-        <div className="print-document-panel app-panel rounded-sm px-6 py-8 sm:px-12 sm:py-12">
+        <div className="print-document-panel app-panel rounded-sm py-8 sm:py-12">
           {content ? (
             <PublicDocumentViewer content={content} />
           ) : (

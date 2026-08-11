@@ -2,6 +2,8 @@ import "server-only";
 
 import { Resend } from "resend";
 
+import { documentEditPath } from "@/lib/documentUrls";
+
 let resendClient: Resend | null = null;
 
 function getResend() {
@@ -231,7 +233,7 @@ export async function sendDocumentInvitationEmail({
   permission: keyof typeof permissionDescriptions;
   idempotencyKey: string;
 }) {
-  const url = appUrl(`/documents/${encodeURIComponent(documentId)}/edit`);
+  const url = appUrl(documentEditPath(documentId, documentTitle));
   const description = permissionDescriptions[permission];
   const safeInviterName = escapeHtml(inviterName);
   const safeDocumentTitle = escapeHtml(documentTitle);

@@ -29,6 +29,82 @@ afterEach(() => {
 });
 
 describe("block productivity commands", () => {
+  it("indents and outdents checkbox items with Tab and Shift-Tab", () => {
+    const editor = makeEditor({
+      type: "doc",
+      content: [
+        {
+          type: "taskList",
+          content: [
+            {
+              type: "taskItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Parent" }],
+                },
+              ],
+            },
+            {
+              type: "taskItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Child" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    let childPosition: number | null = null;
+    editor.state.doc.descendants((node, position) => {
+      if (node.isText && node.text === "Child") childPosition = position;
+    });
+    expect(childPosition).not.toBeNull();
+    editor.commands.setTextSelection((childPosition ?? 0) + 1);
+
+    expect(editor.commands.keyboardShortcut("Tab")).toBe(true);
+    expect(editor.getJSON().content?.[0]).toMatchObject({
+      type: "taskList",
+      content: [
+        {
+          type: "taskItem",
+          content: [
+            { type: "paragraph" },
+            {
+              type: "taskList",
+              content: [
+                {
+                  type: "taskItem",
+                  content: [{ type: "paragraph" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(editor.commands.keyboardShortcut("Shift-Tab")).toBe(true);
+    expect(editor.getJSON().content?.[0]?.content).toHaveLength(2);
+
+    const paragraphEditor = makeEditor({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "Ordinary text" }],
+        },
+      ],
+    });
+    paragraphEditor.commands.setTextSelection(2);
+    const paragraphBeforeTab = paragraphEditor.getJSON();
+    paragraphEditor.commands.keyboardShortcut("Tab");
+    expect(paragraphEditor.getJSON()).toEqual(paragraphBeforeTab);
+  });
+
   it("duplicates and reorders the current top-level block", () => {
     const editor = makeEditor({
       type: "doc",

@@ -375,11 +375,24 @@ select {
 }
 
 .ProseMirror {
+  --document-side-margin: clamp(1rem, 6vw, 4rem);
   color: var(--foreground);
   font-family: var(--document-font-family);
   font-size: var(--document-font-size);
   line-height: var(--document-line-height);
-  transition: color 160ms ease, font-family 160ms ease;
+  padding-inline: var(--document-side-margin);
+  transition:
+    color 160ms ease,
+    font-family 160ms ease,
+    padding 160ms ease;
+}
+
+.ProseMirror[data-document-side-margin="narrow"] {
+  --document-side-margin: clamp(1rem, 3vw, 1.5rem);
+}
+
+.ProseMirror[data-document-side-margin="wide"] {
+  --document-side-margin: clamp(1.25rem, 10vw, 8rem);
 }
 
 :root[data-app-style="clean"] .ProseMirror :is(h1, h2, h3, h4, h5, h6) {
@@ -710,6 +723,10 @@ select {
     margin: 18mm;
   }
 
+  @page thido-document {
+    margin: 18mm 0;
+  }
+
   :root,
   :root[data-theme="dark"] {
     color-scheme: light;
@@ -734,6 +751,21 @@ select {
     print-color-adjust: exact;
   }
 
+  .print-document-layout:has(.ProseMirror),
+  .print-document-article:has(.ProseMirror) {
+    page: thido-document;
+  }
+
+  .print-document-layout:has(.ProseMirror[data-document-side-margin="narrow"]),
+  .print-document-article:has(.ProseMirror[data-document-side-margin="narrow"]) {
+    --document-print-side-margin: 12.7mm;
+  }
+
+  .print-document-layout:has(.ProseMirror[data-document-side-margin="wide"]),
+  .print-document-article:has(.ProseMirror[data-document-side-margin="wide"]) {
+    --document-print-side-margin: 31.75mm;
+  }
+
   .print-hidden,
   .theme-toggle {
     display: none !important;
@@ -752,6 +784,7 @@ select {
     margin-bottom: 12mm;
     padding-bottom: 6mm;
     border-bottom: 1px solid var(--border);
+    padding-inline: var(--document-print-side-margin, 19.05mm);
   }
 
   .print-document-article {
@@ -762,6 +795,7 @@ select {
   .print-document-heading {
     margin-bottom: 12mm !important;
     padding-bottom: 6mm !important;
+    padding-inline: var(--document-print-side-margin, 19.05mm);
   }
 
   .print-document-panel {
@@ -785,6 +819,7 @@ select {
 
   .print-document-panel .ProseMirror {
     min-height: 0 !important;
+    padding-inline: var(--document-print-side-margin, 19.05mm) !important;
   }
 
   .comment-highlight {

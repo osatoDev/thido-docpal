@@ -5,6 +5,7 @@ import type { JSONContent } from "@tiptap/core";
 import { transformTextCase } from "@/components/editor/extensions/TextCase";
 import { slugifyHeading } from "@/components/editor/extensions/HeadingAnchors";
 import { normalizeCustomBulletGlyph } from "@/components/editor/extensions/StyledBulletList";
+import { getDocumentSideMarginMillimeters } from "@/components/editor/extensions/DocumentPreferences";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { preserveDocumentPreferences } from "@/lib/markdownToTiptap";
 
@@ -125,10 +126,12 @@ describe("priority-one document structures", () => {
 
     expect(content.content?.[0]).toMatchObject({
       type: "taskList",
+      attrs: { taskStyle: "strike" },
       content: [{ type: "taskItem", attrs: { checked: true } }],
     });
     expect(content.content?.[1].type).toBe("table");
     expect(html).toContain('data-type="taskList"');
+    expect(html).toContain('data-task-style="strike"');
     expect(html).toContain("<th");
     expect(html).toContain("<td");
   });
@@ -297,6 +300,7 @@ describe("priority-one document structures", () => {
             spellcheck: false,
             direction: "rtl",
             appearance: "editorial",
+            sideMargin: "wide",
           },
         },
         {
@@ -343,6 +347,7 @@ describe("priority-one document structures", () => {
     expect(html).toContain('data-language="de-DE"');
     expect(html).toContain('data-direction="rtl"');
     expect(html).toContain('data-appearance="editorial"');
+    expect(html).toContain('data-side-margin="wide"');
     expect(html).toContain('id="uberblick"');
     expect(html).toContain('data-outline-hidden="true"');
     expect(html).toContain('data-type="table-of-contents"');
@@ -362,6 +367,7 @@ describe("priority-one document structures", () => {
             spellcheck: false,
             direction: "rtl",
             appearance: "editorial",
+            sideMargin: "wide",
           }),
         }),
         expect.objectContaining({
@@ -391,6 +397,7 @@ describe("priority-one document structures", () => {
               spellcheck: true,
               direction: "ltr",
               appearance: "warm",
+              sideMargin: "narrow",
             },
           },
           { type: "paragraph", content: [{ type: "text", text: "Old" }] },
@@ -406,10 +413,38 @@ describe("priority-one document structures", () => {
 
     expect(rewritten.content?.[0]).toMatchObject({
       type: "documentPreferences",
-      attrs: { appearance: "warm", language: "en-GB" },
+      attrs: {
+        appearance: "warm",
+        language: "en-GB",
+        sideMargin: "narrow",
+      },
     });
     expect(rewritten.content?.[1]?.textContent).toBeUndefined();
     expect(rewritten.content?.[1]?.content?.[0]?.text).toBe("New");
+  });
+
+  it("normalizes side margins for export and defaults older documents", () => {
+    expect(getDocumentSideMarginMillimeters(null)).toBe(19.05);
+    expect(
+      getDocumentSideMarginMillimeters({
+        content: [
+          {
+            type: "documentPreferences",
+            attrs: { sideMargin: "narrow" },
+          },
+        ],
+      }),
+    ).toBe(12.7);
+    expect(
+      getDocumentSideMarginMillimeters({
+        content: [
+          {
+            type: "documentPreferences",
+            attrs: { sideMargin: "unsafe-value" },
+          },
+        ],
+      }),
+    ).toBe(19.05);
   });
 
   it("round-trips named bookmarks as safe internal destinations", () => {

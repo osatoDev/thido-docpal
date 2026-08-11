@@ -94,3 +94,6 @@ export const DOCUMENT_IMPORT_EXTENSION_LABEL = DOCUMENT_IMPORT_FORMATS.map(
 
 export const SUPPORTED_DOCUMENT_FILE_LABEL =
   "Word (.docx and .doc), OpenDocument (.odt), Rich Text (.rtf), Markdown (.md), or plain text (.txt)";
+
+export const DOCUMENT_IMPORT_SUCCESS_NOTICE_MS = 4_000;
+export const DOCUMENT_IMPORT_NOTES_NOTICE_MS = 10_000;

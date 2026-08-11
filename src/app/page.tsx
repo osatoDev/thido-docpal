@@ -4,6 +4,7 @@ import { NewDocumentLanding } from "@/components/landing/NewDocumentLanding";
 import { getOrCreateBlankDocument } from "@/lib/blankDocument";
 import { getCurrentSession } from "@/lib/currentSession";
 import { documentAccessWhere } from "@/lib/documentAuth";
+import { documentEditPath } from "@/lib/documentUrls";
 import { prisma } from "@/lib/prisma";
 
 export default async function Home() {
@@ -28,18 +29,18 @@ export default async function Home() {
         ],
       },
       orderBy: { lastAccessedAt: "desc" },
-      select: { id: true, status: true },
+      select: { id: true, status: true, title: true },
     });
 
     if (recentDocument) {
       redirect(
         recentDocument.status === "READY"
-          ? `/documents/${recentDocument.id}/edit`
+          ? documentEditPath(recentDocument.id, recentDocument.title)
           : `/documents/${recentDocument.id}/wizard`,
       );
     }
   }
 
   const document = await getOrCreateBlankDocument(session.user.id);
-  redirect(`/documents/${document.id}/edit`);
+  redirect(documentEditPath(document.id));
 }

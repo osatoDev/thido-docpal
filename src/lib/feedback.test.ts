@@ -17,7 +17,12 @@ describe("feedback helpers", () => {
 
   it("keeps safe route context while removing secrets", () => {
     expect(sanitizeFeedbackPath("/documents/doc_123/edit?panel=comments")).toBe(
-      "/documents/doc_123/edit",
+      "/documents/[id]/edit",
+    );
+    expect(
+      sanitizeFeedbackPath("/documents/doc_123/edit/private-project-plan"),
+    ).toBe(
+      "/documents/[id]/edit",
     );
     expect(sanitizeFeedbackPath("/share/a-secret-token")).toBe(
       "/share/[token]",

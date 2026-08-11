@@ -7,6 +7,7 @@ import { FollowupPromptForm } from "@/components/wizard/FollowupPromptForm";
 import { Brand } from "@/components/Brand";
 import { UserMenu } from "@/components/account/UserMenu";
 import { recordDocumentAccess } from "@/lib/documentAccess";
+import { documentEditPath } from "@/lib/documentUrls";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -30,7 +31,7 @@ export default async function WizardPage({ params }: Props) {
   }
 
   if (document.status === "READY") {
-    redirect(`/documents/${id}/edit`);
+    redirect(documentEditPath(document.id, document.title));
   }
 
   recordDocumentAccess(document.id);

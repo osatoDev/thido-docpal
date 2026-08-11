@@ -6,6 +6,10 @@ const SENSITIVE_FIELD =
 const ROUTE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/\/share\/[^/?#\s]+/gi, "/share/[token]"],
   [/\/api\/documents\/[^/?#\s]+/gi, "/api/documents/[id]"],
+  [
+    /\/documents\/[^/?#\s]+\/edit(?:\/[^/?#\s]+)?/gi,
+    "/documents/[id]/edit",
+  ],
   [/\/documents\/[^/?#\s]+/gi, "/documents/[id]"],
   [/\/api\/comments\/[^/?#\s]+/gi, "/api/comments/[id]"],
   [/\/api\/suggestions\/[^/?#\s]+/gi, "/api/suggestions/[id]"],

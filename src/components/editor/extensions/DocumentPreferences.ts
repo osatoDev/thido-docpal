@@ -39,14 +39,23 @@ export const DOCUMENT_APPEARANCE_OPTIONS = [
   },
 ] as const;
 
+export const DOCUMENT_SIDE_MARGIN_OPTIONS = [
+  { label: "Narrow · 13 mm", value: "narrow", millimeters: 12.7 },
+  { label: "Standard · 19 mm", value: "standard", millimeters: 19.05 },
+  { label: "Wide · 32 mm", value: "wide", millimeters: 31.75 },
+] as const;
+
 export type DocumentDirection = "ltr" | "rtl";
 export type DocumentAppearance =
   (typeof DOCUMENT_APPEARANCE_OPTIONS)[number]["value"];
+export type DocumentSideMargin =
+  (typeof DOCUMENT_SIDE_MARGIN_OPTIONS)[number]["value"];
 export type DocumentPreferencesValue = {
   language: string;
   spellcheck: boolean;
   direction: DocumentDirection;
   appearance: DocumentAppearance;
+  sideMargin: DocumentSideMargin;
 };
 
 const DEFAULT_PREFERENCES: DocumentPreferencesValue = {
@@ -54,6 +63,7 @@ const DEFAULT_PREFERENCES: DocumentPreferencesValue = {
   spellcheck: true,
   direction: "ltr",
   appearance: "classic",
+  sideMargin: "standard",
 };
 
 declare module "@tiptap/core" {
@@ -63,6 +73,7 @@ declare module "@tiptap/core" {
       setDocumentSpellcheck: (enabled: boolean) => ReturnType;
       setDocumentDirection: (direction: DocumentDirection) => ReturnType;
       setDocumentAppearance: (appearance: DocumentAppearance) => ReturnType;
+      setDocumentSideMargin: (sideMargin: DocumentSideMargin) => ReturnType;
     };
   }
 }
@@ -83,6 +94,33 @@ function normalizeAppearance(value: unknown): DocumentAppearance {
     : DEFAULT_PREFERENCES.appearance;
 }
 
+export function normalizeDocumentSideMargin(
+  value: unknown,
+): DocumentSideMargin {
+  return DOCUMENT_SIDE_MARGIN_OPTIONS.some((option) => option.value === value)
+    ? (value as DocumentSideMargin)
+    : DEFAULT_PREFERENCES.sideMargin;
+}
+
+export function getDocumentSideMarginMillimeters(content: {
+  content?: Array<{ type?: string; attrs?: Record<string, unknown> }>;
+} | null): number {
+  const preferences = content?.content?.find(
+    (node) => node.type === "documentPreferences",
+  );
+  const sideMargin = normalizeDocumentSideMargin(
+    preferences?.attrs?.sideMargin,
+  );
+  return (
+    DOCUMENT_SIDE_MARGIN_OPTIONS.find(
+      (option) => option.value === sideMargin,
+    )?.millimeters ??
+    DOCUMENT_SIDE_MARGIN_OPTIONS.find(
+      (option) => option.value === DEFAULT_PREFERENCES.sideMargin,
+    )!.millimeters
+  );
+}
+
 export function getDocumentPreferences(
   doc: ProseMirrorNode,
 ): DocumentPreferencesValue {
@@ -94,6 +132,7 @@ export function getDocumentPreferences(
       spellcheck: node.attrs.spellcheck !== false,
       direction: normalizeDirection(node.attrs.direction),
       appearance: normalizeAppearance(node.attrs.appearance),
+      sideMargin: normalizeDocumentSideMargin(node.attrs.sideMargin),
     };
     return false;
   });
@@ -114,6 +153,7 @@ function updatePreferences(
         spellcheck: node.attrs.spellcheck !== false,
         direction: normalizeDirection(node.attrs.direction),
         appearance: normalizeAppearance(node.attrs.appearance),
+        sideMargin: normalizeDocumentSideMargin(node.attrs.sideMargin),
       };
       return false;
     });
@@ -139,6 +179,7 @@ function applyPreferencesToEditor(view: EditorView) {
   editor.spellcheck = preferences.spellcheck;
   editor.setAttribute("data-document-language", preferences.language);
   editor.setAttribute("data-document-appearance", preferences.appearance);
+  editor.setAttribute("data-document-side-margin", preferences.sideMargin);
 }
 
 export const DocumentPreferencesNode = Node.create({
@@ -169,6 +210,11 @@ export const DocumentPreferencesNode = Node.create({
         parseHTML: (element: HTMLElement) =>
           normalizeAppearance(element.getAttribute("data-appearance")),
       },
+      sideMargin: {
+        default: DEFAULT_PREFERENCES.sideMargin,
+        parseHTML: (element: HTMLElement) =>
+          normalizeDocumentSideMargin(element.getAttribute("data-side-margin")),
+      },
     };
   },
 
@@ -182,6 +228,7 @@ export const DocumentPreferencesNode = Node.create({
       spellcheck: node.attrs.spellcheck !== false,
       direction: normalizeDirection(node.attrs.direction),
       appearance: normalizeAppearance(node.attrs.appearance),
+      sideMargin: normalizeDocumentSideMargin(node.attrs.sideMargin),
     };
     return [
       "div",
@@ -191,6 +238,7 @@ export const DocumentPreferencesNode = Node.create({
         "data-spellcheck": String(preferences.spellcheck),
         "data-direction": preferences.direction,
         "data-appearance": preferences.appearance,
+        "data-side-margin": preferences.sideMargin,
         hidden: "hidden",
       },
     ];
@@ -210,6 +258,10 @@ export const DocumentPreferences = Extension.create({
         updatePreferences({ direction: normalizeDirection(direction) }),
       setDocumentAppearance: (appearance) =>
         updatePreferences({ appearance: normalizeAppearance(appearance) }),
+      setDocumentSideMargin: (sideMargin) =>
+        updatePreferences({
+          sideMargin: normalizeDocumentSideMargin(sideMargin),
+        }),
     };
   },
 
