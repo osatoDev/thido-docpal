@@ -6,6 +6,7 @@ import type { AdapterUser } from "@auth/core/adapters";
 import { WaitlistSignupMethod } from "@prisma/client";
 
 import { loginSchema } from "@/lib/authInput";
+import { AUTH_SESSION_OPTIONS } from "@/lib/authSession";
 import {
   createBetaUser,
   hasBetaCapacity,
@@ -147,7 +148,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   // Auth.js credentials providers require JWT sessions. OAuth users continue
   // to be persisted through the Prisma adapter.
-  session: { strategy: "jwt" },
+  session: AUTH_SESSION_OPTIONS,
   pages: {
     signIn: "/login",
   },
