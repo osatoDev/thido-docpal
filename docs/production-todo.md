@@ -1,6 +1,6 @@
 # Thido production checklist
 
-Last reviewed: 11 August 2026
+Last reviewed: 12 August 2026
 
 This is the running source of truth for production-readiness work. Completed boxes indicate repository evidence or a verified check. External configuration remains unchecked until it is explicitly verified.
 
@@ -192,7 +192,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Label the existing task-list formatting control explicitly as **Checkbox list** so the checkbox bullet option is discoverable without relying on its icon.
 - [x] Match Google Docs list choices with eight built-in bullet markers, a safe custom-bullet path, and checklist variants with or without completed-item strikethrough; preserve them in shared rendering and compatible Word/PDF fallbacks.
 - [x] Make Google Docs-style completion the checklist default: clicking a checkbox marks it complete and strikes its text, while explicitly saved no-strikethrough checklists retain that choice.
-- [x] Match Google Docs checklist keyboard behavior by indenting the current checkbox item with **Tab** and outdenting it with **Shift+Tab**, without changing ordinary paragraphs.
+- [x] Make **Tab** indent an empty checkbox item, insert a tab space after checkbox text, and keep **Shift+Tab** outdenting checkbox items without changing ordinary paragraphs.
 - [x] Remove em dashes from all shipped Thido copy, replace them with clearer sentence punctuation or separators, and enforce the rule with an application-source regression test while preserving the editor's intentional em-dash insertion and cleanup capabilities.
 - [x] Add a compact, Polymarket-inspired **How it works** home-navigation control that opens Thido's own accessible three-step walkthrough.
 - [x] Implement the initial every-route **New document** chooser with blank document, AI-assisted draft, and spreadsheet choices; this placement is superseded by the route-aware top-navigation requirement below.
@@ -225,7 +225,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Browser-check global application styles on representative authenticated pages at desktop and 390 px: verify live preview, save/reload persistence, light/dark compatibility, and no framework overlay or horizontal overflow.
 - [x] Sub-organize the **Edit**, **View**, **Insert**, **Format**, **Tools**, and File-download menus into keyboard-accessible, responsive nested categories so the initial menu surfaces stay compact, with child menus opening beside their parent row and falling back within the viewport near an edge.
 - [x] Browser-check nested editor menus at desktop and 390 px, including pointer expansion, sibling-branch replacement, multi-level side positioning, right/left arrow traversal, leaf selection, Escape behavior, and viewport containment without horizontal page overflow or browser errors.
-- [ ] Browser-check all bullet presets, custom-bullet validation, default click-to-complete checklist strikethrough, Tab/Shift+Tab checklist nesting, the optional no-strikethrough style, and outline active/remove/add-back behavior at desktop and 390 px, including persistence, public rendering, and representative Word/PDF output.
+- [ ] Browser-check all bullet presets, custom-bullet validation, default click-to-complete checklist strikethrough, empty-checkbox Tab nesting, typed-checkbox Tab spacing, Shift+Tab checklist outdenting, the optional no-strikethrough style, and outline active/remove/add-back behavior at desktop and 390 px, including persistence, public rendering, and representative Word/PDF output.
 - [x] Rename the selection-level comment action and its supporting guidance to **Comment on selected text** so its scope is explicit.
 - [x] Move the existing document-language control from **Tools** to a labeled **File → Language** dialog, retain spelling-suggestion controls under **Tools**, and explain that language selects browser spelling context rather than translating text.
 - [x] Browser-check **File → Language** on desktop and at 390 px: verify the current-language label, explanatory dialog, persisted editor language, cleaned-up **Tools** menu, viewport fit, and absence of browser or framework errors.

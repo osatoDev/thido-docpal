@@ -1,4 +1,4 @@
-import { Extension } from "@tiptap/core";
+import { Extension, type Editor } from "@tiptap/core";
 import { TaskList } from "@tiptap/extension-list";
 
 export const TASK_STYLES = ["plain", "strike"] as const;
@@ -6,6 +6,18 @@ export const TASK_STYLES = ["plain", "strike"] as const;
 export type TaskStyle = (typeof TASK_STYLES)[number];
 
 export const DEFAULT_TASK_STYLE: TaskStyle = "strike";
+
+function insertTabOrIndentEmptyTaskItem(editor: Editor) {
+  const { $from } = editor.state.selection;
+
+  if (!editor.isActive("taskItem")) return false;
+
+  if ($from.parent.isTextblock && $from.parent.textContent.length === 0) {
+    return editor.commands.sinkListItem("taskItem");
+  }
+
+  return editor.commands.insertContent("\t");
+}
 
 export function isTaskStyle(value: unknown): value is TaskStyle {
   return (
@@ -19,7 +31,7 @@ export const TaskItemIndentation = Extension.create({
 
   addKeyboardShortcuts() {
     return {
-      Tab: () => this.editor.commands.sinkListItem("taskItem"),
+      Tab: () => insertTabOrIndentEmptyTaskItem(this.editor),
       "Shift-Tab": () => this.editor.commands.liftListItem("taskItem"),
     };
   },

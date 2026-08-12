@@ -29,7 +29,7 @@ afterEach(() => {
 });
 
 describe("block productivity commands", () => {
-  it("indents and outdents checkbox items with Tab and Shift-Tab", () => {
+  it("indents empty checkbox items with Tab and outdents with Shift-Tab", () => {
     const editor = makeEditor({
       type: "doc",
       content: [
@@ -47,23 +47,24 @@ describe("block productivity commands", () => {
             },
             {
               type: "taskItem",
-              content: [
-                {
-                  type: "paragraph",
-                  content: [{ type: "text", text: "Child" }],
-                },
-              ],
+              content: [{ type: "paragraph" }],
             },
           ],
         },
       ],
     });
-    let childPosition: number | null = null;
+    let emptyTaskPosition: number | null = null;
     editor.state.doc.descendants((node, position) => {
-      if (node.isText && node.text === "Child") childPosition = position;
+      if (
+        node.type.name === "paragraph" &&
+        node.content.size === 0 &&
+        emptyTaskPosition === null
+      ) {
+        emptyTaskPosition = position;
+      }
     });
-    expect(childPosition).not.toBeNull();
-    editor.commands.setTextSelection((childPosition ?? 0) + 1);
+    expect(emptyTaskPosition).not.toBeNull();
+    editor.commands.setTextSelection((emptyTaskPosition ?? 0) + 1);
 
     expect(editor.commands.keyboardShortcut("Tab")).toBe(true);
     expect(editor.getJSON().content?.[0]).toMatchObject({
@@ -88,6 +89,11 @@ describe("block productivity commands", () => {
     });
 
     expect(editor.commands.keyboardShortcut("Shift-Tab")).toBe(true);
+    expect(editor.getJSON().content?.[0]?.content).toHaveLength(2);
+
+    editor.commands.insertContent("Typed task");
+    expect(editor.commands.keyboardShortcut("Tab")).toBe(true);
+    expect(editor.getText()).toContain("Typed task\t");
     expect(editor.getJSON().content?.[0]?.content).toHaveLength(2);
 
     const paragraphEditor = makeEditor({
