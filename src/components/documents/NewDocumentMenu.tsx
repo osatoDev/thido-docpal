@@ -4,9 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 
-import { createBlankDocument } from "@/app/document-actions";
-import { createSpreadsheet } from "@/app/spreadsheet-actions";
-
 export function NewDocumentMenu({
   compact = false,
   placement = "below",
@@ -76,7 +73,15 @@ export function NewDocumentMenu({
         }`}
         aria-label="New document choices"
       >
-        <form action={createBlankDocument}>
+        <form
+          action="/api/new-document"
+          method="post"
+          target="_blank"
+          onSubmit={() => {
+            if (detailsRef.current) detailsRef.current.open = false;
+          }}
+        >
+          <input type="hidden" name="kind" value="document" />
           <button
             type="submit"
             className="w-full rounded-md px-3 py-2.5 text-left hover:bg-[var(--surface-subtle)] focus-visible:outline-2 focus-visible:outline-[var(--ring)]"
@@ -90,6 +95,8 @@ export function NewDocumentMenu({
         <Link
           href="/documents/new"
           prefetch
+          target="_blank"
+          rel="noopener noreferrer"
           onClick={() => {
             if (detailsRef.current) detailsRef.current.open = false;
           }}
@@ -100,7 +107,15 @@ export function NewDocumentMenu({
             Start from a prompt or guided brief.
           </span>
         </Link>
-        <form action={createSpreadsheet}>
+        <form
+          action="/api/new-document"
+          method="post"
+          target="_blank"
+          onSubmit={() => {
+            if (detailsRef.current) detailsRef.current.open = false;
+          }}
+        >
+          <input type="hidden" name="kind" value="spreadsheet" />
           <button
             type="submit"
             className="w-full rounded-md px-3 py-2.5 text-left hover:bg-[var(--surface-subtle)] focus-visible:outline-2 focus-visible:outline-[var(--ring)]"
