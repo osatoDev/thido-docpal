@@ -40,9 +40,9 @@ export const DOCUMENT_APPEARANCE_OPTIONS = [
 ] as const;
 
 export const DOCUMENT_SIDE_MARGIN_OPTIONS = [
-  { label: "Narrow · 13 mm", value: "narrow", millimeters: 12.7 },
-  { label: "Standard · 19 mm", value: "standard", millimeters: 19.05 },
-  { label: "Wide · 32 mm", value: "wide", millimeters: 31.75 },
+  { label: "Narrow · 20 mm", value: "narrow", millimeters: 20 },
+  { label: "Standard · 40 mm", value: "standard", millimeters: 40 },
+  { label: "Wide · 60 mm", value: "wide", millimeters: 60 },
 ] as const;
 
 export type DocumentDirection = "ltr" | "rtl";

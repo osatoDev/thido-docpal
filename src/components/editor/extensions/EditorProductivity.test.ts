@@ -5,6 +5,10 @@ import { NodeSelection } from "@tiptap/pm/state";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { readDocumentBookmarks } from "@/components/editor/extensions/Bookmarks";
+import {
+  canMoveTaskItem,
+  moveTaskItem,
+} from "@/components/editor/extensions/StyledTaskList";
 import { transformCleanupText } from "@/components/editor/extensions/TextCleanup";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 
@@ -29,6 +33,173 @@ afterEach(() => {
 });
 
 describe("block productivity commands", () => {
+  it("shows accessible arrows and reorders complete checkbox items", () => {
+    const editor = makeEditor({
+      type: "doc",
+      content: [
+        {
+          type: "taskList",
+          content: [
+            {
+              type: "taskItem",
+              attrs: { checked: false },
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "First" }],
+                },
+              ],
+            },
+            {
+              type: "taskItem",
+              attrs: { checked: true },
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Second" }],
+                },
+                {
+                  type: "taskList",
+                  content: [
+                    {
+                      type: "taskItem",
+                      attrs: { checked: false },
+                      content: [
+                        {
+                          type: "paragraph",
+                          content: [{ type: "text", text: "Nested" }],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              type: "taskItem",
+              attrs: { checked: false },
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Third" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const topLevelList = editor.view.dom.querySelector(
+      'ul[data-type="taskList"]',
+    );
+    const topLevelItems = Array.from(topLevelList?.children ?? []).filter(
+      (element) => element.tagName === "LI",
+    );
+    const firstUp = topLevelItems[0].querySelector<HTMLButtonElement>(
+      'button[title="Move checklist item up"]',
+    );
+    const secondUp = topLevelItems[1].querySelector<HTMLButtonElement>(
+      'button[title="Move checklist item up"]',
+    );
+    const lastDown = topLevelItems[2].querySelector<HTMLButtonElement>(
+      'button[title="Move checklist item down"]',
+    );
+
+    expect(firstUp?.disabled).toBe(true);
+    expect(secondUp?.ariaLabel).toBe("Move checklist item up: Second");
+    expect(lastDown?.disabled).toBe(true);
+    secondUp?.click();
+
+    const reorderedList = editor
+      .getJSON()
+      .content?.find((node) => node.type === "taskList");
+    expect(reorderedList).toMatchObject({
+      type: "taskList",
+      content: [
+        {
+          attrs: { checked: true },
+          content: [
+            { content: [{ text: "Second" }] },
+            {
+              type: "taskList",
+              content: [{ type: "taskItem" }],
+            },
+          ],
+        },
+        { content: [{ content: [{ text: "First" }] }] },
+        { content: [{ content: [{ text: "Third" }] }] },
+      ],
+    });
+
+    const reorderedItems = Array.from(topLevelList?.children ?? []).filter(
+      (element) => element.tagName === "LI",
+    );
+    const firstDown = reorderedItems[0].querySelector<HTMLButtonElement>(
+      'button[title="Move checklist item down"]',
+    );
+    expect(
+      reorderedItems[0].querySelector<HTMLButtonElement>(
+        'button[title="Move checklist item up"]',
+      )?.disabled,
+    ).toBe(true);
+    firstDown?.click();
+    const restoredList = editor
+      .getJSON()
+      .content?.find((node) => node.type === "taskList");
+    expect(restoredList).toMatchObject({
+      type: "taskList",
+      content: [
+        { content: [{ content: [{ text: "First" }] }] },
+        {
+          content: [
+            { content: [{ text: "Second" }] },
+            {
+              type: "taskList",
+              content: [{ type: "taskItem" }],
+            },
+          ],
+        },
+        { content: [{ content: [{ text: "Third" }] }] },
+      ],
+    });
+  });
+
+  it("rejects checkbox moves outside the current list boundaries", () => {
+    const editor = makeEditor({
+      type: "doc",
+      content: [
+        {
+          type: "taskList",
+          content: [
+            {
+              type: "taskItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Only" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    let itemPosition = -1;
+    editor.state.doc.descendants((node, position) => {
+      if (node.type.name === "taskItem" && itemPosition === -1) {
+        itemPosition = position;
+      }
+    });
+
+    const beforeMove = editor.getJSON();
+    expect(canMoveTaskItem(editor.state, itemPosition, "up")).toBe(false);
+    expect(canMoveTaskItem(editor.state, itemPosition, "down")).toBe(false);
+    expect(
+      moveTaskItem(editor.state, editor.view.dispatch, itemPosition, "up"),
+    ).toBe(false);
+    expect(editor.getJSON()).toEqual(beforeMove);
+  });
+
   it("indents empty checkbox items with Tab and outdents with Shift-Tab", () => {
     const editor = makeEditor({
       type: "doc",

@@ -5,7 +5,10 @@ import type { JSONContent } from "@tiptap/core";
 import { transformTextCase } from "@/components/editor/extensions/TextCase";
 import { slugifyHeading } from "@/components/editor/extensions/HeadingAnchors";
 import { normalizeCustomBulletGlyph } from "@/components/editor/extensions/StyledBulletList";
-import { getDocumentSideMarginMillimeters } from "@/components/editor/extensions/DocumentPreferences";
+import {
+  DOCUMENT_SIDE_MARGIN_OPTIONS,
+  getDocumentSideMarginMillimeters,
+} from "@/components/editor/extensions/DocumentPreferences";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { preserveDocumentPreferences } from "@/lib/markdownToTiptap";
 
@@ -132,6 +135,7 @@ describe("priority-one document structures", () => {
     expect(content.content?.[1].type).toBe("table");
     expect(html).toContain('data-type="taskList"');
     expect(html).toContain('data-task-style="strike"');
+    expect(html).not.toContain("task-item-move-controls");
     expect(html).toContain("<th");
     expect(html).toContain("<td");
   });
@@ -424,7 +428,17 @@ describe("priority-one document structures", () => {
   });
 
   it("normalizes side margins for export and defaults older documents", () => {
-    expect(getDocumentSideMarginMillimeters(null)).toBe(19.05);
+    expect(
+      DOCUMENT_SIDE_MARGIN_OPTIONS.map(({ label, millimeters }) => ({
+        label,
+        millimeters,
+      })),
+    ).toEqual([
+      { label: "Narrow · 20 mm", millimeters: 20 },
+      { label: "Standard · 40 mm", millimeters: 40 },
+      { label: "Wide · 60 mm", millimeters: 60 },
+    ]);
+    expect(getDocumentSideMarginMillimeters(null)).toBe(40);
     expect(
       getDocumentSideMarginMillimeters({
         content: [
@@ -434,7 +448,17 @@ describe("priority-one document structures", () => {
           },
         ],
       }),
-    ).toBe(12.7);
+    ).toBe(20);
+    expect(
+      getDocumentSideMarginMillimeters({
+        content: [
+          {
+            type: "documentPreferences",
+            attrs: { sideMargin: "wide" },
+          },
+        ],
+      }),
+    ).toBe(60);
     expect(
       getDocumentSideMarginMillimeters({
         content: [
@@ -444,7 +468,7 @@ describe("priority-one document structures", () => {
           },
         ],
       }),
-    ).toBe(19.05);
+    ).toBe(40);
   });
 
   it("round-trips named bookmarks as safe internal destinations", () => {

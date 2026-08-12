@@ -152,8 +152,10 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Use the full available document-editor width for the header, action bar, notices, and writing canvas while retaining only modest responsive edge padding.
 - [x] Replace literal **Default** formatting labels in the action bar with descriptive choices for the Thido font, body size, and theme text color.
 - [x] Reduce the always-visible formatting toolbar to frequent actions, retaining zoom, typography, colors, list variants, strikethrough, and block quotes in the conventional **View** and **Format** menus.
-- [x] Let document editors choose persisted Narrow, Standard, or Wide side margins from **View → Side margins**, apply the preference to editing, shared and revision rendering, browser printing, and Word/PDF export, and retain Standard margins for older documents.
-- [ ] Browser-check side-margin selection at desktop and 390 px, including autosave/reopen persistence, narrow/standard/wide visual changes, shared and revision views, print preview, and representative Word/PDF output.
+- [x] Let document editors choose persisted Narrow (20 mm), Standard (40 mm), or Wide (60 mm) side margins from **View → Side margins**, apply the preference to editing, shared and revision rendering, browser printing, and Word/PDF export, and retain Standard margins for older documents.
+- [x] Browser-check the revised side-margin menu and live editor at desktop and 390 px: confirm exact 20/40/60 mm desktop spacing, responsive 5/10/15% narrow-screen spacing, autosave requests, no horizontal overflow, and no framework errors.
+- [x] Confirm type checking, zero-warning lint, all 192 unit tests, and the optimized production build pass after increasing the document side-margin choices to 20 mm, 40 mm, and 60 mm.
+- [ ] Browser-check the 20 mm, 40 mm, and 60 mm side-margin selections at desktop and 390 px, including autosave/reopen persistence, responsive visual changes, shared and revision views, print preview, and representative Word/PDF output.
 - [x] Let users choose persisted disc, circle, or square markers for unordered lists across editing, sharing, and printing.
 - [x] Keep explicit whole-document AI comment requests in the foreground with a visible working state while ordinary anchored comments continue in the background.
 - [x] Provide a visible whole-document comment composer with explicit scope, full-document AI revisions, reviewable suggestions, and concurrency-safe auto-apply behavior.
@@ -193,6 +195,9 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Label the existing task-list formatting control explicitly as **Checkbox list** so the checkbox bullet option is discoverable without relying on its icon.
 - [x] Match Google Docs list choices with eight built-in bullet markers, a safe custom-bullet path, and checklist variants with or without completed-item strikethrough; preserve them in shared rendering and compatible Word/PDF fallbacks.
 - [x] Make Google Docs-style completion the checklist default: clicking a checkbox marks it complete and strikes its text, while explicitly saved no-strikethrough checklists retain that choice.
+- [x] Add small accessible up/down arrow controls beside editable checklist boxes, reorder complete items within their current list, disable unavailable boundary moves, and keep the controls out of read-only and printed output.
+- [x] Browser-check checklist reordering at desktop and 390 px: confirm compact controls beside each checkbox, accessible item-specific labels, live first/last disabled states, working up/down actions, autosave requests, read-only hiding, no horizontal overflow, and no framework errors.
+- [x] Confirm type checking, zero-warning lint, all 194 unit tests, and the optimized production build pass after adding checklist-item arrow reordering.
 - [x] Make **Tab** indent an empty checkbox item, insert a tab space after checkbox text, and keep **Shift+Tab** outdenting checkbox items without changing ordinary paragraphs.
 - [x] Remove em dashes from all shipped Thido copy, replace them with clearer sentence punctuation or separators, and enforce the rule with an application-source regression test while preserving the editor's intentional em-dash insertion and cleanup capabilities.
 - [x] Add a compact, Polymarket-inspired **How it works** home-navigation control that opens Thido's own accessible three-step walkthrough.

@@ -3,7 +3,6 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
 import Highlight from "@tiptap/extension-highlight";
 import { TableKit } from "@tiptap/extension-table";
-import { TaskItem } from "@tiptap/extension-list";
 import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
 import TextAlign from "@tiptap/extension-text-align";
@@ -35,6 +34,7 @@ import {
 import { RichTextStyle } from "@/components/editor/extensions/RichTextStyle";
 import { StyledBulletList } from "@/components/editor/extensions/StyledBulletList";
 import {
+  MovableTaskItem,
   StyledTaskList,
   TaskItemIndentation,
 } from "@/components/editor/extensions/StyledTaskList";
@@ -99,7 +99,7 @@ export function getEditorExtensions(): Extensions {
     Footnotes,
     StyledBulletList,
     StyledTaskList,
-    TaskItem.configure({
+    MovableTaskItem.configure({
       nested: true,
       a11y: {
         checkboxLabel: (node, checked) =>
