@@ -105,6 +105,10 @@ describe("block productivity commands", () => {
       'button[title="Move checklist item down"]',
     );
 
+    expect(topLevelItems[0].children[0].classList).toContain(
+      "task-item-move-controls",
+    );
+    expect(topLevelItems[0].children[1].tagName).toBe("LABEL");
     expect(firstUp?.disabled).toBe(true);
     expect(secondUp?.ariaLabel).toBe("Move checklist item up: Second");
     expect(lastDown?.disabled).toBe(true);

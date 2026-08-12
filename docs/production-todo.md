@@ -195,7 +195,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Label the existing task-list formatting control explicitly as **Checkbox list** so the checkbox bullet option is discoverable without relying on its icon.
 - [x] Match Google Docs list choices with eight built-in bullet markers, a safe custom-bullet path, and checklist variants with or without completed-item strikethrough; preserve them in shared rendering and compatible Word/PDF fallbacks.
 - [x] Make Google Docs-style completion the checklist default: clicking a checkbox marks it complete and strikes its text, while explicitly saved no-strikethrough checklists retain that choice.
-- [x] Add small accessible up/down arrow controls beside editable checklist boxes, reorder complete items within their current list, disable unavailable boundary moves, and keep the controls out of read-only and printed output.
+- [x] Add small accessible up/down arrow controls to the left of editable checklist boxes, reorder complete items within their current list, disable unavailable boundary moves, and keep the controls out of read-only and printed output.
 - [x] Browser-check checklist reordering at desktop and 390 px: confirm compact controls beside each checkbox, accessible item-specific labels, live first/last disabled states, working up/down actions, autosave requests, read-only hiding, no horizontal overflow, and no framework errors.
 - [x] Confirm type checking, zero-warning lint, all 194 unit tests, and the optimized production build pass after adding checklist-item arrow reordering.
 - [x] Make **Tab** indent an empty checkbox item, insert a tab space after checkbox text, and keep **Shift+Tab** outdenting checkbox items without changing ordinary paragraphs.

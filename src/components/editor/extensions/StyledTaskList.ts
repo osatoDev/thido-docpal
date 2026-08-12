@@ -180,7 +180,7 @@ export const MovableTaskItem = TaskItem.extend({
       };
 
       controls.append(upButton, downButton);
-      listItem.insertBefore(controls, nodeView.contentDOM ?? null);
+      listItem.insertBefore(controls, listItem.firstChild);
       updateControls();
       const refreshAfterMovement = ({
         transaction,
