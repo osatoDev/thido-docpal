@@ -168,6 +168,131 @@ describe("block productivity commands", () => {
     });
   });
 
+  it("shows a delete button only once a checklist item is checked, and removes it on click", () => {
+    const editor = makeEditor({
+      type: "doc",
+      content: [
+        {
+          type: "taskList",
+          content: [
+            {
+              type: "taskItem",
+              attrs: { checked: false },
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "First" }],
+                },
+              ],
+            },
+            {
+              type: "taskItem",
+              attrs: { checked: true },
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Second" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const items = Array.from(
+      editor.view.dom.querySelectorAll('ul[data-type="taskList"] > li'),
+    );
+    const firstDelete = items[0].querySelector<HTMLButtonElement>(
+      'button[title="Delete checklist item"]',
+    );
+    const secondDelete = items[1].querySelector<HTMLButtonElement>(
+      'button[title="Delete checklist item"]',
+    );
+
+    expect(firstDelete?.hidden).toBe(true);
+    expect(secondDelete?.hidden).toBe(false);
+    expect(secondDelete?.ariaLabel).toBe("Delete checklist item: Second");
+
+    secondDelete?.click();
+
+    expect(editor.getJSON().content?.[0]).toMatchObject({
+      type: "taskList",
+      content: [{ content: [{ content: [{ text: "First" }] }] }],
+    });
+  });
+
+  it("removes the whole list when deleting its only remaining checked item", () => {
+    const editor = makeEditor({
+      type: "doc",
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "Before" }] },
+        {
+          type: "taskList",
+          content: [
+            {
+              type: "taskItem",
+              attrs: { checked: true },
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "Only" }],
+                },
+              ],
+            },
+          ],
+        },
+        { type: "paragraph", content: [{ type: "text", text: "After" }] },
+      ],
+    });
+    const deleteButton = editor.view.dom.querySelector<HTMLButtonElement>(
+      'button[title="Delete checklist item"]',
+    );
+    deleteButton?.click();
+
+    expect(editor.getJSON().content?.map((node) => node.type)).toEqual([
+      "paragraph",
+      "paragraph",
+    ]);
+    expect(topLevelText(editor)).toEqual(["Before", "After"]);
+  });
+
+  it("hides move arrows but keeps the delete button when checklist arrows are disabled in settings", () => {
+    const editor = new Editor({
+      element: document.createElement("div"),
+      extensions: getEditorExtensions({ taskItemControls: false }),
+      content: {
+        type: "doc",
+        content: [
+          {
+            type: "taskList",
+            content: [
+              {
+                type: "taskItem",
+                attrs: { checked: true },
+                content: [
+                  {
+                    type: "paragraph",
+                    content: [{ type: "text", text: "Done" }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+    editors.push(editor);
+
+    const controls = editor.view.dom.querySelector(".task-item-move-controls");
+    expect(
+      controls?.querySelector('button[title^="Move checklist item"]'),
+    ).toBeNull();
+    const deleteButton = controls?.querySelector<HTMLButtonElement>(
+      'button[title="Delete checklist item"]',
+    );
+    expect(deleteButton?.hidden).toBe(false);
+  });
+
   it("rejects checkbox moves outside the current list boundaries", () => {
     const editor = makeEditor({
       type: "doc",

@@ -91,11 +91,13 @@ export async function EditDocumentPageContent({
     );
   }
 
-  const document = await getAccessibleEditDocument(
-    id,
-    session.user.id,
-    session.user.email,
-  );
+  const [document, settings] = await Promise.all([
+    getAccessibleEditDocument(id, session.user.id, session.user.email),
+    prisma.userSettings.findUnique({
+      where: { userId: session.user.id },
+      select: { checklistMoveControls: true },
+    }),
+  ]);
 
   if (!document) {
     notFound();
@@ -185,6 +187,7 @@ export async function EditDocumentPageContent({
       startedFromPaste={
         (Array.isArray(start) ? start[0] : start) === "paste"
       }
+      checklistMoveControls={settings?.checklistMoveControls ?? true}
     />
   );
 }

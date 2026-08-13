@@ -674,6 +674,35 @@ select {
   opacity: 0.25;
 }
 
+.ProseMirror .task-item-delete-button {
+  display: inline-grid;
+  width: 1.2rem;
+  height: 1.2rem;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0.2rem;
+  background: transparent;
+  color: var(--muted-soft);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.ProseMirror .task-item-delete-button:hover {
+  background: var(--surface-subtle);
+  color: var(--danger);
+}
+
+.ProseMirror .task-item-delete-button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+.ProseMirror .task-item-delete-button[hidden] {
+  display: none;
+}
+
 .ProseMirror[contenteditable="false"] .task-item-move-controls {
   display: none;
 }

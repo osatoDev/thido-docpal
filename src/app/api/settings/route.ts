@@ -35,6 +35,7 @@ export async function PATCH(request: Request) {
     aiModel?: string;
     documentStartMode?: "NEW_DOCUMENT" | "MOST_RECENT";
     applicationStyle?: string;
+    checklistMoveControls?: boolean;
   } = {};
 
   if (body.aiCommentMode !== undefined) {
@@ -82,6 +83,16 @@ export async function PATCH(request: Request) {
       );
     }
     data.applicationStyle = body.applicationStyle;
+  }
+
+  if (body.checklistMoveControls !== undefined) {
+    if (typeof body.checklistMoveControls !== "boolean") {
+      return NextResponse.json(
+        { error: "checklistMoveControls must be a boolean" },
+        { status: 400 },
+      );
+    }
+    data.checklistMoveControls = body.checklistMoveControls;
   }
 
   if (Object.keys(data).length === 0) {

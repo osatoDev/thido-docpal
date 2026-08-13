@@ -205,15 +205,16 @@ enum DocumentStartMode {
 }
 
 model UserSettings {
-  id                String            @id @default(cuid())
-  userId            String            @unique
-  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  aiCommentMode     AICommentMode     @default(AUTO)
-  aiModel           String            @default("claude-sonnet-5")
-  documentStartMode DocumentStartMode @default(NEW_DOCUMENT)
-  applicationStyle  String            @default("classic")
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  id                     String            @id @default(cuid())
+  userId                 String            @unique
+  user                   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiCommentMode          AICommentMode     @default(AUTO)
+  aiModel                String            @default("claude-sonnet-5")
+  documentStartMode      DocumentStartMode @default(NEW_DOCUMENT)
+  applicationStyle       String            @default("classic")
+  checklistMoveControls  Boolean           @default(true)
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
 }
 
 enum DocumentStatus {

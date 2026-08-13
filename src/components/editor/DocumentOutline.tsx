@@ -8,14 +8,14 @@ import {
   type DocumentBookmark,
 } from "./extensions/Bookmarks";
 
-type OutlineHeading = {
+export type OutlineHeading = {
   level: number;
   position: number;
   text: string;
   id: string;
 };
 
-function readHeadings(editor: Editor) {
+export function readHeadings(editor: Editor) {
   const headings: OutlineHeading[] = [];
   editor.state.doc.descendants((node, position) => {
     if (node.type.name !== "heading" || node.attrs.outlineHidden === true) return;

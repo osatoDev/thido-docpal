@@ -62,7 +62,9 @@ const ExclusiveSubscript = Subscript.extend({
  * Markdown never contains comment marks, but including CommentMark here
  * keeps the schema identical either way.
  */
-export function getEditorExtensions(): Extensions {
+export function getEditorExtensions(
+  options: { taskItemControls?: boolean } = {},
+): Extensions {
   return [
     StarterKit.configure({
       bulletList: false,
@@ -101,6 +103,7 @@ export function getEditorExtensions(): Extensions {
     StyledTaskList,
     MovableTaskItem.configure({
       nested: true,
+      showMoveControls: options.taskItemControls ?? true,
       a11y: {
         checkboxLabel: (node, checked) =>
           `${checked ? "Mark incomplete" : "Mark complete"}: ${node.textContent || "empty task"}`,

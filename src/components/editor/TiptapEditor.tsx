@@ -12,6 +12,7 @@ import { BubbleMenu } from "@tiptap/react/menus";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { Toolbar } from "./Toolbar";
 import { DocumentOutline } from "./DocumentOutline";
+import { DocumentTabs } from "./DocumentTabs";
 import { TableContextMenu } from "./TableContextMenu";
 import { TableConversionDialog } from "./TableConversionDialog";
 import { useEditorHashNavigation } from "./useEditorHashNavigation";
@@ -78,6 +79,7 @@ type Props = {
   accessPermission: CollaboratorPermission;
   currentUser: UserMenuProfile;
   startedFromPaste?: boolean;
+  checklistMoveControls?: boolean;
 };
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -119,6 +121,7 @@ export function TiptapEditor({
   accessPermission,
   currentUser,
   startedFromPaste = false,
+  checklistMoveControls = true,
 }: Props) {
   const canComment = accessPermission !== "VIEW";
   const canEdit =
@@ -229,7 +232,9 @@ export function TiptapEditor({
   }, [documentImportDismissAfterMs, documentImportMessageText]);
 
   const editor = useEditor({
-    extensions: getEditorExtensions(),
+    extensions: getEditorExtensions({
+      taskItemControls: checklistMoveControls,
+    }),
     content: initialContent ?? "",
     editable: canEditNow,
     immediatelyRender: false,
@@ -1019,7 +1024,8 @@ export function TiptapEditor({
   return (
     <div className="print-document-layout flex min-h-0 flex-1 flex-col lg:flex-row">
       <div className="print-document-layout flex w-full min-w-0 flex-1 flex-col gap-3 px-2 py-3 sm:px-3 lg:px-4">
-        <header className="print-hidden mx-auto flex w-full max-w-none flex-col gap-3 border-b border-[var(--border)] pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="print-hidden sticky top-0 z-30 flex flex-col gap-3 bg-[var(--background)]">
+        <header className="mx-auto flex w-full max-w-none flex-col gap-3 border-b border-[var(--border)] pb-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <Brand href="/dashboard" />
             <div className="min-w-0 flex-1">
@@ -1100,7 +1106,7 @@ export function TiptapEditor({
           </div>
         </header>
 
-        <div className="print-hidden mx-auto w-full max-w-none">
+        <div className="mx-auto w-full max-w-none">
           <Toolbar
             editor={editor}
             documentId={documentId}
@@ -1121,6 +1127,9 @@ export function TiptapEditor({
             onImport={handleDocumentRestored}
             onConflict={handleDocumentConflict}
           />
+        </div>
+
+        <DocumentTabs editor={editor} />
         </div>
 
         <h1 className="print-document-title editor-title hidden font-serif text-4xl font-normal tracking-[-0.035em]">

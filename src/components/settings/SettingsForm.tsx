@@ -15,6 +15,7 @@ type Props = {
   initialCommentMode: CommentMode;
   initialApplicationStyle: ApplicationStyle;
   initialDocumentStartMode: "NEW_DOCUMENT" | "MOST_RECENT";
+  initialChecklistMoveControls: boolean;
 };
 
 export function SettingsForm({
@@ -22,6 +23,7 @@ export function SettingsForm({
   initialCommentMode,
   initialApplicationStyle,
   initialDocumentStartMode,
+  initialChecklistMoveControls,
 }: Props) {
   const router = useRouter();
   const [aiModel, setAiModel] = useState(initialAiModel);
@@ -32,13 +34,16 @@ export function SettingsForm({
   const [documentStartMode, setDocumentStartMode] = useState(
     initialDocumentStartMode,
   );
+  const [checklistMoveControls, setChecklistMoveControls] = useState(
+    initialChecklistMoveControls,
+  );
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   useEffect(() => {
     document.documentElement.dataset.appStyle = initialApplicationStyle;
   }, [initialApplicationStyle]);
 
-  async function save(update: Record<string, string>) {
+  async function save(update: Record<string, string | boolean>) {
     setSaveState("saving");
     try {
       const response = await fetch("/api/settings", {
@@ -162,6 +167,31 @@ export function SettingsForm({
             </option>
             <option value="PROPOSE">Always ask for my approval</option>
             <option value="AUTO_APPLY">Always apply automatically</option>
+          </select>
+        </div>
+      </section>
+
+      <section className="border-b border-[var(--border)] py-7">
+        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
+          <div>
+            <h2 className="font-semibold">Checklist reorder arrows</h2>
+            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+              Show small up/down arrows beside checklist items so you can
+              reorder them without dragging.
+            </p>
+          </div>
+          <select
+            aria-label="Checklist reorder arrows"
+            value={checklistMoveControls ? "true" : "false"}
+            onChange={(event) => {
+              const next = event.target.value === "true";
+              setChecklistMoveControls(next);
+              void save({ checklistMoveControls: next });
+            }}
+            className="app-input rounded-md px-3 py-2.5 text-sm outline-none"
+          >
+            <option value="true">Show reorder arrows (default)</option>
+            <option value="false">Hide reorder arrows</option>
           </select>
         </div>
       </section>

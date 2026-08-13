@@ -3,7 +3,7 @@ import {
   type Editor,
   type NodeViewRendererProps,
 } from "@tiptap/core";
-import { TaskItem, TaskList } from "@tiptap/extension-list";
+import { TaskItem, TaskList, type TaskItemOptions } from "@tiptap/extension-list";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import {
   TextSelection,
@@ -109,6 +109,36 @@ export function moveTaskItem(
   return true;
 }
 
+/**
+ * Deletes a checklist item. When it is the only item in its list, the whole
+ * list is removed instead so the taskList node never ends up with zero
+ * children (its schema requires at least one taskItem).
+ */
+export function deleteTaskItem(
+  state: EditorState,
+  dispatch: ((transaction: Transaction) => void) | undefined,
+  position: number,
+) {
+  const context = taskItemMoveContext(state, position);
+  if (!context) return false;
+
+  if (dispatch) {
+    let transaction: Transaction;
+    if (context.itemCount <= 1) {
+      const resolved = state.doc.resolve(position);
+      const listStart = resolved.before(resolved.depth);
+      const listEnd = listStart + resolved.node(resolved.depth).nodeSize;
+      transaction = state.tr.delete(listStart, listEnd);
+    } else {
+      transaction = state.tr.delete(position, position + context.item.nodeSize);
+    }
+    transaction.setMeta(TASK_ITEM_MOVE_META, true);
+    dispatch(transaction.scrollIntoView());
+  }
+
+  return true;
+}
+
 function taskItemControlLabel(node: ProseMirrorNode) {
   const text = (node.firstChild?.textContent ?? node.textContent)
     .replace(/\s+/g, " ")
@@ -130,7 +160,28 @@ function createMoveButton(
   return button;
 }
 
-export const MovableTaskItem = TaskItem.extend({
+function createDeleteButton(onDelete: () => void) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "task-item-delete-button";
+  button.textContent = "×";
+  button.title = "Delete checklist item";
+  button.addEventListener("mousedown", (event) => event.preventDefault());
+  button.addEventListener("click", onDelete);
+  return button;
+}
+
+export type MovableTaskItemOptions = TaskItemOptions & {
+  showMoveControls: boolean;
+};
+
+export const MovableTaskItem = TaskItem.extend<MovableTaskItemOptions>({
+  addOptions() {
+    return {
+      ...this.parent?.(),
+      showMoveControls: true,
+    } as MovableTaskItemOptions;
+  },
   addNodeView() {
     const parentRenderer = this.parent?.();
     if (!parentRenderer) return null;
@@ -138,12 +189,13 @@ export const MovableTaskItem = TaskItem.extend({
     return (props: NodeViewRendererProps) => {
       const nodeView = parentRenderer(props);
       const listItem = nodeView.dom as HTMLElement;
+      const showMoveControls = this.options.showMoveControls !== false;
       const controls = document.createElement("span");
       let currentNode = props.node;
 
       controls.className = "task-item-move-controls";
       controls.contentEditable = "false";
-      controls.setAttribute("aria-label", "Move checklist item");
+      controls.setAttribute("aria-label", "Checklist item actions");
 
       const move = (direction: TaskItemMoveDirection) => {
         if (!props.editor.isEditable || typeof props.getPos !== "function") {
@@ -162,24 +214,47 @@ export const MovableTaskItem = TaskItem.extend({
           props.editor.view.focus();
         }
       };
-      const upButton = createMoveButton("up", () => move("up"));
-      const downButton = createMoveButton("down", () => move("down"));
+      const remove = () => {
+        if (!props.editor.isEditable || typeof props.getPos !== "function") {
+          return;
+        }
+        const position = props.getPos();
+        if (typeof position !== "number") return;
+        if (
+          deleteTaskItem(props.editor.state, props.editor.view.dispatch, position)
+        ) {
+          props.editor.view.focus();
+        }
+      };
+      const upButton = showMoveControls
+        ? createMoveButton("up", () => move("up"))
+        : null;
+      const downButton = showMoveControls
+        ? createMoveButton("down", () => move("down"))
+        : null;
+      const deleteButton = createDeleteButton(remove);
 
       const updateControls = () => {
         const position =
           typeof props.getPos === "function" ? props.getPos() : undefined;
         const label = taskItemControlLabel(currentNode);
-        upButton.ariaLabel = `Move checklist item up: ${label}`;
-        downButton.ariaLabel = `Move checklist item down: ${label}`;
-        upButton.disabled =
-          typeof position !== "number" ||
-          !canMoveTaskItem(props.editor.state, position, "up");
-        downButton.disabled =
-          typeof position !== "number" ||
-          !canMoveTaskItem(props.editor.state, position, "down");
+        if (upButton && downButton) {
+          upButton.ariaLabel = `Move checklist item up: ${label}`;
+          downButton.ariaLabel = `Move checklist item down: ${label}`;
+          upButton.disabled =
+            typeof position !== "number" ||
+            !canMoveTaskItem(props.editor.state, position, "up");
+          downButton.disabled =
+            typeof position !== "number" ||
+            !canMoveTaskItem(props.editor.state, position, "down");
+        }
+        deleteButton.ariaLabel = `Delete checklist item: ${label}`;
+        deleteButton.hidden = currentNode.attrs.checked !== true;
       };
 
-      controls.append(upButton, downButton);
+      if (upButton) controls.append(upButton);
+      if (downButton) controls.append(downButton);
+      controls.append(deleteButton);
       listItem.insertBefore(controls, listItem.firstChild);
       updateControls();
       const refreshAfterMovement = ({

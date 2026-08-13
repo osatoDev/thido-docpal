@@ -94,6 +94,7 @@ export default async function SettingsPage({
             ? settings.applicationStyle
             : DEFAULT_APPLICATION_STYLE
         }
+        initialChecklistMoveControls={settings.checklistMoveControls}
       />
       <ConnectedAccounts
         email={user.email ?? session.user.email ?? "your email"}

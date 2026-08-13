@@ -37,6 +37,7 @@ export async function GET() {
           aiModel: true,
           documentStartMode: true,
           applicationStyle: true,
+          checklistMoveControls: true,
         },
       }),
       prisma.document.findMany({
