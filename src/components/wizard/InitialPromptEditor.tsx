@@ -120,7 +120,17 @@ export function InitialPromptEditor({
           `/api/documents/${result.documentId}/generate`,
           { method: "POST" },
         );
-        if (!generateResponse.ok || !generateResponse.body) {
+        if (!generateResponse.ok) {
+          const generateResult = await generateResponse
+            .json()
+            .catch(() => ({}));
+          throw new Error(
+            typeof generateResult?.error?.message === "string"
+              ? generateResult.error.message
+              : "Could not generate your document.",
+          );
+        }
+        if (!generateResponse.body) {
           throw new Error("Could not generate your document.");
         }
 

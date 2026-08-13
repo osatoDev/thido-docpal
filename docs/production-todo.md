@@ -1,11 +1,12 @@
 # Thido production checklist
 
-Last reviewed: 12 August 2026
+Last reviewed: 13 August 2026
 
 This is the running source of truth for production-readiness work. Completed boxes indicate repository evidence or a verified check. External configuration remains unchecked until it is explicitly verified.
 
 ## Immediate deployment blockers
 
+- [ ] Apply the `20260813120000_add_ai_credit_allowance` migration to the production database before deploying per-plan AI allowance enforcement. Written and reviewed on 13 August 2026 against the local schema only; not applied or verified against any live database in this session because the effective local `DATABASE_URL` points at the production `neondb` instance, so no `prisma migrate`/`db push`/`migrate status` command was run against it. Apply and verify through the normal migration workflow before relying on this gate in production.
 - [ ] Apply the `20260809180000_add_spreadsheets` migration to the production database before deploying spreadsheet creation, editing, or dashboard integration. `npx prisma migrate status` confirmed on 10 August 2026 that it is pending on the currently configured `neondb` database.
 - [ ] Apply the `20260809160000_add_document_title_intent` migration before deploying persisted manual-title protection and heading-derived automatic titles.
 - [ ] Apply the `20260803170000_add_permissioned_share_links` migration to the production database before deploying permission-bearing link sharing.
@@ -85,8 +86,8 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Add authenticated Settings controls that deliberately link Google or add password sign-in to the current account.
 - [ ] Add recent-authentication checks before linking or unlinking credentials.
 - [ ] Prevent users from removing their final usable sign-in method when account-management controls are added.
-- [ ] Add security-notification emails for password changes and provider linking or unlinking.
-- [ ] Add an account-level **sign out all devices** control.
+- [x] Add security-notification emails for password changes and provider linking. Password resets send `sendPasswordChangedEmail`; connecting Google (via the Auth.js `linkAccount` event) or adding a password credential in Settings send `sendSignInMethodAddedEmail`. No credential-unlinking feature exists yet to notify about.
+- [x] Add an account-level **sign out all devices** control (`signOutAllDevices` in `src/app/account-actions.ts`, in Settings). It reuses the existing `sessionVersion` invalidation mechanism from password reset to invalidate every outstanding JWT for the account, then signs out the current browser.
 - [ ] Decide whether multi-factor authentication is required before public launch or reserved for a later phase.
 - [ ] Add an authentication audit log for significant security events.
 
@@ -117,7 +118,8 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Add `Retry-After` information to HTTP `429` responses where possible.
 - [ ] Configure Vercel Firewall rules for broad automated abuse and denial-of-service protection.
 - [ ] Add alerts for sustained authentication, email, or AI rate-limit rejections.
-- [ ] Set explicit per-user or per-plan AI allowances and spending alerts for every active model provider, using the token-aware internal guardrails in [the paid-plan pricing suggestions](./paid-plan-pricing.md) without exposing surprise raw-token overages to users.
+- [x] Set explicit per-user, per-plan monthly AI action allowances (Free beta and Pro) gating document generation, follow-up questions, and comment AI responses, using the credits-not-tokens hybrid model from [the paid-plan pricing suggestions](./paid-plan-pricing.md); implemented in `src/lib/entitlements.ts`, surfaced as a usage meter in Settings, and covered by unit tests. The specific monthly limits (30 free / 300 pro) and action weights are a functional default pending business approval, not a final published entitlement.
+- [ ] Replace the best-effort, read-then-write AI credit consumption in `checkAndConsumeAiAllowance` with a race-safe accounting method, and add spending alerts (in addition to the action-count allowance) for every active model provider.
 
 ## Application data and document storage
 
@@ -139,8 +141,9 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Anchor the account menu below its profile trigger so the identity section stays on screen, the trigger does not show through behind the panel, and the menu width remains within narrow viewports.
 - [ ] Browser-check the account menu placement at desktop and 390 px across dashboard, editor, wizard, spreadsheet, settings, feedback, and admin headers, including escape and outside-click dismissal.
 - [x] Let document owners create, copy, open, and revoke unlisted read-only share links; public views expose the title, document body, and owner profile name while keeping email and other account details private.
-- [ ] Make public share links owner-aware without automatically redirecting: when a signed-in owner opens their own link, retain the recipient-equivalent public rendering, label it as a public-link preview shared by them, and provide **Open original** and **Manage sharing** actions. The behavior and acceptance criteria are in [the shared-link owner experience](./shared-link-owner-experience.md).
-- [ ] Deploy and browser-check permission-bearing **Anyone with the link** sharing for authenticated users, including visible controls with click-time session checks, post-authentication return to the selected action, immediate revocation, access logging, and explicit safeguards for full access; implementation and acceptance criteria are in [the full-access link-sharing design](./full-access-link-sharing.md).
+- [x] Make public share links owner-aware without automatically redirecting: when a signed-in owner opens their own link, retain the recipient-equivalent public rendering, label it as a public-link preview shared by them, and provide **Open original** and **Manage sharing** actions. The behavior and acceptance criteria are in [the shared-link owner experience](./shared-link-owner-experience.md).
+- [ ] Browser-check the owner-aware share page at desktop and 390 px: confirm the **Public link preview** label, **Shared by you** attribution, **Open original** and **Manage sharing** actions for a signed-in owner, unchanged copy for signed-out and non-owner viewers, exclusion from printed output, and that **Manage sharing** correctly opens the share panel via `?share=1`.
+- [ ] Deploy and browser-check permission-bearing **Anyone with the link** sharing for authenticated users, including visible controls with click-time session checks, post-authentication return to the selected action, immediate revocation, access logging, and explicit safeguards for full access; implementation and acceptance criteria are in [the full-access link-sharing design](./full-access-link-sharing.md). As of 13 August 2026 the explicit full-access safeguards are implemented: an inline confirmation step before saving a **Full access** link permission, and an email to the document owner the first time a distinct signed-in account uses a full-access link (`sendLinkAccessNotificationEmail`). Deployment and browser verification of the full feature remain outstanding.
 - [x] Clearly identify who shared a document on the public read-only view, with a non-identifying owner label for legacy accounts that have no profile name.
 - [x] Let full-access users invite collaborators by email with view, comment, edit, or full access; enforce those permissions on document, comment, suggestion, deletion, public-link, and sharing-management operations.
 - [x] List documents shared directly with the signed-in email address on the dashboard and identify the owner.
@@ -252,10 +255,11 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Limit the initial document-photo upload path to 4 MB per JPEG, PNG, WebP, GIF, or AVIF image so uploads remain within the Vercel Function request limit.
 - [x] Verify an authenticated editor can upload a real JPEG to the private Blob store, render it through the protected image route, and remove its Blob when the test document is deleted.
 - [ ] Delete orphaned Blob objects when an uploaded image is removed from the editor or abandoned before the document autosave completes.
-- [ ] Add data export and account deletion flows.
+- [x] Add data export and account deletion flows: a Settings **Your data** panel with a JSON export of the signed-in user's profile, billing identifiers, folders, documents, spreadsheets, authored comments, and feedback thread (`/api/account/export`), and a typed-confirmation account-deletion server action (`deleteAccount` in `src/app/account-data-actions.ts`) that best-effort cancels any active Stripe subscription, removes email-keyed `DocumentCollaborator` invitations for the deleted address, and relies on the existing cascade/`SetNull` foreign-key rules for everything else.
+- [ ] Browser-check account data export and deletion: confirm the exported JSON download, the typed `DELETE` confirmation gate, sign-out and redirect after deletion, and that a subsequent sign-in attempt with the deleted account's credentials fails.
 - [ ] Define retention rules for documents, comments, deleted accounts, auth tokens, and operational logs.
 - [ ] Define a cleanup window for abandoned document placeholders that are no longer reusable.
-- [ ] Verify cascade deletion behavior against the intended retention policy.
+- [ ] Verify cascade deletion behavior against the intended retention policy, including the new account-deletion path, against a real (non-production) database.
 
 ## Beta access and billing
 
@@ -319,6 +323,9 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Confirm type checking, lint, Prisma validation, and the production build pass after the verified-Google-email account-linking fix.
 - [x] Prevent the founder-feedback POST runtime crash by keeping non-function state out of the `"use server"` action module and scanning every server-action module for invalid runtime exports in the unit suite.
 - [x] Fix new-user Google OAuth registration by casting the PostgreSQL advisory-lock result to a Prisma-supported type, verify it against PostgreSQL, and retain a regression assertion for the lock query.
+- [x] Confirm type checking, zero-warning lint, all 206 unit tests, and the optimized production build pass after adding AI credit allowance enforcement, owner-aware share links, full-access link-sharing safeguards, account data export/deletion, and account security-notification emails and sign-out-all-devices. `prisma generate` was run for the schema change; no `prisma migrate`/`db push`/`migrate status` command was run in this session because the effective local `DATABASE_URL` resolves to the production `neondb` database rather than an isolated instance.
+- [ ] Browser-check the Settings **Security** (sign out of all devices) and **Your data** (export, typed-confirmation delete) panels, the **Plan and billing** AI usage meter, and the **Full access** link-permission confirmation step in Share, at desktop and 390 px, including error and pending states and no framework overlay or horizontal overflow.
+- [ ] Exercise the AI monthly allowance in practice: confirm document generation, follow-up questions, and comment AI responses are blocked with a clear in-product message once the Free or Pro allowance is reached, that usage resets at the start of the next UTC month, and that the Settings usage meter matches actual consumption.
 - [ ] Add a normal CI workflow that runs `npm ci`, `npm test`, `npm run lint`, and `npm run build` for pull requests and `main`.
 - [ ] Add database integration tests for issuing and consuming verification and reset tokens transactionally.
 - [ ] Add browser tests for registration, email verification, password reset, Google login, rolling session renewal, sign-out, stale sessions, and admin authorization.

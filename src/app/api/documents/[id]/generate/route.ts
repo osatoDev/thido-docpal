@@ -11,8 +11,15 @@ import {
   type TrackedAnthropicMessage,
 } from "@/lib/ai/telemetry";
 import { markdownToTiptapJSON } from "@/lib/markdownToTiptap";
+import {
+  AiAllowanceExceededError,
+  checkAndConsumeAiAllowance,
+} from "@/lib/entitlements";
 import { checkRateLimit } from "@/lib/rateLimit";
-import { unauthorizedResponse } from "@/lib/apiResponses";
+import {
+  aiAllowanceExceededResponse,
+  unauthorizedResponse,
+} from "@/lib/apiResponses";
 import { recordDocumentRevision } from "@/lib/documentRevisions";
 import { DocumentRevisionSource } from "@prisma/client";
 import { inferDocumentTitle } from "@/lib/documentPersistence";
@@ -62,6 +69,19 @@ export async function POST(_request: Request, { params }: Params) {
     .join("\n\n");
 
   const model = await getUserAiModel(session.user.id);
+  try {
+    await checkAndConsumeAiAllowance(
+      session.user.id,
+      "DOCUMENT_GENERATE",
+      model,
+    );
+  } catch (error) {
+    if (error instanceof AiAllowanceExceededError) {
+      return aiAllowanceExceededResponse(error);
+    }
+    throw error;
+  }
+
   const telemetry = await startAiGeneration({
     feature: "DOCUMENT_GENERATE",
     model,

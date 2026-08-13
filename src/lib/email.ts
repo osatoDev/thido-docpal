@@ -255,6 +255,44 @@ export async function sendDocumentInvitationEmail({
   });
 }
 
+export async function sendLinkAccessNotificationEmail({
+  ownerEmail,
+  documentId,
+  documentTitle,
+  accessorName,
+  accessorEmail,
+}: {
+  ownerEmail: string;
+  documentId: string;
+  documentTitle: string;
+  accessorName: string | null;
+  accessorEmail: string | null;
+}) {
+  const url = appUrl(documentEditPath(documentId, documentTitle));
+  const accessor =
+    accessorName?.trim() || accessorEmail?.trim() || "Someone";
+  const safeAccessor = escapeHtml(accessor);
+  const safeDocumentTitle = escapeHtml(documentTitle);
+
+  await sendEmail({
+    to: ownerEmail,
+    subject: `${accessor} used your full-access link to “${documentTitle}”`,
+    text:
+      `${accessor}${accessorEmail ? ` (${accessorEmail})` : ""} signed in through ` +
+      `your full-access share link and can now edit, delete, and manage sharing for ` +
+      `“${documentTitle}”.\n\nIf this wasn't expected, revoke the link from the document's ` +
+      `share menu.\n\nOpen the document: ${url}`,
+    html: emailShell(
+      "A full-access link was used",
+      `${safeAccessor}${accessorEmail ? ` (${escapeHtml(accessorEmail)})` : ""} signed in through your full-access share link for <strong>${safeDocumentTitle}</strong> and can now edit, delete, and manage sharing. If this wasn't expected, revoke the link from the document's share menu.`,
+      "Open document",
+      url,
+    ),
+    previewUrl: url,
+    idempotencyKey: `link-access-full-${documentId}-${accessorEmail ?? accessor}`,
+  });
+}
+
 function emailShell(title: string, body: string, action: string, url: string) {
   return `<!doctype html>
 <html lang="en">
@@ -289,6 +327,47 @@ export async function sendVerificationEmail(
       "Verify your email",
       "Confirm this address to finish creating your account. This link expires in 24 hours.",
       "Verify email",
+      url,
+    ),
+    previewUrl: url,
+  });
+}
+
+export async function sendPasswordChangedEmail(email: string) {
+  const url = appUrl("/settings");
+  await sendEmail({
+    to: email,
+    subject: "Your Thido password was changed",
+    text:
+      `Your Thido account password was just changed. If you made this change, ` +
+      `no action is needed.\n\nIf you did not request this, reset your password ` +
+      `again immediately and review your account: ${url}`,
+    html: emailShell(
+      "Your password was changed",
+      "Your Thido account password was just changed. If this wasn't you, reset your password again immediately and review your account.",
+      "Review account",
+      url,
+    ),
+    previewUrl: url,
+  });
+}
+
+export async function sendSignInMethodAddedEmail(
+  email: string,
+  method: "Google" | "Email and password",
+) {
+  const url = appUrl("/settings");
+  await sendEmail({
+    to: email,
+    subject: `${method} sign-in was added to your Thido account`,
+    text:
+      `${method} sign-in was just connected to your Thido account. If you made ` +
+      `this change, no action is needed.\n\nIf you did not request this, review ` +
+      `your account now: ${url}`,
+    html: emailShell(
+      "A new sign-in method was added",
+      `${escapeHtml(method)} sign-in was just connected to your Thido account. If this wasn't you, review your account now.`,
+      "Review account",
       url,
     ),
     previewUrl: url,

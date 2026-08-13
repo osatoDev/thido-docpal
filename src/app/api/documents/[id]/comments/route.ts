@@ -29,6 +29,10 @@ import {
 } from "@/lib/markdownToTiptap";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { unauthorizedResponse } from "@/lib/apiResponses";
+import {
+  AiAllowanceExceededError,
+  checkAndConsumeAiAllowance,
+} from "@/lib/entitlements";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import {
   COMMENT_AI_BUSY_MESSAGE,
@@ -339,6 +343,37 @@ async function generateAiResponse({
       throw new Error("The selected comment target is missing");
     }
     const model = await getUserAiModel(userId);
+
+    let allowanceError: AiAllowanceExceededError | null = null;
+    try {
+      await checkAndConsumeAiAllowance(
+        userId,
+        scope === "DOCUMENT"
+          ? "COMMENT_RESPOND_DOCUMENT"
+          : "COMMENT_RESPOND_SELECTION",
+        model,
+      );
+    } catch (error) {
+      if (!(error instanceof AiAllowanceExceededError)) throw error;
+      allowanceError = error;
+    }
+    if (allowanceError) {
+      await prisma.comment.create({
+        data: {
+          documentId,
+          authorType: "AI",
+          parentId: commentId,
+          scope,
+          anchorMarkId,
+          quotedText,
+          body: allowanceError.message,
+          intent: "FEEDBACK",
+        },
+      });
+      await finishCommentAiJob(commentId, "SUCCEEDED");
+      return true;
+    }
+
     telemetry = await startAiGeneration({
       feature: "COMMENT_RESPOND",
       model,

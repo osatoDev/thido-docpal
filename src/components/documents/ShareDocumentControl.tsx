@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 export type CollaboratorPermission = "VIEW" | "COMMENT" | "EDIT" | "FULL";
@@ -43,7 +44,9 @@ export function ShareDocumentControl({
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [open, setOpen] = useState(() => searchParams.get("share") === "1");
   const [shareToken, setShareToken] = useState(initialShareToken);
   const [sharePermission, setSharePermission] =
     useState<CollaboratorPermission>(initialSharePermission);
@@ -54,9 +57,22 @@ export function ShareDocumentControl({
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [confirmingStop, setConfirmingStop] = useState(false);
+  const [confirmingFull, setConfirmingFull] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const sharePath = shareToken ? `/share/${shareToken}` : null;
+
+  useEffect(() => {
+    if (searchParams.get("share") !== "1") return;
+    const params = new URLSearchParams(searchParams);
+    params.delete("share");
+    const query = params.toString();
+    router.replace(`${window.location.pathname}${query ? `?${query}` : ""}`, {
+      scroll: false,
+    });
+    // Only ever consume the one-shot `?share=1` trigger on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -174,6 +190,15 @@ export function ShareDocumentControl({
     } finally {
       setBusyAction(null);
     }
+  }
+
+  function requestLinkPermissionSave() {
+    if (sharePermission === "FULL" && !confirmingFull) {
+      setConfirmingFull(true);
+      return;
+    }
+    setConfirmingFull(false);
+    void enableLinkSharing();
   }
 
   async function enableLinkSharing() {
@@ -372,11 +397,12 @@ export function ShareDocumentControl({
               id="link-permission"
               value={sharePermission}
               disabled={busyAction !== null}
-              onChange={(event) =>
+              onChange={(event) => {
                 setSharePermission(
                   event.target.value as CollaboratorPermission,
-                )
-              }
+                );
+                setConfirmingFull(false);
+              }}
               className="app-input mt-1 w-full rounded-md px-2 py-2 text-xs outline-none"
             >
               {permissionOptions.map((option) => (
@@ -390,6 +416,35 @@ export function ShareDocumentControl({
                 Anyone who receives this link can edit, delete, and manage
                 sharing after their account is checked.
               </p>
+            )}
+            {confirmingFull && (
+              <div className="mt-2 rounded-md border border-[var(--warm)] p-3">
+                <p className="text-xs leading-5 text-[var(--warm)]">
+                  Confirm full access by link: anyone who signs in through this
+                  link will be able to edit, delete, and manage sharing for
+                  this document. This does not transfer ownership.
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={busyAction !== null}
+                    onClick={requestLinkPermissionSave}
+                    className="text-xs font-semibold text-[var(--warm)]"
+                  >
+                    {busyAction === "link"
+                      ? "Saving…"
+                      : "Confirm full access"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busyAction !== null}
+                    onClick={() => setConfirmingFull(false)}
+                    className="text-xs text-[var(--muted)]"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
             )}
 
             {initialLinkAccesses.length > 0 && (
@@ -416,7 +471,7 @@ export function ShareDocumentControl({
                   <button
                     type="button"
                     disabled={busyAction !== null}
-                    onClick={enableLinkSharing}
+                    onClick={requestLinkPermissionSave}
                     className="secondary-button rounded-md px-3 py-2 text-xs font-semibold disabled:opacity-50"
                   >
                     {busyAction === "link" ? "Saving…" : "Save permission"}
@@ -476,7 +531,7 @@ export function ShareDocumentControl({
               <button
                 type="button"
                 disabled={busyAction !== null}
-                onClick={enableLinkSharing}
+                onClick={requestLinkPermissionSave}
                 className="secondary-button mt-3 rounded-md px-3 py-2 text-xs font-semibold disabled:opacity-50"
               >
                 {busyAction === "link" ? "Creating…" : "Create link"}

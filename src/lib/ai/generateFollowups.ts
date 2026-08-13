@@ -7,6 +7,7 @@ import {
   startAiGeneration,
   type TrackedAnthropicMessage,
 } from "@/lib/ai/telemetry";
+import { checkAndConsumeAiAllowance } from "@/lib/entitlements";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 
 /**
@@ -42,6 +43,11 @@ export async function generateFollowupQuestions(documentId: string) {
   });
   if (!document) throw new Error("Document not found");
   const model = await getUserAiModel(document.ownerId);
+  await checkAndConsumeAiAllowance(
+    document.ownerId,
+    "DOCUMENT_FOLLOWUPS",
+    model,
+  );
   const telemetry = await startAiGeneration({
     feature: "DOCUMENT_FOLLOWUPS",
     model,

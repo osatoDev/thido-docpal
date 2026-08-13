@@ -8,7 +8,10 @@ import { UserMenu } from "@/components/account/UserMenu";
 import { SettingsForm } from "@/components/settings/SettingsForm";
 import { BillingPanel } from "@/components/settings/BillingPanel";
 import { getBillingOffer } from "@/lib/billing";
+import { getAiAllowanceStatus } from "@/lib/entitlements";
 import { ConnectedAccounts } from "@/components/settings/ConnectedAccounts";
+import { SecurityPanel } from "@/components/settings/SecurityPanel";
+import { AccountDataPanel } from "@/components/settings/AccountDataPanel";
 import {
   DEFAULT_APPLICATION_STYLE,
   isApplicationStyle,
@@ -27,7 +30,7 @@ export default async function SettingsPage({
     redirect("/login?notice=sign-in-required&callbackUrl=/settings");
   }
 
-  const [settings, user, billingOffer, query] = await Promise.all([
+  const [settings, user, billingOffer, aiAllowance, query] = await Promise.all([
     prisma.userSettings.upsert({
       where: { userId: session.user.id },
       update: {},
@@ -46,6 +49,7 @@ export default async function SettingsPage({
       },
     }),
     getBillingOffer(),
+    getAiAllowanceStatus(session.user.id),
     searchParams,
   ]);
   if (!user?.betaSeat) {
@@ -104,7 +108,10 @@ export default async function SettingsPage({
         cancelAtPeriodEnd={user.stripeCancelAtPeriodEnd}
         offer={billingOffer}
         notice={billingNotice}
+        aiAllowance={aiAllowance}
       />
+      <SecurityPanel />
+      <AccountDataPanel />
     </main>
   );
 }

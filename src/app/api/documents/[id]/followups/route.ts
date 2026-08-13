@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getDocumentForUser } from "@/lib/documentAuth";
 import { generateFollowupQuestions } from "@/lib/ai/generateFollowups";
+import { AiAllowanceExceededError } from "@/lib/entitlements";
 import { checkRateLimit } from "@/lib/rateLimit";
-import { unauthorizedResponse } from "@/lib/apiResponses";
+import {
+  aiAllowanceExceededResponse,
+  unauthorizedResponse,
+} from "@/lib/apiResponses";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -35,6 +39,9 @@ export async function POST(_request: Request, { params }: Params) {
     const followups = await generateFollowupQuestions(id);
     return NextResponse.json({ followups });
   } catch (error) {
+    if (error instanceof AiAllowanceExceededError) {
+      return aiAllowanceExceededResponse(error);
+    }
     const message =
       error instanceof Error ? error.message : "Failed to generate follow-ups";
     return NextResponse.json({ error: message }, { status: 400 });

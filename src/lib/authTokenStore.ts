@@ -76,7 +76,7 @@ export async function verifyEmailToken(token: string): Promise<boolean> {
 export async function resetPasswordWithToken(
   token: string,
   password: string,
-): Promise<boolean> {
+): Promise<{ success: boolean; email: string | null }> {
   const tokenHash = hashAuthToken(token);
   const passwordHash = await hashPassword(password);
   const now = new Date();
@@ -92,25 +92,26 @@ export async function resetPasswordWithToken(
       storedToken.type !== AuthTokenType.PASSWORD_RESET ||
       storedToken.expiresAt <= now
     ) {
-      return false;
+      return { success: false, email: null };
     }
 
     const consumed = await transaction.authToken.deleteMany({
       where: { id: storedToken.id, expiresAt: { gt: now } },
     });
-    if (consumed.count !== 1) return false;
+    if (consumed.count !== 1) return { success: false, email: null };
 
-    await transaction.user.update({
+    const updatedUser = await transaction.user.update({
       where: { id: storedToken.userId },
       data: {
         passwordHash,
         sessionVersion: { increment: 1 },
       },
+      select: { email: true },
     });
     await transaction.authToken.deleteMany({
       where: { userId: storedToken.userId },
     });
 
-    return true;
+    return { success: true, email: updatedUser.email };
   });
 }

@@ -12,6 +12,10 @@ import { unauthorizedResponse } from "@/lib/apiResponses";
 import { formatCommentConversation } from "@/lib/commentConversation";
 import { getCommentForUser } from "@/lib/documentAuth";
 import {
+  AiAllowanceExceededError,
+  checkAndConsumeAiAllowance,
+} from "@/lib/entitlements";
+import {
   COMMENT_AI_BUSY_MESSAGE,
   DOCUMENT_AI_LOCK_MESSAGE,
   expireStaleCommentAiJobs,
@@ -141,64 +145,97 @@ export async function POST(request: Request, { params }: Params) {
       }),
       getUserAiModel(session.user.id),
     ]);
-    if (!checkRateLimit(`ai:${session.user.id}`, 15, 60_000)) {
-      throw new Error("Rate limited. Skipping AI response for this message.");
+    let allowanceError: AiAllowanceExceededError | null = null;
+    try {
+      await checkAndConsumeAiAllowance(
+        session.user.id,
+        "COMMENT_FOLLOWUP_REPLY",
+        model,
+      );
+    } catch (error) {
+      if (!(error instanceof AiAllowanceExceededError)) throw error;
+      allowanceError = error;
     }
-    telemetry = await startAiGeneration({
-      feature: "COMMENT_RESPOND",
-      model,
-      userId: session.user.id,
-      documentId: existing.documentId,
-      commentId: id,
-    });
-    const documentText =
-      document.content && typeof document.content === "object"
-        ? getDocumentText(document.content as JSONContent)
-        : "";
-    const transcript = formatCommentConversation(thread.body, thread.replies);
-    const message = await anthropic.messages.create({
-      model,
-      max_tokens: 2_048,
-      system:
-        "You are Thido, an editorial assistant continuing an existing document comment thread. " +
-        "Answer the user's latest message directly and concisely. Use the document and quoted target as context. " +
-        "Do not claim that you changed the document in this conversational reply.",
-      messages: [
-        {
-          role: "user",
-          content:
-            `DOCUMENT:\n${documentText || "(empty)"}\n\n` +
-            `COMMENT TARGET:\n${thread.quotedText || "Entire document"}\n\n` +
-            `THREAD:\n${transcript}`,
-        },
-      ],
-    });
-    trackedMessage = message;
-    const aiBody = responseText(message);
-    if (!aiBody) throw new Error("AI returned an empty comment reply");
 
-    await prisma.$transaction([
-      prisma.comment.create({
-        data: {
-          documentId: existing.documentId,
-          authorType: "AI",
-          parentId: id,
-          scope: existing.scope,
-          anchorMarkId: existing.anchorMarkId,
-          quotedText: existing.quotedText,
-          body: aiBody,
-        },
-      }),
-      prisma.comment.update({
-        where: { id },
-        data: {
-          aiStatus: "SUCCEEDED",
-          aiCompletedAt: new Date(),
-        },
-      }),
-    ]);
-    await telemetry.succeed(message);
-    completed = true;
+    if (allowanceError) {
+      await prisma.$transaction([
+        prisma.comment.create({
+          data: {
+            documentId: existing.documentId,
+            authorType: "AI",
+            parentId: id,
+            scope: existing.scope,
+            anchorMarkId: existing.anchorMarkId,
+            quotedText: existing.quotedText,
+            body: allowanceError.message,
+          },
+        }),
+        prisma.comment.update({
+          where: { id },
+          data: { aiStatus: "SUCCEEDED", aiCompletedAt: new Date() },
+        }),
+      ]);
+      completed = true;
+    } else {
+      if (!checkRateLimit(`ai:${session.user.id}`, 15, 60_000)) {
+        throw new Error("Rate limited. Skipping AI response for this message.");
+      }
+      telemetry = await startAiGeneration({
+        feature: "COMMENT_RESPOND",
+        model,
+        userId: session.user.id,
+        documentId: existing.documentId,
+        commentId: id,
+      });
+      const documentText =
+        document.content && typeof document.content === "object"
+          ? getDocumentText(document.content as JSONContent)
+          : "";
+      const transcript = formatCommentConversation(thread.body, thread.replies);
+      const message = await anthropic.messages.create({
+        model,
+        max_tokens: 2_048,
+        system:
+          "You are Thido, an editorial assistant continuing an existing document comment thread. " +
+          "Answer the user's latest message directly and concisely. Use the document and quoted target as context. " +
+          "Do not claim that you changed the document in this conversational reply.",
+        messages: [
+          {
+            role: "user",
+            content:
+              `DOCUMENT:\n${documentText || "(empty)"}\n\n` +
+              `COMMENT TARGET:\n${thread.quotedText || "Entire document"}\n\n` +
+              `THREAD:\n${transcript}`,
+          },
+        ],
+      });
+      trackedMessage = message;
+      const aiBody = responseText(message);
+      if (!aiBody) throw new Error("AI returned an empty comment reply");
+
+      await prisma.$transaction([
+        prisma.comment.create({
+          data: {
+            documentId: existing.documentId,
+            authorType: "AI",
+            parentId: id,
+            scope: existing.scope,
+            anchorMarkId: existing.anchorMarkId,
+            quotedText: existing.quotedText,
+            body: aiBody,
+          },
+        }),
+        prisma.comment.update({
+          where: { id },
+          data: {
+            aiStatus: "SUCCEEDED",
+            aiCompletedAt: new Date(),
+          },
+        }),
+      ]);
+      await telemetry.succeed(message);
+      completed = true;
+    }
   } catch (error) {
     await telemetry?.fail(error, trackedMessage);
     await prisma.comment.updateMany({

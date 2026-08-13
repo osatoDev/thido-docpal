@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getDocumentForUser } from "@/lib/documentAuth";
 import { generateFollowupQuestions } from "@/lib/ai/generateFollowups";
+import { AiAllowanceExceededError } from "@/lib/entitlements";
 import { FollowupPromptForm } from "@/components/wizard/FollowupPromptForm";
 import { Brand } from "@/components/Brand";
 import { UserMenu } from "@/components/account/UserMenu";
@@ -47,6 +49,25 @@ export default async function WizardPage({ params }: Props) {
   try {
     followups = await generateFollowupQuestions(id);
   } catch (error) {
+    if (error instanceof AiAllowanceExceededError) {
+      return (
+        <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col items-center justify-center gap-3 px-5 py-12 text-center sm:px-6 lg:px-8">
+          <div className="absolute top-6 right-6">
+            <UserMenu user={session.user} />
+          </div>
+          <p className="text-sm font-medium">
+            You&apos;ve reached this month&apos;s AI allowance.
+          </p>
+          <p className="max-w-md text-sm text-gray-500">{error.message}</p>
+          <Link
+            href="/settings"
+            className="primary-button rounded-xl px-4 py-2 text-sm font-semibold"
+          >
+            Go to Settings
+          </Link>
+        </main>
+      );
+    }
     console.error("Failed to generate follow-up questions", error);
     return (
       <main className="mx-auto flex w-full max-w-[90rem] flex-1 flex-col items-center justify-center gap-3 px-5 py-12 text-center sm:px-6 lg:px-8">

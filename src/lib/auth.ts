@@ -19,7 +19,10 @@ import { verifyPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { joinWaitlist } from "@/lib/waitlist";
-import { sendWaitlistConfirmationEmail } from "@/lib/email";
+import {
+  sendSignInMethodAddedEmail,
+  sendWaitlistConfirmationEmail,
+} from "@/lib/email";
 import { reportServerError } from "@/lib/rollbar/server";
 import {
   DEFAULT_APPLICATION_STYLE,
@@ -266,6 +269,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         update: {},
         create: { userId: user.id },
       });
+    },
+    async linkAccount({ user, account }) {
+      if (account.provider !== "google" || !user.email) return;
+      try {
+        await sendSignInMethodAddedEmail(user.email, "Google");
+      } catch (error) {
+        console.error("Unable to send sign-in method notification", error);
+        await reportServerError(error, {
+          source: "auth",
+          operation: "notify-link-account",
+        });
+      }
     },
   },
 });

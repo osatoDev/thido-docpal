@@ -19,6 +19,7 @@ export function BillingPanel({
   cancelAtPeriodEnd,
   offer,
   notice,
+  aiAllowance,
 }: {
   betaSeat: number;
   subscriptionStatus: string | null;
@@ -26,9 +27,20 @@ export function BillingPanel({
   cancelAtPeriodEnd: boolean;
   offer: BillingOffer | null;
   notice?: string;
+  aiAllowance: {
+    plan: "free" | "pro";
+    limit: number;
+    used: number;
+    remaining: number;
+    resetsAt: Date;
+  };
 }) {
   const paid = hasPaidSubscription(subscriptionStatus);
   const noticeMessage = notice ? BILLING_MESSAGES[notice] : null;
+  const usagePercent = Math.min(
+    100,
+    Math.round((aiAllowance.used / Math.max(1, aiAllowance.limit)) * 100),
+  );
 
   return (
     <section className="border-t border-[var(--border-strong)] pt-7" aria-labelledby="billing-heading">
@@ -69,6 +81,30 @@ export function BillingPanel({
                 )}
               </p>
             )}
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between text-xs">
+              <p className="font-semibold tracking-[0.12em] text-[var(--muted)] uppercase">
+                AI usage this month
+              </p>
+              <p className="text-[var(--muted)]">
+                {aiAllowance.used} / {aiAllowance.limit}
+              </p>
+            </div>
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-subtle)]">
+              <div
+                className="h-full rounded-full bg-[var(--accent-strong)]"
+                style={{ width: `${usagePercent}%` }}
+              />
+            </div>
+            <p className="mt-1.5 text-xs text-[var(--muted)]">
+              Resets{" "}
+              {new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(
+                aiAllowance.resetsAt,
+              )}
+              {aiAllowance.plan === "free" && ". Upgrade to Pro for a higher allowance."}
+            </p>
           </div>
 
           {paid ? (

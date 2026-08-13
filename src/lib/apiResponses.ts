@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import type { AiAllowanceExceededError } from "@/lib/entitlements";
+
 export function unauthorizedResponse() {
   return NextResponse.json(
     {
@@ -21,5 +23,21 @@ export function forbiddenResponse() {
       },
     },
     { status: 403 },
+  );
+}
+
+export function aiAllowanceExceededResponse(error: AiAllowanceExceededError) {
+  return NextResponse.json(
+    {
+      error: {
+        code: "AI_ALLOWANCE_EXCEEDED",
+        message: error.message,
+        plan: error.plan,
+        limit: error.limit,
+        used: error.used,
+        resetsAt: error.resetsAt.toISOString(),
+      },
+    },
+    { status: 402 },
   );
 }

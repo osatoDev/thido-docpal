@@ -46,7 +46,15 @@ export function FollowupPromptForm({
       const generateRes = await fetch(`/api/documents/${documentId}/generate`, {
         method: "POST",
       });
-      if (!generateRes.ok || !generateRes.body) {
+      if (!generateRes.ok) {
+        const generateResult = await generateRes.json().catch(() => ({}));
+        throw new Error(
+          typeof generateResult?.error?.message === "string"
+            ? generateResult.error.message
+            : "Could not generate the document",
+        );
+      }
+      if (!generateRes.body) {
         throw new Error("Could not generate the document");
       }
 

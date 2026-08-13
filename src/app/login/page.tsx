@@ -36,7 +36,11 @@ export default async function LoginPage({
                 ? "Your email is verified. You can sign in now."
                 : notice === "password-reset"
                   ? "Your password has been updated. Sign in with your new password."
-                  : null;
+                  : notice === "signed-out-all-devices"
+                    ? "You have been signed out of all devices. Sign in again to continue."
+                    : notice === "account-deleted"
+                      ? "Your Thido account and its data have been deleted."
+                      : null;
 
   return (
     <main className="relative flex flex-1 items-center overflow-hidden px-5 py-6 sm:px-6 sm:py-10 lg:px-8">

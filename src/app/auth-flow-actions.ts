@@ -11,6 +11,7 @@ import {
   safeRedirectPath,
 } from "@/lib/authInput";
 import {
+  sendPasswordChangedEmail,
   sendPasswordResetEmail,
   sendVerificationEmail,
 } from "@/lib/email";
@@ -144,15 +145,27 @@ export async function resetPassword(
     };
   }
 
-  const updated = await resetPasswordWithToken(
+  const result = await resetPasswordWithToken(
     parsed.data.token,
     parsed.data.password,
   );
-  if (!updated) {
+  if (!result.success) {
     return {
       status: "error",
       message: "This reset link is invalid or has expired.",
     };
+  }
+
+  if (result.email) {
+    try {
+      await sendPasswordChangedEmail(result.email);
+    } catch (error) {
+      console.error("Unable to send password-changed notification", error);
+      await reportServerError(error, {
+        source: "auth-email",
+        operation: "password-changed-notification",
+      });
+    }
   }
 
   redirect("/login?notice=password-reset");
