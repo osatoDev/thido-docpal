@@ -223,6 +223,19 @@ describe("priority-one document structures", () => {
     expect(parsed.content?.[2].type).toBe("pageBreak");
   });
 
+  it("drops near-black and near-white text colors parsed from pasted HTML, but keeps a deliberately chosen color", () => {
+    const html =
+      '<p><span style="color: #000000">Pasted default black</span> ' +
+      '<span style="color: #ffffff">Pasted default white</span> ' +
+      '<span style="color: #175cd3">Deliberate blue</span></p>';
+    const parsed = generateJSON(html, getEditorExtensions());
+    const serialized = JSON.stringify(parsed);
+
+    expect(serialized).not.toContain('"color":"#000000"');
+    expect(serialized).not.toContain('"color":"#ffffff"');
+    expect(serialized).toContain('"color":"#175cd3"');
+  });
+
   it("round-trips advanced text styles, paragraph spacing, and deeper headings", () => {
     const content: JSONContent = {
       type: "doc",

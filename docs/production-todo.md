@@ -1,6 +1,6 @@
 # Thido production checklist
 
-Last reviewed: 13 August 2026
+Last reviewed: 14 August 2026
 
 This is the running source of truth for production-readiness work. Completed boxes indicate repository evidence or a verified check. External configuration remains unchecked until it is explicitly verified.
 
@@ -232,6 +232,8 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Browser-check the second P0 bundle on desktop and at 390 px: verify full-document selection with restored editor focus, underline/highlight/subscript/code formatting, page-break insertion, alignment, indent/outdent, zoom, scrollable viewport-contained menus, and no browser errors or horizontal page overflow.
 - [x] Preserve the compatible expanded formatting, alignment, indentation, and page-break structures in shared-schema HTML and Word/PDF export, with explicit PDF fallbacks documented for highlight and superscript/subscript.
 - [x] Add the next authoring bundle: a collapsible heading outline with navigation; Heading 4–6; font family, font size, text color, and highlight-color controls; line and paragraph spacing; uppercase/lowercase/title case; and localized date/time insertion.
+- [x] Fix explicit black text becoming invisible against a dark theme background: reject near-black/near-white text colors when parsing pasted HTML (`RichTextStyle.ts`, since Word/Google Docs paste routinely bakes in an explicit `color: #000000` even when the source author never chose one) so future pastes don't create the mark at all; and add a CSS safety net (`globals.css`, `:root[data-theme="dark"] .ProseMirror [style*="color: #161916"]` etc.) that forces known near-black/near-white color marks to the theme foreground color, fixing already-saved documents (including Thido's own fixed `#161916` "Black" swatch, which is nearly the same shade as the dark theme's background) without a data migration.
+- [ ] Browser-check the black/white text-color fix: confirm a document with pre-existing black-colored text (from paste or the Black swatch) reads normally after switching to dark theme, pasting new Word/Google Docs content with default black text no longer creates an explicit color mark, and a deliberately chosen non-extreme color (e.g. red, blue) still applies and persists correctly in both themes.
 - [x] Extend the document outline with active-heading state and remove/add-back controls that preserve heading formatting.
 - [x] Preserve deeper headings, typography, text color, and paragraph spacing in shared-schema HTML and compatible Word/PDF export, while retaining the documented PDF and Word re-import fallbacks.
 - [x] Browser-check the authoring bundle on desktop and at 390 px, including live outline updates/navigation, toolbar horizontal scrolling, viewport-contained menus, formatting and Heading 6 persistence after reopening, localized date/time insertion, capitalization focus restoration, and absence of browser errors or page overflow.
@@ -278,7 +280,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Choose and approve paid-plan pricing, currency, billing interval, entitlements, and launch timing using [the paid-plan pricing suggestions](./paid-plan-pricing.md) before activating Stripe Checkout.
 - [x] Prepare an accurate Stripe registration description for Thido as an AI-assisted document productivity SaaS in [the Stripe business description](./stripe-business-description.md).
 - [x] Implement authenticated Stripe subscription Checkout, signed webhook processing, idempotent subscription-state persistence, failure reporting, and Customer Portal access using the Vercel Marketplace integration; keep Checkout hidden until a Price is configured.
-- [ ] Claim and activate the currently sandbox-only Stripe account before accepting live payments.
+- [ ] Claim and activate the currently sandbox-only Stripe account before accepting live payments. Use the intended Stripe owner account (its login email may differ from Vercel's), verify the business/legal entity and team access during the claim, and confirm the resource remains connected to the intended Vercel project environments afterward. Follow [the Vercel and Stripe email note](./vercel-stripe-different-email.md).
 - [ ] Create the approved recurring Stripe product and Price, then configure `STRIPE_PRO_PRICE_ID` only when paid checkout should become visible.
 - [ ] Configure and verify the Stripe statement descriptor using the recommended `THIDO.AI` and shortened `THIDO` values in [the statement descriptor note](./stripe-statement-descriptor.md).
 - [ ] Deploy `/api/webhooks/stripe`, subscribe it to Checkout completion and subscription lifecycle events, set `STRIPE_WEBHOOK_SECRET`, and configure the Customer Portal.
@@ -335,6 +337,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Browser-check the Settings **Security** (sign out of all devices) and **Your data** (export, typed-confirmation delete) panels, the **Plan and billing** AI usage meter, and the **Full access** link-permission confirmation step in Share, at desktop and 390 px, including error and pending states and no framework overlay or horizontal overflow.
 - [ ] Exercise the AI monthly allowance in practice: confirm document generation, follow-up questions, and comment AI responses are blocked with a clear in-product message once the Free or Pro allowance is reached, that usage resets at the start of the next UTC month, and that the Settings usage meter matches actual consumption.
 - [x] Confirm type checking, zero-warning lint, all 212 unit tests, and the optimized production build pass after adding the checklist arrows Settings toggle, the checked-item checklist delete button, the frozen document editor action bar, and the lightweight document-tabs section navigator. `prisma generate` was run for the schema change; no `prisma migrate`/`db push`/`migrate status` command was run in this session for the same production-`DATABASE_URL` reason noted above.
+- [x] Confirm type checking, zero-warning lint, all 213 unit tests, and the optimized production build pass after fixing the checklist Tab-to-indent cursor-position bug and the near-black/near-white text-color legibility fix.
 - [ ] Add a normal CI workflow that runs `npm ci`, `npm test`, `npm run lint`, and `npm run build` for pull requests and `main`.
 - [ ] Add database integration tests for issuing and consuming verification and reset tokens transactionally.
 - [ ] Add browser tests for registration, email verification, password reset, Google login, rolling session renewal, sign-out, stale sessions, and admin authorization.

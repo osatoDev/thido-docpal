@@ -93,6 +93,31 @@ export function normalizeDocumentColor(value: unknown) {
   return `#${channels.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
 }
 
+/**
+ * Pasted HTML from Word/Google Docs routinely carries an explicit
+ * near-black (or, less often, near-white) inline text color as its
+ * "default", even when the source author never deliberately chose one. If
+ * Thido preserved that literally, the text becomes unreadable against a
+ * background of the same shade after a later theme switch (most visibly,
+ * near-black text disappearing into a dark background). Reject colors this
+ * extreme when parsing pasted content so no explicit color mark is created
+ * for what was really just default text; a deliberate in-app color choice
+ * (see setTextColor below) is left alone.
+ */
+function isExtremeTextColor(hex: string): boolean {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  return max <= 32 || min >= 224;
+}
+
+function normalizePastedTextColor(value: unknown) {
+  const color = normalizeDocumentColor(value);
+  return color && !isExtremeTextColor(color) ? color : null;
+}
+
 export const RichTextStyle = Mark.create({
   name: "richTextStyle",
 
@@ -108,7 +133,7 @@ export const RichTextStyle = Mark.create({
       },
       color: {
         default: null,
-        parseHTML: (element) => normalizeDocumentColor(element.style.color),
+        parseHTML: (element) => normalizePastedTextColor(element.style.color),
       },
     };
   },

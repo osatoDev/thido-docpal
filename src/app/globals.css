@@ -44,6 +44,25 @@
   color-scheme: dark;
 }
 
+/*
+ * Safety net for explicit near-black/near-white text-color marks already
+ * saved in documents (from pasted Word/Google Docs content, or Thido's own
+ * fixed "Black" swatch, which is too close to every dark background to stay
+ * readable). New paste imports are prevented from creating these at parse
+ * time (see RichTextStyle.ts), but this covers content saved before that
+ * fix and any color mark this list doesn't yet enumerate.
+ */
+:root[data-theme="dark"] .ProseMirror [style*="color: #000000" i],
+:root[data-theme="dark"] .ProseMirror [style*="color: #161916" i],
+:root[data-theme="dark"] .ProseMirror [style*="color: #111111" i],
+:root[data-theme="dark"] .ProseMirror [style*="color: #1a1a1a" i] {
+  color: var(--foreground) !important;
+}
+
+:root[data-theme="light"] .ProseMirror [style*="color: #ffffff" i] {
+  color: var(--foreground) !important;
+}
+
 :root[data-app-style="clean"] {
   --background: light-dark(#f6f8fa, #111418);
   --foreground: light-dark(#1f2328, #eef1f4);
