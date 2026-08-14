@@ -289,9 +289,15 @@ export const MovableTaskItem = TaskItem.extend<MovableTaskItemOptions>({
 });
 
 function insertTabOrIndentEmptyTaskItem(editor: Editor) {
-  const { $from } = editor.state.selection;
+  const { $from, empty } = editor.state.selection;
 
   if (!editor.isActive("taskItem")) return false;
+
+  // A range selection indents every checklist item it touches (one or
+  // several) rather than replacing the selected text with a literal tab.
+  if (!empty) {
+    return editor.commands.sinkListItem("taskItem");
+  }
 
   if ($from.parent.isTextblock && $from.parentOffset === 0) {
     return editor.commands.sinkListItem("taskItem");

@@ -448,6 +448,88 @@ describe("block productivity commands", () => {
     expect(paragraphEditor.getJSON()).toEqual(paragraphBeforeTab);
   });
 
+  it("indents every checklist item covered by a range selection instead of replacing the text", () => {
+    const editor = makeEditor({
+      type: "doc",
+      content: [
+        {
+          type: "taskList",
+          content: [
+            {
+              type: "taskItem",
+              content: [
+                { type: "paragraph", content: [{ type: "text", text: "Zero" }] },
+              ],
+            },
+            {
+              type: "taskItem",
+              content: [
+                { type: "paragraph", content: [{ type: "text", text: "First" }] },
+              ],
+            },
+            {
+              type: "taskItem",
+              content: [
+                { type: "paragraph", content: [{ type: "text", text: "Second" }] },
+              ],
+            },
+            {
+              type: "taskItem",
+              content: [
+                { type: "paragraph", content: [{ type: "text", text: "Third" }] },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    let firstPosition = -1;
+    let thirdPosition = -1;
+    editor.state.doc.descendants((node, position) => {
+      if (node.type.name !== "paragraph") return;
+      if (node.textContent === "First" && firstPosition === -1) {
+        firstPosition = position;
+      }
+      if (node.textContent === "Third" && thirdPosition === -1) {
+        thirdPosition = position;
+      }
+    });
+    expect(firstPosition).toBeGreaterThan(-1);
+    expect(thirdPosition).toBeGreaterThan(-1);
+
+    // Select from partway into "First" through partway into "Third", the
+    // way a click-drag selection spanning several checklist items would.
+    editor.commands.setTextSelection({
+      from: firstPosition + 3,
+      to: thirdPosition + 3,
+    });
+    expect(editor.commands.keyboardShortcut("Tab")).toBe(true);
+
+    // TipTap always appends a trailing editable paragraph after a
+    // document-ending list, independent of this indent behavior.
+    expect(topLevelText(editor)).toEqual(["ZeroFirstSecondThird", ""]);
+    expect(editor.getJSON().content?.[0]).toMatchObject({
+      type: "taskList",
+      content: [
+        {
+          type: "taskItem",
+          content: [
+            { content: [{ text: "Zero" }] },
+            {
+              type: "taskList",
+              content: [
+                { content: [{ content: [{ text: "First" }] }] },
+                { content: [{ content: [{ text: "Second" }] }] },
+                { content: [{ content: [{ text: "Third" }] }] },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it("duplicates and reorders the current top-level block", () => {
     const editor = makeEditor({
       type: "doc",
