@@ -396,6 +396,43 @@ describe("block productivity commands", () => {
     expect(editor.getText()).toContain("Typed task\t");
     expect(editor.getJSON().content?.[0]?.content).toHaveLength(2);
 
+    // Tab at the very start of a non-empty checklist item indents it,
+    // rather than inserting another literal tab character.
+    let typedTaskPosition: number | null = null;
+    editor.state.doc.descendants((node, position) => {
+      if (
+        node.type.name === "paragraph" &&
+        node.textContent.startsWith("Typed task") &&
+        typedTaskPosition === null
+      ) {
+        typedTaskPosition = position;
+      }
+    });
+    expect(typedTaskPosition).not.toBeNull();
+    editor.commands.setTextSelection((typedTaskPosition ?? 0) + 1);
+    expect(editor.commands.keyboardShortcut("Tab")).toBe(true);
+    expect(editor.getText()).not.toContain("\tTyped task");
+    expect(editor.getJSON().content?.[0]).toMatchObject({
+      type: "taskList",
+      content: [
+        {
+          type: "taskItem",
+          content: [
+            { type: "paragraph" },
+            {
+              type: "taskList",
+              content: [
+                {
+                  type: "taskItem",
+                  content: [{ content: [{ text: "Typed task\t" }] }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
     const paragraphEditor = makeEditor({
       type: "doc",
       content: [

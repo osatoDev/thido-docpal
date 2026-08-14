@@ -293,7 +293,7 @@ function insertTabOrIndentEmptyTaskItem(editor: Editor) {
 
   if (!editor.isActive("taskItem")) return false;
 
-  if ($from.parent.isTextblock && $from.parent.textContent.length === 0) {
+  if ($from.parent.isTextblock && $from.parentOffset === 0) {
     return editor.commands.sinkListItem("taskItem");
   }
 
