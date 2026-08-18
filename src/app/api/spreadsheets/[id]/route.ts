@@ -4,13 +4,14 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { unauthorizedResponse } from "@/lib/apiResponses";
 import { prisma } from "@/lib/prisma";
+import { reportServerError } from "@/lib/rollbar/server";
 import { normalizeSpreadsheetContent } from "@/lib/spreadsheet";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, { params }: Params) {
   const session = await auth();
-  if (!session?.user?.id) return unauthorizedResponse();
+  if (!session?.user?.id) return await unauthorizedResponse();
 
   const body = await request.json().catch(() => ({}));
   const baseRevision =
@@ -18,6 +19,11 @@ export async function PATCH(request: Request, { params }: Params) {
       ? (body.baseRevision as number)
       : null;
   if (baseRevision === null) {
+    await reportServerError(new Error("Invalid baseRevision"), {
+      source: "spreadsheet",
+      operation: "invalid-base-revision",
+      status: 400,
+    });
     return NextResponse.json(
       { error: "A valid baseRevision is required." },
       { status: 400 },
@@ -27,6 +33,11 @@ export async function PATCH(request: Request, { params }: Params) {
   const data: { title?: string; content?: Prisma.InputJsonValue } = {};
   if (body.title !== undefined) {
     if (typeof body.title !== "string" || !body.title.trim()) {
+      await reportServerError(new Error("Empty spreadsheet title"), {
+        source: "spreadsheet",
+        operation: "invalid-title",
+        status: 400,
+      });
       return NextResponse.json(
         { error: "Spreadsheet title cannot be empty." },
         { status: 400 },
@@ -37,6 +48,11 @@ export async function PATCH(request: Request, { params }: Params) {
   if (body.content !== undefined) {
     const content = normalizeSpreadsheetContent(body.content);
     if (!content) {
+      await reportServerError(new Error("Invalid spreadsheet content"), {
+        source: "spreadsheet",
+        operation: "invalid-content",
+        status: 400,
+      });
       return NextResponse.json(
         { error: "Spreadsheet content is invalid or exceeds its limits." },
         { status: 400 },
@@ -45,6 +61,11 @@ export async function PATCH(request: Request, { params }: Params) {
     data.content = content as Prisma.InputJsonValue;
   }
   if (data.title === undefined && data.content === undefined) {
+    await reportServerError(new Error("No spreadsheet fields provided"), {
+      source: "spreadsheet",
+      operation: "no-fields-provided",
+      status: 400,
+    });
     return NextResponse.json(
       { error: "Provide a title or spreadsheet content to save." },
       { status: 400 },
@@ -73,9 +94,21 @@ export async function PATCH(request: Request, { params }: Params) {
   });
 
   if (result.kind === "missing") {
+    await reportServerError(new Error("Spreadsheet not found"), {
+      source: "spreadsheet",
+      operation: "not-found",
+      status: 404,
+      entryId: id,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   if (result.kind === "conflict") {
+    await reportServerError(new Error("Spreadsheet revision conflict"), {
+      source: "spreadsheet",
+      operation: "revision-conflict",
+      status: 409,
+      entryId: id,
+    });
     return NextResponse.json(
       {
         error: "This spreadsheet changed in another tab.",

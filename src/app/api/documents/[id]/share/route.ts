@@ -7,6 +7,7 @@ import {
   documentAccessWhere,
 } from "@/lib/documentAuth";
 import { prisma } from "@/lib/prisma";
+import { reportServerError } from "@/lib/rollbar/server";
 import { createShareToken } from "@/lib/shareTokens";
 
 type Params = { params: Promise<{ id: string }> };
@@ -14,7 +15,7 @@ type Params = { params: Promise<{ id: string }> };
 export async function POST(request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
-    return unauthorizedResponse();
+    return await unauthorizedResponse();
   }
 
   const { id } = await params;
@@ -31,6 +32,12 @@ export async function POST(request: Request, { params }: Params) {
   });
 
   if (!existing) {
+    await reportServerError(new Error("Document not found"), {
+      source: "document-share",
+      operation: "create-link-not-found",
+      status: 404,
+      documentId: id,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -62,6 +69,10 @@ export async function POST(request: Request, { params }: Params) {
   });
 
   if (!document?.shareToken) {
+    await reportServerError(
+      new Error("Share token missing after create-or-update"),
+      { source: "document-share", operation: "create-link", documentId: id },
+    );
     return NextResponse.json(
       { error: "Could not create a share link" },
       { status: 500 },
@@ -77,7 +88,7 @@ export async function POST(request: Request, { params }: Params) {
 export async function DELETE(_request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
-    return unauthorizedResponse();
+    return await unauthorizedResponse();
   }
 
   const { id } = await params;
@@ -98,6 +109,12 @@ export async function DELETE(_request: Request, { params }: Params) {
   });
 
   if (result.count === 0) {
+    await reportServerError(new Error("Document not found"), {
+      source: "document-share",
+      operation: "delete-link-not-found",
+      status: 404,
+      documentId: id,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

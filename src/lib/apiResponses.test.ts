@@ -7,7 +7,7 @@ import {
 
 describe("authorization API responses", () => {
   it("returns a structured 401 response", async () => {
-    const response = unauthorizedResponse();
+    const response = await unauthorizedResponse();
 
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toEqual({
@@ -19,7 +19,7 @@ describe("authorization API responses", () => {
   });
 
   it("returns a structured 403 response", async () => {
-    const response = forbiddenResponse();
+    const response = await forbiddenResponse();
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({

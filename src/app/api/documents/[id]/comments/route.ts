@@ -44,13 +44,14 @@ import {
 } from "@/lib/documentAiJobs";
 import { recordDocumentRevision } from "@/lib/documentRevisions";
 import { DocumentRevisionSource } from "@prisma/client";
+import { reportServerError } from "@/lib/rollbar/server";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
-    return unauthorizedResponse();
+    return await unauthorizedResponse();
   }
 
   const { id: documentId } = await params;
@@ -82,6 +83,12 @@ export async function GET(_request: Request, { params }: Params) {
   });
 
   if (!document) {
+    await reportServerError(new Error("Document not found"), {
+      source: "document-comment",
+      operation: "get-not-found",
+      status: 404,
+      documentId,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   await expireStaleCommentAiJobs(prisma, documentId);
@@ -119,7 +126,7 @@ export async function GET(_request: Request, { params }: Params) {
 export async function POST(request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
-    return unauthorizedResponse();
+    return await unauthorizedResponse();
   }
   const userId = session.user.id;
   const userEmail = session.user.email;
@@ -132,6 +139,12 @@ export async function POST(request: Request, { params }: Params) {
     "COMMENT",
   );
   if (!document) {
+    await reportServerError(new Error("Document not found"), {
+      source: "document-comment",
+      operation: "post-not-found",
+      status: 404,
+      documentId,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -151,6 +164,12 @@ export async function POST(request: Request, { params }: Params) {
     !commentBody ||
     (scope === "SELECTION" && (!anchorMarkId || !quotedText))
   ) {
+    await reportServerError(new Error("Invalid comment payload"), {
+      source: "document-comment",
+      operation: "invalid-body",
+      status: 400,
+      documentId,
+    });
     return NextResponse.json(
       {
         error:
@@ -213,9 +232,21 @@ export async function POST(request: Request, { params }: Params) {
     return { kind: "created" as const, comment };
   });
   if (admission.kind === "missing") {
+    await reportServerError(new Error("Document missing during comment create"), {
+      source: "document-comment",
+      operation: "document-missing",
+      status: 404,
+      documentId,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   if (admission.kind === "locked") {
+    await reportServerError(new Error("Document AI locked"), {
+      source: "document-comment",
+      operation: "locked",
+      status: 409,
+      documentId,
+    });
     return NextResponse.json(
       {
         error: admission.documentAiLocked

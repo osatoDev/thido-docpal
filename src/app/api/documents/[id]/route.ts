@@ -23,7 +23,7 @@ type Params = { params: Promise<{ id: string }> };
 export async function GET(_request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
-    return unauthorizedResponse();
+    return await unauthorizedResponse();
   }
 
   const { id } = await params;
@@ -50,6 +50,12 @@ export async function GET(_request: Request, { params }: Params) {
   });
 
   if (!document) {
+    await reportServerError(new Error("Document not found"), {
+      source: "document",
+      operation: "get-not-found",
+      status: 404,
+      documentId: id,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -59,7 +65,7 @@ export async function GET(_request: Request, { params }: Params) {
 export async function PATCH(request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
-    return unauthorizedResponse();
+    return await unauthorizedResponse();
   }
 
   const { id } = await params;
@@ -78,6 +84,12 @@ export async function PATCH(request: Request, { params }: Params) {
       "COMMENT",
     ));
   if (!commentableDocument) {
+    await reportServerError(new Error("Document not found"), {
+      source: "document",
+      operation: "patch-not-found",
+      status: 404,
+      documentId: id,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -87,6 +99,12 @@ export async function PATCH(request: Request, { params }: Params) {
       ? (body.baseRevision as number)
       : null;
   if (baseRevision === null) {
+    await reportServerError(new Error("Invalid baseRevision"), {
+      source: "document",
+      operation: "invalid-base-revision",
+      status: 400,
+      documentId: id,
+    });
     return NextResponse.json(
       { error: "A valid baseRevision is required." },
       { status: 400 },
@@ -124,6 +142,15 @@ export async function PATCH(request: Request, { params }: Params) {
         !proposedContent ||
         !isCommentMarkOnlyChange(currentContent, proposedContent)
       ) {
+        await reportServerError(
+          new Error("Comment access cannot change document text"),
+          {
+            source: "document",
+            operation: "comment-only-access-denied",
+            status: 403,
+            documentId: id,
+          },
+        );
         return NextResponse.json(
           { error: "Comment access cannot change document text." },
           { status: 403 },
@@ -192,15 +219,33 @@ export async function PATCH(request: Request, { params }: Params) {
     return { kind: "updated" as const, document };
   });
   if (updateResult.kind === "missing") {
+    await reportServerError(new Error("Document missing during update"), {
+      source: "document",
+      operation: "patch-document-missing",
+      status: 404,
+      documentId: id,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   if (updateResult.kind === "locked") {
+    await reportServerError(new Error("Document AI locked"), {
+      source: "document",
+      operation: "patch-locked",
+      status: 409,
+      documentId: id,
+    });
     return NextResponse.json(
       { error: DOCUMENT_AI_LOCK_MESSAGE, documentAiLocked: true },
       { status: 409 },
     );
   }
   if (updateResult.kind === "conflict") {
+    await reportServerError(new Error("Document revision conflict"), {
+      source: "document",
+      operation: "patch-conflict",
+      status: 409,
+      documentId: id,
+    });
     return NextResponse.json(
       {
         error:
@@ -223,7 +268,7 @@ export async function PATCH(request: Request, { params }: Params) {
 export async function DELETE(_request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
-    return unauthorizedResponse();
+    return await unauthorizedResponse();
   }
 
   const { id } = await params;
@@ -234,6 +279,12 @@ export async function DELETE(_request: Request, { params }: Params) {
     "FULL",
   );
   if (!existing) {
+    await reportServerError(new Error("Document not found"), {
+      source: "document",
+      operation: "delete-not-found",
+      status: 404,
+      documentId: id,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   const imageBlobs = await prisma.documentImage.findMany({
@@ -258,9 +309,21 @@ export async function DELETE(_request: Request, { params }: Params) {
     return "deleted" as const;
   });
   if (deleteResult === "missing") {
+    await reportServerError(new Error("Document missing during delete"), {
+      source: "document",
+      operation: "delete-document-missing",
+      status: 404,
+      documentId: id,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   if (deleteResult === "locked") {
+    await reportServerError(new Error("Document AI locked"), {
+      source: "document",
+      operation: "delete-locked",
+      status: 409,
+      documentId: id,
+    });
     return NextResponse.json(
       { error: DOCUMENT_AI_LOCK_MESSAGE },
       { status: 409 },

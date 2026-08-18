@@ -14,12 +14,13 @@ import {
 } from "@/lib/documentAiJobs";
 import { recordDocumentRevision } from "@/lib/documentRevisions";
 import { prisma } from "@/lib/prisma";
+import { reportServerError } from "@/lib/rollbar/server";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, { params }: Params) {
   const session = await auth();
-  if (!session?.user?.id) return unauthorizedResponse();
+  if (!session?.user?.id) return await unauthorizedResponse();
 
   const { id } = await params;
   const document = await getDocumentForUser(
@@ -29,6 +30,12 @@ export async function GET(_request: Request, { params }: Params) {
     "EDIT",
   );
   if (!document) {
+    await reportServerError(new Error("Document not found"), {
+      source: "document-revisions",
+      operation: "get-not-found",
+      status: 404,
+      documentId: id,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -52,7 +59,7 @@ export async function GET(_request: Request, { params }: Params) {
 
 export async function POST(request: Request, { params }: Params) {
   const session = await auth();
-  if (!session?.user?.id) return unauthorizedResponse();
+  if (!session?.user?.id) return await unauthorizedResponse();
 
   const { id } = await params;
   const editableDocument = await getDocumentForUser(
@@ -62,6 +69,12 @@ export async function POST(request: Request, { params }: Params) {
     "EDIT",
   );
   if (!editableDocument) {
+    await reportServerError(new Error("Document not found"), {
+      source: "document-revisions",
+      operation: "post-not-found",
+      status: 404,
+      documentId: id,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -71,6 +84,12 @@ export async function POST(request: Request, { params }: Params) {
     ? body.baseRevision
     : null;
   if (targetRevision === null || baseRevision === null) {
+    await reportServerError(new Error("Invalid revision or baseRevision"), {
+      source: "document-revisions",
+      operation: "invalid-revision",
+      status: 400,
+      documentId: id,
+    });
     return NextResponse.json(
       { error: "revision and baseRevision are required." },
       { status: 400 },
@@ -131,15 +150,33 @@ export async function POST(request: Request, { params }: Params) {
   });
 
   if (result.kind === "missing" || result.kind === "revision-missing") {
+    await reportServerError(new Error("Document or revision not found"), {
+      source: "document-revisions",
+      operation: "restore-not-found",
+      status: 404,
+      documentId: id,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   if (result.kind === "locked") {
+    await reportServerError(new Error("Document AI locked"), {
+      source: "document-revisions",
+      operation: "restore-locked",
+      status: 409,
+      documentId: id,
+    });
     return NextResponse.json(
       { error: DOCUMENT_AI_LOCK_MESSAGE },
       { status: 409 },
     );
   }
   if (result.kind === "conflict") {
+    await reportServerError(new Error("Document revision conflict"), {
+      source: "document-revisions",
+      operation: "restore-conflict",
+      status: 409,
+      documentId: id,
+    });
     return NextResponse.json(
       {
         error: "The document changed before this version could be restored.",

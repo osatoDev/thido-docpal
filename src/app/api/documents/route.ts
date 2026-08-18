@@ -8,7 +8,7 @@ import { initialRevisionData } from "@/lib/documentRevisions";
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
-    return unauthorizedResponse();
+    return await unauthorizedResponse();
   }
 
   const documents = await prisma.document.findMany({
@@ -29,7 +29,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
-    return unauthorizedResponse();
+    return await unauthorizedResponse();
   }
 
   const body = await request.json().catch(() => ({}));

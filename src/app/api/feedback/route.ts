@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { reportServerError } from "@/lib/rollbar/server";
 
 const messageDateFormatter = new Intl.DateTimeFormat("en", {
   dateStyle: "medium",
@@ -9,6 +10,11 @@ const messageDateFormatter = new Intl.DateTimeFormat("en", {
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
+    await reportServerError(new Error("Unauthorized feedback request"), {
+      source: "feedback",
+      operation: "unauthorized",
+      status: 401,
+    });
     return Response.json(
       { error: "Sign in again to open your conversation." },
       { status: 401 },

@@ -77,7 +77,12 @@ export async function POST(request: Request) {
       signature,
       webhookSecret,
     );
-  } catch {
+  } catch (error) {
+    await reportServerError(error, {
+      source: "stripe-webhook",
+      operation: "invalid-signature",
+      status: 400,
+    });
     return Response.json({ error: "Invalid Stripe signature." }, { status: 400 });
   }
 

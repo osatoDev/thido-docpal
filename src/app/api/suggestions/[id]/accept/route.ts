@@ -16,6 +16,7 @@ import {
   lockDocumentForCommentAi,
 } from "@/lib/documentAiJobs";
 import { recordDocumentRevision } from "@/lib/documentRevisions";
+import { reportServerError } from "@/lib/rollbar/server";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -24,7 +25,7 @@ class SuggestionResolutionConflict extends Error {}
 export async function POST(_request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
-    return unauthorizedResponse();
+    return await unauthorizedResponse();
   }
 
   const { id } = await params;
@@ -35,9 +36,21 @@ export async function POST(_request: Request, { params }: Params) {
     "EDIT",
   );
   if (!suggestion) {
+    await reportServerError(new Error("Suggestion not found"), {
+      source: "suggestion",
+      operation: "not-found",
+      status: 404,
+      entryId: id,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   if (suggestion.status !== "PENDING") {
+    await reportServerError(new Error("Suggestion is not pending"), {
+      source: "suggestion",
+      operation: "not-pending",
+      status: 409,
+      entryId: id,
+    });
     return NextResponse.json(
       { error: "Suggestion is not pending" },
       { status: 409 },
@@ -50,6 +63,12 @@ export async function POST(_request: Request, { params }: Params) {
       select: { content: true, revision: true },
     });
     if (!document?.content) {
+      await reportServerError(new Error("Document has no content"), {
+        source: "suggestion",
+        operation: "document-empty",
+        status: 409,
+        entryId: id,
+      });
       return NextResponse.json(
         { error: "Document has no content" },
         { status: 409 },
@@ -61,6 +80,12 @@ export async function POST(_request: Request, { params }: Params) {
       suggestion.scope === "DOCUMENT" &&
       generateHTML(content, getEditorExtensions()) !== suggestion.originalText
     ) {
+      await reportServerError(new Error("Document changed before suggestion accept"), {
+        source: "suggestion",
+        operation: "document-changed",
+        status: 409,
+        entryId: id,
+      });
       return NextResponse.json(
         {
           error:
@@ -86,6 +111,12 @@ export async function POST(_request: Request, { params }: Params) {
           : null;
 
     if (!updatedContent) {
+      await reportServerError(new Error("Suggestion could not be prepared"), {
+        source: "suggestion",
+        operation: "prepare-failed",
+        status: 409,
+        entryId: id,
+      });
       return NextResponse.json(
         {
           error:
@@ -160,6 +191,12 @@ export async function POST(_request: Request, { params }: Params) {
       });
     } catch (error) {
       if (error instanceof SuggestionResolutionConflict) {
+        await reportServerError(error, {
+          source: "suggestion",
+          operation: "already-resolved",
+          status: 409,
+          entryId: id,
+        });
         return NextResponse.json(
           { error: "This suggestion has already been resolved." },
           { status: 409 },
@@ -169,6 +206,12 @@ export async function POST(_request: Request, { params }: Params) {
     }
 
     if (result.kind === "locked") {
+      await reportServerError(new Error("Document AI locked"), {
+        source: "suggestion",
+        operation: "locked",
+        status: 409,
+        entryId: id,
+      });
       return NextResponse.json(
         { error: DOCUMENT_AI_LOCK_MESSAGE },
         { status: 409 },
@@ -182,6 +225,12 @@ export async function POST(_request: Request, { params }: Params) {
     }
   }
 
+  await reportServerError(new Error("Document changed while accepting suggestion"), {
+    source: "suggestion",
+    operation: "accept-retry-exhausted",
+    status: 409,
+    entryId: id,
+  });
   return NextResponse.json(
     { error: "The document changed while accepting. Please try again." },
     { status: 409 },

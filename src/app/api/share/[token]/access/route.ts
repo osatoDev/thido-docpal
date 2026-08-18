@@ -11,10 +11,15 @@ type Params = { params: Promise<{ token: string }> };
 
 export async function POST(_request: Request, { params }: Params) {
   const session = await auth();
-  if (!session?.user?.id) return unauthorizedResponse();
+  if (!session?.user?.id) return await unauthorizedResponse();
 
   const { token } = await params;
   if (!isShareToken(token)) {
+    await reportServerError(new Error("Invalid share token"), {
+      source: "share-access",
+      operation: "invalid-token",
+      status: 404,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -29,6 +34,11 @@ export async function POST(_request: Request, { params }: Params) {
     },
   });
   if (!document) {
+    await reportServerError(new Error("Shared document not found"), {
+      source: "share-access",
+      operation: "document-not-found",
+      status: 404,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

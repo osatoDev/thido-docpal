@@ -20,7 +20,7 @@ const IMAGE_EXTENSIONS: Record<string, string> = {
 
 export async function POST(request: Request, { params }: Params) {
   const session = await auth();
-  if (!session?.user?.id) return unauthorizedResponse();
+  if (!session?.user?.id) return await unauthorizedResponse();
 
   const { id: documentId } = await params;
   const document = await getDocumentForUser(
@@ -30,12 +30,24 @@ export async function POST(request: Request, { params }: Params) {
     "EDIT",
   );
   if (!document) {
+    await reportServerError(new Error("Document not found"), {
+      source: "document-image",
+      operation: "upload-not-found",
+      status: 404,
+      documentId,
+    });
     return NextResponse.json({ error: "Document not found." }, { status: 404 });
   }
 
   const formData = await request.formData().catch(() => null);
   const file = formData?.get("file");
   if (!(file instanceof File)) {
+    await reportServerError(new Error("No image file provided"), {
+      source: "document-image",
+      operation: "missing-file",
+      status: 400,
+      documentId,
+    });
     return NextResponse.json({ error: "Choose an image to insert." }, { status: 400 });
   }
   const extension = IMAGE_EXTENSIONS[file.type];

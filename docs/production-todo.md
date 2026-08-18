@@ -1,6 +1,6 @@
 # Thido production checklist
 
-Last reviewed: 14 August 2026
+Last reviewed: 18 August 2026
 
 This is the running source of truth for production-readiness work. Completed boxes indicate repository evidence or a verified check. External configuration remains unchecked until it is explicitly verified.
 
@@ -97,8 +97,9 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Add the final production callback URL to Google Cloud:
       `https://<production-domain>/api/auth/callback/google`.
 - [ ] Configure the OAuth consent screen with the final product name, logo, domain, privacy-policy URL, and support email.
-- [ ] Confirm the Google app's publishing status and test-user restrictions are appropriate for launch.
-- [ ] Test new Google registration, returning Google login, denied consent, and same-email collision behavior in production.
+- [x] Confirm the Google app's publishing status: Google Cloud Console showed **Publishing status: In production** and **User type: External** on 17 August 2026, so sign-in is not restricted to a pre-added test-user allowlist (Testing mode would cap sign-in to explicitly listed testers even though its own cap is also 100, which is unworkable for anonymous Reddit traffic).
+- [x] Submit the app for Google verification before relying on Google sign-in for public/Reddit-driven traffic. Google Auth Platform → Branding showed **"Your branding has been verified and is being shown to users"** on 18 August 2026 (app name "Thido", support email `osato@thido.ai`). Since `src/lib/auth.ts` only requests the default basic `openid`/`email`/`profile` scopes, branding verification is the relevant review tier (no sensitive/restricted-scope security assessment required), so this should remove the "Google hasn't verified this app" interstitial and lift practical exposure to the Audience page's 100-user OAuth cap. Not yet confirmed live end-to-end — that's covered by the still-open item below.
+- [ ] Test new Google registration, returning Google login, denied consent, and same-email collision behavior in production. A live Google sign-in was confirmed working in production on 18 August 2026; denied consent and same-email collision behavior remain unverified.
 
 ## Email delivery
 
@@ -365,10 +366,11 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Verify `/admin` shows real production analytics and system configuration status.
 - [ ] Verify analytics, request logs, and error tracking record `/share/[token]` as a route pattern rather than storing bearer-token values; exclude or redact shared-document paths where necessary.
 - [ ] Add content-free funnel events for guest outline start, authentication checkpoint, successful login return, and document claim.
-- [x] Add privacy-conscious Rollbar browser and server error tracking, Next.js error boundaries, framework request-error capture, and explicit reporting for handled AI and email failures.
+- [x] Add privacy-conscious Rollbar browser and server error tracking, Next.js error boundaries, framework request-error capture, and explicit reporting for handled AI and email failures. Audited coverage on 18 August 2026: thrown server-side errors are caught automatically via the `onRequestError` instrumentation hook (`src/instrumentation.ts`), and all but one of the manually-constructed `500` responses already called `reportServerError`; fixed the remaining gap in `src/app/api/documents/[id]/share/route.ts`, where a failed share-link creation returned `500` without reporting it. See [docs/500-error-alerting.md](./500-error-alerting.md).
 - [ ] Add structured server logging with request correlation IDs and secret redaction.
-- [ ] Configure alerts for elevated 5xx responses, function timeouts, email failures, database failures, and AI-provider failures.
-- [ ] Configure production-only Rollbar rules for new errors, reactivated errors, and repeated failures, then verify email delivery with a controlled deployed error.
+- [x] Configure alerts for elevated 5xx responses, function timeouts, email failures, database failures, and AI-provider failures. Created via the Rollbar Notifications API (`POST /api/1/notifications/email/rules`) on 18 August 2026 using a project-scoped write access token: an `occurrence` trigger (every occurrence, not just new/reactivated) filtered to `environment = production`, emailing `osatog1@gmail.com` (rule id `8115270`, confirmed persisted via `GET /api/1/notifications/email/rules`). Details in [docs/500-error-alerting.md](./500-error-alerting.md).
+- [x] Extend `reportServerError` coverage beyond thrown/caught exceptions to every routine 4xx response (400/401/402/403/404/409/422/429) returned by API routes, including the shared `unauthorizedResponse`/`forbiddenResponse`/`aiAllowanceExceededResponse` helpers in `src/lib/apiResponses.ts` (now `async`; ~35 call sites updated to `await`). Requested explicitly on 18 August 2026 ("alert on every error, period") after confirming the earlier claim that routine 4xx never reach Rollbar; this makes that no longer true by design, so the `occurrence` rule above now fires on expected client errors too (bad logins, stale links, validation failures), not only unexpected server exceptions. Deliberately noisy-by-default, accepted so the alert rule can be narrowed after observing real volume — see the follow-up below.
+- [ ] Configure production-only Rollbar rules for new errors, reactivated errors, and repeated failures, then verify email delivery with a controlled deployed error. The blanket `occurrence` rule above supersedes the need for separate new/reactivated rules for now; still need to (a) verify actual email delivery by deliberately triggering a production error, and (b) revisit narrowing the rule (e.g. to new/reactivated errors, elevated 5xx rates, or repeated failures) once the 4xx-reporting expansion above has run for a few days and the real inbox volume is known — `unauthorizedResponse()` in particular is likely to dominate volume, since it fires on every signed-out/expired-session request to a protected API route.
 - [ ] Write incident-response and rollback instructions.
 - [ ] Verify Vercel deployment rollback and Neon restore procedures.
 

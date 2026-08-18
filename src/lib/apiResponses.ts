@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 
 import type { AiAllowanceExceededError } from "@/lib/entitlements";
+import { reportServerError } from "@/lib/rollbar/server";
 
-export function unauthorizedResponse() {
+export async function unauthorizedResponse() {
+  await reportServerError(new Error("Unauthorized request"), {
+    source: "api-response",
+    operation: "unauthorized-response",
+    status: 401,
+  });
+
   return NextResponse.json(
     {
       error: {
@@ -14,7 +21,13 @@ export function unauthorizedResponse() {
   );
 }
 
-export function forbiddenResponse() {
+export async function forbiddenResponse() {
+  await reportServerError(new Error("Forbidden request"), {
+    source: "api-response",
+    operation: "forbidden-response",
+    status: 403,
+  });
+
   return NextResponse.json(
     {
       error: {
@@ -26,7 +39,15 @@ export function forbiddenResponse() {
   );
 }
 
-export function aiAllowanceExceededResponse(error: AiAllowanceExceededError) {
+export async function aiAllowanceExceededResponse(
+  error: AiAllowanceExceededError,
+) {
+  await reportServerError(error, {
+    source: "api-response",
+    operation: "ai-allowance-exceeded-response",
+    status: 402,
+  });
+
   return NextResponse.json(
     {
       error: {

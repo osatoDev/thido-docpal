@@ -20,6 +20,7 @@ import {
   aiAllowanceExceededResponse,
   unauthorizedResponse,
 } from "@/lib/apiResponses";
+import { reportServerError } from "@/lib/rollbar/server";
 import { recordDocumentRevision } from "@/lib/documentRevisions";
 import { DocumentRevisionSource } from "@prisma/client";
 import { inferDocumentTitle } from "@/lib/documentPersistence";
@@ -29,10 +30,15 @@ type Params = { params: Promise<{ id: string }> };
 export async function POST(_request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
-    return unauthorizedResponse();
+    return await unauthorizedResponse();
   }
 
   if (!checkRateLimit(`ai:${session.user.id}`, 15, 60_000)) {
+    await reportServerError(new Error("Rate limited document generation"), {
+      source: "document-generate",
+      operation: "rate-limited",
+      status: 429,
+    });
     return NextResponse.json(
       { error: "Too many AI requests. Please slow down." },
       { status: 429 },
@@ -47,6 +53,12 @@ export async function POST(_request: Request, { params }: Params) {
     "FULL",
   );
   if (!document) {
+    await reportServerError(new Error("Document not found"), {
+      source: "document-generate",
+      operation: "not-found",
+      status: 404,
+      documentId: id,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -55,6 +67,12 @@ export async function POST(_request: Request, { params }: Params) {
     orderBy: [{ stage: "asc" }, { order: "asc" }],
   });
   if (promptAnswers.length === 0) {
+    await reportServerError(new Error("Prompt wizard not completed"), {
+      source: "document-generate",
+      operation: "prompt-wizard-incomplete",
+      status: 400,
+      documentId: id,
+    });
     return NextResponse.json(
       { error: "Complete the prompt wizard first" },
       { status: 400 },
@@ -77,7 +95,7 @@ export async function POST(_request: Request, { params }: Params) {
     );
   } catch (error) {
     if (error instanceof AiAllowanceExceededError) {
-      return aiAllowanceExceededResponse(error);
+      return await aiAllowanceExceededResponse(error);
     }
     throw error;
   }

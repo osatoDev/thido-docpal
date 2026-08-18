@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user?.id) return unauthorizedResponse();
+  if (!session?.user?.id) return await unauthorizedResponse();
 
   const userId = session.user.id;
 
@@ -101,7 +101,7 @@ export async function GET() {
       }),
     ]);
 
-  if (!user) return unauthorizedResponse();
+  if (!user) return await unauthorizedResponse();
 
   const exportPayload = {
     exportedAt: new Date().toISOString(),

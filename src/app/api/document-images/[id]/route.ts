@@ -21,7 +21,15 @@ export async function GET(request: Request, { params }: Params) {
       document: { select: { shareToken: true } },
     },
   });
-  if (!image) return new NextResponse(null, { status: 404 });
+  if (!image) {
+    await reportServerError(new Error("Document image not found"), {
+      source: "document-image",
+      operation: "not-found",
+      status: 404,
+      imageId: id,
+    });
+    return new NextResponse(null, { status: 404 });
+  }
 
   const session = await auth();
   const sharedToken = new URL(request.url).searchParams.get("share");
@@ -41,12 +49,26 @@ export async function GET(request: Request, { params }: Params) {
     image.document.shareToken === sharedToken;
 
   if (!mayViewAsMember && !mayViewAsGuest) {
+    await reportServerError(new Error("Document image access denied"), {
+      source: "document-image",
+      operation: "forbidden",
+      status: 404,
+      imageId: id,
+    });
     return new NextResponse(null, { status: 404 });
   }
 
   try {
     const result = await get(image.blobUrl, { access: "private" });
-    if (!result?.stream) return new NextResponse(null, { status: 404 });
+    if (!result?.stream) {
+      await reportServerError(new Error("Document image blob missing"), {
+        source: "document-image",
+        operation: "blob-missing",
+        status: 404,
+        imageId: id,
+      });
+      return new NextResponse(null, { status: 404 });
+    }
 
     return new Response(result.stream, {
       headers: {

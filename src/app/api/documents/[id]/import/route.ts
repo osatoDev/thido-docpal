@@ -89,13 +89,20 @@ export async function POST(request: Request, { params }: Params) {
       requestId,
       status,
     });
-  const errorResponse = (
+  const errorResponse = async (
     error: string,
     status: number,
     reason: string,
     details: Record<string, unknown> = {},
   ) => {
     logOutcome({ level: "warning", reason, status });
+    await reportServerError(new Error(error), {
+      source: "document-import",
+      operation: reason,
+      documentId,
+      requestId,
+      status,
+    });
     return NextResponse.json(
       { ...details, error, requestId },
       { status, headers: { "x-thido-request-id": requestId } },
@@ -112,12 +119,12 @@ export async function POST(request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
     logOutcome({ level: "warning", reason: "unauthorized", status: 401 });
-    const response = unauthorizedResponse();
+    const response = await unauthorizedResponse();
     response.headers.set("x-thido-request-id", requestId);
     return response;
   }
   if (!checkRateLimit(`document-import:${session.user.id}`, 10, 60 * 60_000)) {
-    return errorResponse(
+    return await errorResponse(
       "Too many imports. Try again later.",
       429,
       "rate_limited",
@@ -131,7 +138,7 @@ export async function POST(request: Request, { params }: Params) {
     "EDIT",
   );
   if (!document) {
-    return errorResponse("Not found", 404, "not_found_or_forbidden");
+    return await errorResponse("Not found", 404, "not_found_or_forbidden");
   }
 
   const formData = await request.formData().catch(() => null);
@@ -147,21 +154,21 @@ export async function POST(request: Request, { params }: Params) {
       : undefined;
   fileKind = format?.kind ?? "unknown";
   if (!(file instanceof File) || !format) {
-    return errorResponse(
+    return await errorResponse(
       `Choose a supported document: ${SUPPORTED_DOCUMENT_FILE_LABEL}.`,
       400,
       "invalid_file",
     );
   }
   if (baseRevision === null) {
-    return errorResponse(
+    return await errorResponse(
       "A valid baseRevision is required.",
       400,
       "invalid_revision",
     );
   }
   if (file.size <= 0 || file.size > format.maximumBytes) {
-    return errorResponse(
+    return await errorResponse(
       format.sizeError,
       413,
       "file_too_large_or_empty",
@@ -300,17 +307,17 @@ export async function POST(request: Request, { params }: Params) {
       await cleanupImportedImages();
     }
     if (result.kind === "missing") {
-      return errorResponse("Not found", 404, "document_missing");
+      return await errorResponse("Not found", 404, "document_missing");
     }
     if (result.kind === "locked") {
-      return errorResponse(
+      return await errorResponse(
         DOCUMENT_AI_LOCK_MESSAGE,
         409,
         "document_locked",
       );
     }
     if (result.kind === "conflict") {
-      return errorResponse(
+      return await errorResponse(
         "The document changed while the file was importing.",
         409,
         "revision_conflict",

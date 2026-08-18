@@ -25,6 +25,7 @@ import {
 import { getDocumentText } from "@/lib/documentMarks";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { reportServerError } from "@/lib/rollbar/server";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -37,7 +38,7 @@ function responseText(message: { content: Array<{ type: string; text?: string }>
 
 export async function POST(request: Request, { params }: Params) {
   const session = await auth();
-  if (!session?.user?.id) return unauthorizedResponse();
+  if (!session?.user?.id) return await unauthorizedResponse();
 
   const { id } = await params;
   const existing = await getCommentForUser(
@@ -47,18 +48,36 @@ export async function POST(request: Request, { params }: Params) {
     "COMMENT",
   );
   if (!existing || existing.parentId) {
+    await reportServerError(new Error("Comment thread not found"), {
+      source: "comment-reply",
+      operation: "not-found",
+      status: 404,
+      entryId: id,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   const payload = await request.json().catch(() => ({}));
   const body = typeof payload.body === "string" ? payload.body.trim() : "";
   if (!body || body.length > 4_000) {
+    await reportServerError(new Error("Invalid reply body length"), {
+      source: "comment-reply",
+      operation: "invalid-body",
+      status: 400,
+      entryId: id,
+    });
     return NextResponse.json(
       { error: "Write a message between 1 and 4,000 characters." },
       { status: 400 },
     );
   }
   if (existing.status !== "OPEN") {
+    await reportServerError(new Error("Comment thread is not open"), {
+      source: "comment-reply",
+      operation: "not-open",
+      status: 409,
+      entryId: id,
+    });
     return NextResponse.json(
       { error: "Reopen this comment before adding another message." },
       { status: 409 },
@@ -114,9 +133,21 @@ export async function POST(request: Request, { params }: Params) {
   });
 
   if (admission.kind === "missing") {
+    await reportServerError(new Error("Document missing during reply"), {
+      source: "comment-reply",
+      operation: "document-missing",
+      status: 404,
+      entryId: id,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   if (admission.kind === "locked") {
+    await reportServerError(new Error("Document AI locked"), {
+      source: "comment-reply",
+      operation: "locked",
+      status: 409,
+      entryId: id,
+    });
     return NextResponse.json(
       {
         error: admission.documentAiLocked

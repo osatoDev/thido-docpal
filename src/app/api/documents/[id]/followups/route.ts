@@ -8,16 +8,22 @@ import {
   aiAllowanceExceededResponse,
   unauthorizedResponse,
 } from "@/lib/apiResponses";
+import { reportServerError } from "@/lib/rollbar/server";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(_request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) {
-    return unauthorizedResponse();
+    return await unauthorizedResponse();
   }
 
   if (!checkRateLimit(`ai:${session.user.id}`, 15, 60_000)) {
+    await reportServerError(new Error("Rate limited follow-up generation"), {
+      source: "document-followups",
+      operation: "rate-limited",
+      status: 429,
+    });
     return NextResponse.json(
       { error: "Too many AI requests. Please slow down." },
       { status: 429 },
@@ -32,6 +38,12 @@ export async function POST(_request: Request, { params }: Params) {
     "FULL",
   );
   if (!document) {
+    await reportServerError(new Error("Document not found"), {
+      source: "document-followups",
+      operation: "not-found",
+      status: 404,
+      documentId: id,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -40,10 +52,16 @@ export async function POST(_request: Request, { params }: Params) {
     return NextResponse.json({ followups });
   } catch (error) {
     if (error instanceof AiAllowanceExceededError) {
-      return aiAllowanceExceededResponse(error);
+      return await aiAllowanceExceededResponse(error);
     }
     const message =
       error instanceof Error ? error.message : "Failed to generate follow-ups";
+    await reportServerError(error, {
+      source: "document-followups",
+      operation: "generation-failed",
+      status: 400,
+      documentId: id,
+    });
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }

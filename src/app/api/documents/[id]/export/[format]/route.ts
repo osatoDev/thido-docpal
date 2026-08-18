@@ -18,8 +18,13 @@ type Params = { params: Promise<{ id: string; format: string }> };
 
 export async function GET(_request: Request, { params }: Params) {
   const session = await auth();
-  if (!session?.user?.id) return unauthorizedResponse();
+  if (!session?.user?.id) return await unauthorizedResponse();
   if (!checkRateLimit(`document-export:${session.user.id}`, 20, 60 * 60_000)) {
+    await reportServerError(new Error("Rate limited document export"), {
+      source: "document-export",
+      operation: "rate-limited",
+      status: 429,
+    });
     return NextResponse.json(
       { error: "Too many downloads. Try again later." },
       { status: 429 },
@@ -28,6 +33,12 @@ export async function GET(_request: Request, { params }: Params) {
 
   const { id, format } = await params;
   if (format !== "docx" && format !== "pdf") {
+    await reportServerError(new Error("Unsupported export format"), {
+      source: "document-export",
+      operation: "unsupported-format",
+      status: 404,
+      documentId: id,
+    });
     return NextResponse.json({ error: "Unsupported format." }, { status: 404 });
   }
   const document = await getDocumentForUser(
@@ -37,6 +48,12 @@ export async function GET(_request: Request, { params }: Params) {
     "VIEW",
   );
   if (!document) {
+    await reportServerError(new Error("Document not found"), {
+      source: "document-export",
+      operation: "not-found",
+      status: 404,
+      documentId: id,
+    });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

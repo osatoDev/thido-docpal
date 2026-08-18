@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { getOrCreateBlankDocument } from "@/lib/blankDocument";
 import { prisma } from "@/lib/prisma";
+import { reportServerError } from "@/lib/rollbar/server";
 import {
   createDefaultSpreadsheetTitle,
   createEmptySpreadsheetContent,
@@ -25,6 +26,11 @@ function redirectTo(request: Request, pathname: string) {
 
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) {
+    await reportServerError(new Error("Invalid request origin"), {
+      source: "new-document",
+      operation: "invalid-origin",
+      status: 403,
+    });
     return Response.json({ error: "Invalid request origin." }, { status: 403 });
   }
 
@@ -56,6 +62,11 @@ export async function POST(request: Request) {
     return redirectTo(request, `/spreadsheets/${spreadsheet.id}/edit`);
   }
 
+  await reportServerError(new Error("Unsupported document type"), {
+    source: "new-document",
+    operation: "unsupported-kind",
+    status: 400,
+  });
   return Response.json(
     { error: "Choose a supported document type." },
     { status: 400 },
