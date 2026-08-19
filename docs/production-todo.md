@@ -106,8 +106,9 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Integrate Resend with lazy server-side initialization.
 - [x] Add verification and password-reset email content.
 - [x] Keep recovery responses generic to avoid revealing whether an account exists.
-- [ ] Configure SPF and DKIM records for the sending domain and confirm Resend reports the domain as verified.
-- [ ] Add a DMARC policy and monitoring address for the sending domain.
+- [x] Configure SPF and DKIM records for the sending domain and confirm Resend reports the domain as verified. Resend dashboard screenshot on 18 August 2026 showed `thido.ai` as Verified (provider Amazon Route 53) with DKIM (`resend._domainkey` TXT) and SPF (`send` MX + TXT) both reporting Verified.
+- [x] Add a DMARC policy and monitoring address for the sending domain. `dig +short txt _dmarc.thido.ai` confirmed on 18 August 2026 that the live record is `v=DMARC1; p=none; rua=mailto:data@thido.ai; fo=1`, per [dmarc-setup.md](./dmarc-setup.md); `data@thido.ai` was confirmed as the intended, working monitoring mailbox.
+- [ ] Watch `p=none` DMARC reports at `data@thido.ai` for 1-2 weeks to confirm every legitimate `@thido.ai` source (Resend, and anything else) passes SPF/DKIM alignment, then progress the policy from `p=none` to `p=quarantine` to `p=reject` per [dmarc-setup.md](./dmarc-setup.md#4-roll-out-gradually).
 - [ ] Decide how bounced, complained, and suppressed email events will be handled.
 - [ ] Add and verify a Resend webhook if delivery status needs to be visible operationally.
 - [ ] Monitor delivery, bounce, complaint, and suppression rates.
@@ -355,6 +356,9 @@ This is the running source of truth for production-readiness work. Completed box
 ## Monitoring and operations
 
 - [x] Add Vercel Web Analytics page tracking.
+- [x] Add the Reddit Ads pixel for the beta-launch post: `src/components/RedditPixel.tsx` loads Reddit's base snippet via `next/script` (pixel ID `a2_jjirkvc8nv8u` hardcoded) and fires `PageVisit`, mounted from `src/app/layout.tsx`. Gated on `NODE_ENV === "production"` so it never fires from local/dev traffic. Mounting it in the root layout also covers Reddit's "add to every page" step, since every route renders through it.
+- [x] Add Reddit pixel advanced matching (match keys): `RootLayout` passes the signed-in user's `email` and `id` (as `externalId`) into `RedditPixel`, which JSON-encodes them into the `rdt('init', ...)` call when present and omits them for signed-out visitors. Skipped `phoneNumber`, `idfa`, and `aaid` — Thido doesn't collect a phone number and has no mobile app, so those fields have no source.
+- [ ] Deploy and confirm real `PageVisit` events (and matched events once signed-in users visit) land in Reddit's Events Manager against the live domain.
 - [x] Add an admin analytics summary integration.
 - [x] Make every application-total card open its logical admin-only view: paginated metadata for users, beta seats, documents, comments, pending suggestions, and waitlist requests, plus the due-only founder inbox. Exclude document bodies, comment text, credentials, tokens, and proposal text from these operational tables.
 - [x] Browser-check every admin-total destination against the local database and verify the admin grid plus scroll-contained detail navigation and tables at 390 px without page overflow or a framework error overlay.

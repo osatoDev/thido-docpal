@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { RedditPixel } from "@/components/RedditPixel";
 import { SignedInPageActions } from "@/components/SignedInPageActions";
 import {
   APPLICATION_STYLE_COOKIE_NAME,
@@ -59,6 +60,7 @@ export default async function RootLayout({
         <SignedInPageActions signedIn={Boolean(session?.user?.id)} />
         {children}
         <Analytics />
+        <RedditPixel email={session?.user?.email} externalId={session?.user?.id} />
       </body>
     </html>
   );
