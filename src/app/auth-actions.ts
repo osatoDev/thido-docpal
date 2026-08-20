@@ -185,6 +185,8 @@ export async function registerWithPassword(
     [deliveryFailed ? "delivery" : "sent"]: deliveryFailed ? "failed" : "1",
     email,
     callbackUrl,
+    signup: "1",
+    conversionId: user.id,
   });
   redirect(`/verify-email?${verificationParams.toString()}`);
 }

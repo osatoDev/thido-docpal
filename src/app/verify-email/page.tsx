@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Brand } from "@/components/Brand";
+import { RedditSignupConversion } from "@/components/RedditSignupConversion";
 import { VerificationRequestForm } from "@/components/auth/VerificationRequestForm";
 import { verifyEmailToken } from "@/lib/authTokenStore";
 import { reportServerError } from "@/lib/rollbar/server";
@@ -61,6 +62,7 @@ export default async function VerifyEmailPage({
 
   return (
     <main className="relative flex flex-1 items-center justify-center overflow-hidden p-6 sm:p-8">
+      <RedditSignupConversion />
       <section className="app-panel relative flex w-full max-w-md flex-col items-center gap-6 rounded-3xl p-7 sm:p-10">
         <Brand href="/verify-email" />
         <div className="flex flex-col items-center gap-2 text-center">
