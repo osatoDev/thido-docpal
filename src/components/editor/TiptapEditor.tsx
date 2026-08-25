@@ -34,10 +34,7 @@ import type {
   CommentWithReplies,
   SuggestionWithStatus,
 } from "@/lib/types";
-import {
-  isCommentQueuedForBatch,
-  isDocumentWideCommentRequest,
-} from "@/lib/commentProcessing";
+import { isCommentQueuedForBatch } from "@/lib/commentProcessing";
 import {
   createLocalizedDefaultDocumentTitle,
   hasMeaningfulDocumentContent,
@@ -91,10 +88,7 @@ type SelectionComposer = {
   from: number;
   to: number;
 };
-type DocumentComposer = {
-  scope: "DOCUMENT";
-};
-type ActiveComposer = SelectionComposer | DocumentComposer;
+type ActiveComposer = SelectionComposer;
 type PendingTablePaste = {
   from: number;
   originalText: string;
@@ -595,6 +589,7 @@ export function TiptapEditor({
     const { from, to } = editor.state.selection;
     if (from === to) return;
 
+    setCommentError(null);
     if (activeComposer?.scope === "SELECTION") {
       editor
         .chain()
@@ -623,31 +618,14 @@ export function TiptapEditor({
     });
   }
 
-  function startDocumentComment() {
-    if (documentAiLockedRef.current) return;
-    if (editor && activeComposer?.scope === "SELECTION") {
-      editor
-        .chain()
-        .setTextSelection({
-          from: activeComposer.from,
-          to: activeComposer.to,
-        })
-        .unsetComment()
-        .run();
-    }
-    setCommentError(null);
-    setCommentsSidebarOpen(true);
-    setActiveComposer({ scope: "DOCUMENT" });
-  }
-
   function startAiEdit() {
     if (!editor || documentAiLockedRef.current) return;
     const { from, to } = editor.state.selection;
-    if (from !== to) {
-      startComment();
+    if (from === to) {
+      setCommentError("Select text to add a comment.");
       return;
     }
-    startDocumentComment();
+    startComment();
   }
 
   function cancelComment() {
@@ -663,25 +641,7 @@ export function TiptapEditor({
 
   function submitComment(body: string) {
     if (!activeComposer || documentAiLockedRef.current) return;
-    let composer: ActiveComposer = activeComposer;
-    if (
-      activeComposer.scope === "SELECTION" &&
-      isDocumentWideCommentRequest(body)
-    ) {
-      if (editor) {
-        editor
-          .chain()
-          .setTextSelection({
-            from: activeComposer.from,
-            to: activeComposer.to,
-          })
-          .unsetComment()
-          .run();
-      }
-      composer = { scope: "DOCUMENT" };
-    } else if (activeComposer.scope === "SELECTION") {
-      composer = expandCommentScope(activeComposer, body);
-    }
+    const composer = expandCommentScope(activeComposer, body);
     setCommentError(null);
     setActiveComposer(null);
 
@@ -757,25 +717,17 @@ export function TiptapEditor({
         throw new Error(
           typeof errorBody?.error === "string"
             ? errorBody.error
-            : composer.scope === "DOCUMENT"
-              ? "Could not save the document before commenting"
-              : "Could not save the comment highlight",
+            : "Could not save the comment highlight",
         );
       }
 
-      const selectionTarget =
-        composer.scope === "SELECTION"
-          ? {
-              anchorMarkId: composer.anchorMarkId,
-              quotedText: composer.quotedText,
-            }
-          : {};
       const res = await fetch(`/api/documents/${documentId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           scope: composer.scope,
-          ...selectionTarget,
+          anchorMarkId: composer.anchorMarkId,
+          quotedText: composer.quotedText,
           body,
         }),
       });
@@ -1112,22 +1064,27 @@ export function TiptapEditor({
           <div className="print-hidden mx-auto w-full max-w-none border-l-2 border-[var(--warm)] pl-4">
             <p className="text-sm font-medium">Paste your document below.</p>
             <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-              When it is saved, highlight any passage to target it, or choose
-              Add comments on selected passages or the whole document, then
-              action them together with Thido.
+              When it is saved, highlight any passage to target it, choose
+              Add comment, then action your feedback together with Thido.
             </p>
           </div>
         )}
 
         {documentImportMessage ? (
           <p
-            className={`print-hidden mx-auto w-full max-w-none border-l-2 px-3 py-2 text-xs leading-5 ${
+            className={`print-hidden mx-auto flex w-full max-w-none items-center gap-2 border-l-2 px-3 py-2 text-xs leading-5 ${
               documentImportMessage.kind === "error"
                 ? "border-[var(--danger)] text-[var(--danger)]"
                 : "border-[var(--accent-strong)] text-[var(--muted)]"
             }`}
             role={documentImportMessage.kind === "error" ? "alert" : "status"}
           >
+            {documentImportMessage.kind === "loading" ? (
+              <span
+                aria-hidden="true"
+                className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent-strong)] motion-reduce:animate-none"
+              />
+            ) : null}
             {documentImportMessage.text}
           </p>
         ) : null}
@@ -1211,13 +1168,8 @@ export function TiptapEditor({
           {activeComposer && !documentAiLocked && (
             <div className="border-b border-[var(--border)] bg-[var(--surface)] p-4">
               <CommentComposer
-                key={activeComposer.scope}
-                scope={activeComposer.scope}
-                quotedText={
-                  activeComposer.scope === "SELECTION"
-                    ? activeComposer.quotedText
-                    : undefined
-                }
+                key={activeComposer.anchorMarkId}
+                quotedText={activeComposer.quotedText}
                 onSubmit={submitComment}
                 onCancel={cancelComment}
               />
@@ -1230,8 +1182,6 @@ export function TiptapEditor({
             onDocumentContentUpdated={handleDocumentContentUpdated}
             documentAiLocked={documentAiLocked}
             onActionComments={actionQueuedComments}
-            onStartDocumentComment={startDocumentComment}
-            documentComposerOpen={activeComposer?.scope === "DOCUMENT"}
             canCreateComments={canCommentNow && !!editor}
             canActionComments={canEdit && !!editor}
             canManageComments={canEditNow}

@@ -14,8 +14,6 @@ export function CommentSidebar({
   onDocumentContentUpdated,
   documentAiLocked,
   onActionComments,
-  onStartDocumentComment,
-  documentComposerOpen,
   canCreateComments,
   canActionComments,
   canManageComments,
@@ -30,8 +28,6 @@ export function CommentSidebar({
   ) => void;
   documentAiLocked: boolean;
   onActionComments: () => void;
-  onStartDocumentComment: () => void;
-  documentComposerOpen: boolean;
   canCreateComments: boolean;
   canActionComments: boolean;
   canManageComments: boolean;
@@ -86,32 +82,6 @@ export function CommentSidebar({
         </p>
       )}
 
-      {canCreateComments && !documentComposerOpen && (
-        <div>
-          <button
-            type="button"
-            onClick={onStartDocumentComment}
-            className="secondary-button flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-medium"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              className="h-4 w-4"
-            >
-              <path d="M6.75 3.75h7.5l3 3v13.5H6.75z" />
-              <path d="M14.25 3.75v3h3M9.5 11h5M9.5 14h5" />
-            </svg>
-            Comment on whole document
-          </button>
-          <p className="mt-1.5 text-xs leading-5 text-[var(--muted-soft)]">
-            Queue feedback that is not tied to one selected passage.
-          </p>
-        </div>
-      )}
-
       {documentAiLocked && (
         <div
           className="flex items-start gap-2 rounded-sm border border-[var(--border)] bg-[var(--surface)] p-3 text-xs text-[var(--muted)]"
@@ -127,11 +97,9 @@ export function CommentSidebar({
 
       {comments.length === 0 ? (
         <p className="text-xs leading-5 text-[var(--muted-soft)]">
-          {documentComposerOpen
-            ? "Add your whole-document comment above."
-            : canCreateComments
-              ? "Select text and choose “Add comment” for a specific passage, or use the whole-document comment above."
-              : "No comments yet."}
+          {canCreateComments
+            ? "Select text and choose “Add comment” to leave feedback on a passage."
+            : "No comments yet."}
         </p>
       ) : openComments.length === 0 ? (
         <p className="text-xs leading-5 text-[var(--muted-soft)]">

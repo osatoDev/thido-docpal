@@ -351,7 +351,13 @@ export function DocumentFileMenu({
                 onClick={() => documentInputRef.current?.click()}
                 className="block w-full rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)] disabled:cursor-wait disabled:opacity-60"
               >
-                <span className="block">
+                <span className="flex items-center gap-2">
+                  {importing ? (
+                    <span
+                      aria-hidden="true"
+                      className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent-strong)] motion-reduce:animate-none"
+                    />
+                  ) : null}
                   {importing ? "Importing document…" : "Import document…"}
                 </span>
                 {!importing ? (

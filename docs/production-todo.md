@@ -1,6 +1,6 @@
 # Thido production checklist
 
-Last reviewed: 18 August 2026
+Last reviewed: 25 August 2026
 
 This is the running source of truth for production-readiness work. Completed boxes indicate repository evidence or a verified check. External configuration remains unchecked until it is explicitly verified.
 
@@ -275,6 +275,10 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Define retention rules for documents, comments, deleted accounts, auth tokens, and operational logs.
 - [ ] Define a cleanup window for abandoned document placeholders that are no longer reusable.
 - [ ] Verify cascade deletion behavior against the intended retention policy, including the new account-deletion path, against a real (non-production) database.
+- [x] Remove the front-end option to start a new whole-document comment: delete the **Comment on whole document** sidebar button, require an active text selection for the toolbar/menu **Add comment** action (showing "Select text to add a comment." instead of falling back to document scope), and drop the heuristic that silently promoted a selection comment to document scope based on its typed text (`isDocumentWideCommentRequest`, `commentProcessing.ts`). Existing whole-document comments already in the database keep rendering and can still be actioned, since `Comment.scope` and the batch-action backend are unchanged; only the ability to create new ones was removed.
+- [x] Automatically scroll a newly opened comment composer into view (`CommentComposer.tsx`) so starting a comment deep in a long document no longer requires manually hunting for the input box, since the comments panel stacks below the document on narrower-than-`lg` viewports.
+- [x] Show a spinner alongside the **Importing document…** File-menu label and the drag-and-drop import loading banner so a file import in progress is visually distinguishable from an idle state, not just disabled/text-only.
+- [ ] Browser-check the removed whole-document comment option, the auto-scrolled comment composer on a long document at a sub-`lg` viewport width, and the File-menu/drag-and-drop import spinners at desktop and 390 px.
 
 ## Beta access and billing
 
@@ -341,7 +345,8 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Confirm type checking, zero-warning lint, all 206 unit tests, and the optimized production build pass after adding AI credit allowance enforcement, owner-aware share links, full-access link-sharing safeguards, account data export/deletion, and account security-notification emails and sign-out-all-devices. `prisma generate` was run for the schema change; no `prisma migrate`/`db push`/`migrate status` command was run in this session because the effective local `DATABASE_URL` resolves to the production `neondb` database rather than an isolated instance.
 - [ ] Browser-check the Settings **Security** (sign out of all devices) and **Your data** (export, typed-confirmation delete) panels, the **Plan and billing** AI usage meter, and the **Full access** link-permission confirmation step in Share, at desktop and 390 px, including error and pending states and no framework overlay or horizontal overflow.
 - [ ] Exercise the AI monthly allowance in practice: confirm document generation, follow-up questions, and batched comment revisions are blocked with a clear in-product message once the Free or Pro allowance is reached, that usage resets at the start of the next UTC month, and that the Settings usage meter matches actual consumption.
-- [ ] Label **AI usage this month** explicitly as weighted action credits and expose the current operation weights so `used / limit` is not mistaken for calls, tokens, documents, or currency ([unit explanation](./ai-usage-this-month-unit.md)).
+- [x] Label **AI usage this month** with its unit: `BillingPanel.tsx` now renders `used / limit credits` instead of a bare `used / limit` ratio, so the number is not mistaken for calls, tokens, documents, or currency ([unit explanation](./ai-usage-this-month-unit.md)).
+- [ ] Expose the current weighted AI operation credit costs alongside the Settings usage meter so `used / limit credits` is understandable without reading source code.
 - [x] Confirm type checking, zero-warning lint, all 212 unit tests, and the optimized production build pass after adding the checklist arrows Settings toggle, the checked-item checklist delete button, the frozen document editor action bar, and the lightweight document-tabs section navigator. `prisma generate` was run for the schema change; no `prisma migrate`/`db push`/`migrate status` command was run in this session for the same production-`DATABASE_URL` reason noted above.
 - [x] Confirm type checking, zero-warning lint, all 213 unit tests, and the optimized production build pass after fixing the checklist Tab-to-indent cursor-position bug and the near-black/near-white text-color legibility fix.
 - [x] Confirm type checking, zero-warning lint, all 214 unit tests, and the optimized production build pass after fixing checklist Tab-to-indent for range selections spanning multiple items.
@@ -350,7 +355,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Add database integration tests for issuing and consuming verification and reset tokens transactionally.
 - [ ] Add browser tests for registration, email verification, password reset, Google login, rolling session renewal, sign-out, stale sessions, and admin authorization.
 - [ ] Add browser tests for pasted rich text, autosave, comment anchoring, batched comment actioning, concurrent edits, and orphaned comments.
-- [ ] Add browser tests for queuing selection and whole-document comments, adding context, actioning them together, the visible loading/lock state, full-document edits beyond an anchor, retryable failures, and cross-tab revision protection.
+- [ ] Add browser tests for queuing selection comments, adding context, actioning them together, the visible loading/lock state, full-document edits beyond an anchor, retryable failures, and cross-tab revision protection.
 - [ ] Add browser tests for creating, opening anonymously, and revoking read-only document share links, plus inviting by email and enforcing every collaborator permission level.
 - [ ] Add automated billing tests for offer gating, authenticated Checkout and duplicate-subscription prevention, webhook signature rejection and idempotency, subscription-state transitions, and Customer Portal authorization; current status is summarized in [the paid-plan implementation status](./paid-plan-implementation-status.md).
 - [ ] Create a separate test database and ensure tests can never target production credentials.

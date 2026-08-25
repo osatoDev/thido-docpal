@@ -21,6 +21,6 @@ beta and 300 credits for Pro, resetting at the beginning of each UTC month.
 Those allowance amounts are implementation defaults and have not yet been
 approved as published plan entitlements.
 
-The Settings interface currently omits the word “credits,” which makes the
-unit unclear. It should ultimately display a value such as **12 / 30 credits**
-and briefly explain the operation weights.
+The Settings interface now displays this as, for example, **12 / 30 credits**
+(`src/components/settings/BillingPanel.tsx`). Briefly explaining the operation
+weights inline is still outstanding.

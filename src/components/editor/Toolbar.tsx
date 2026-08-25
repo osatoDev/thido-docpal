@@ -1301,7 +1301,7 @@ export function Toolbar({
             onClick={onEditWithAi}
             className="mr-1 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-[var(--foreground)] px-3 text-xs font-semibold text-[var(--background)] transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-strong)]"
             aria-label="Add comment"
-            title="Queue a selected or whole-document comment for Thido"
+            title="Queue a comment on the selected text for Thido"
           >
             <svg
               aria-hidden="true"

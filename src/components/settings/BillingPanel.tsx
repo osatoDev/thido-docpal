@@ -89,7 +89,7 @@ export function BillingPanel({
                 AI usage this month
               </p>
               <p className="text-[var(--muted)]">
-                {aiAllowance.used} / {aiAllowance.limit}
+                {aiAllowance.used} / {aiAllowance.limit} credits
               </p>
             </div>
             <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-subtle)]">

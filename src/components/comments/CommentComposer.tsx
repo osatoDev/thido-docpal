@@ -1,32 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-const AI_EDIT_SUGGESTIONS = {
-  DOCUMENT: [
-    "Add a concise conclusion",
-    "Remove repeated points",
-    "Make the tone more formal",
-  ],
-  SELECTION: [
-    "Expand this with a useful example",
-    "Remove this passage",
-    "Rewrite this more clearly",
-  ],
-} as const;
+const AI_EDIT_SUGGESTIONS = [
+  "Expand this with a useful example",
+  "Remove this passage",
+  "Rewrite this more clearly",
+] as const;
 
 export function CommentComposer({
-  scope,
   quotedText,
   onSubmit,
   onCancel,
 }: {
-  scope: "SELECTION" | "DOCUMENT";
-  quotedText?: string;
+  quotedText: string;
   onSubmit: (body: string) => void;
   onCancel: () => void;
 }) {
   const [body, setBody] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, []);
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!body.trim()) return;
@@ -35,48 +32,29 @@ export function CommentComposer({
 
   return (
     <form
+      ref={formRef}
       onSubmit={handleSubmit}
       className="flex flex-col gap-3 border-t border-[var(--border-strong)] pt-3"
     >
-      {scope === "DOCUMENT" ? (
-        <div className="rounded-sm bg-[var(--surface-subtle)] p-3">
-          <p className="text-xs font-semibold text-[var(--foreground)]">
-            Comment on the whole document
-          </p>
-          <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-            Add an instruction or question to the queue. Thido will consider it
-            with the other comments when you action them.
-          </p>
-        </div>
-      ) : (
-        <div>
-          <p className="mb-2 text-xs font-semibold text-[var(--foreground)]">
-            Comment on the selected text
-          </p>
-          <blockquote className="border-l-2 border-[var(--warm)] pl-2 text-xs italic text-[var(--muted)]">
-            &ldquo;{quotedText}&rdquo;
-          </blockquote>
-        </div>
-      )}
+      <div>
+        <p className="mb-2 text-xs font-semibold text-[var(--foreground)]">
+          Comment on the selected text
+        </p>
+        <blockquote className="border-l-2 border-[var(--warm)] pl-2 text-xs italic text-[var(--muted)]">
+          &ldquo;{quotedText}&rdquo;
+        </blockquote>
+      </div>
       <textarea
         autoFocus
         rows={3}
         value={body}
         onChange={(e) => setBody(e.target.value)}
-        placeholder={
-          scope === "DOCUMENT"
-            ? "E.g. Add a summary after the introduction, or remove the second section…"
-            : "E.g. Shorten this, remove it, or expand it with an example…"
-        }
-        aria-label={
-          scope === "DOCUMENT"
-            ? "Comment about the whole document"
-            : "Comment about the selected text"
-        }
+        placeholder="E.g. Shorten this, remove it, or expand it with an example…"
+        aria-label="Comment about the selected text"
         className="app-input resize-none rounded-sm p-2 text-sm outline-none"
       />
       <div className="flex flex-wrap gap-1.5" aria-label="Example instructions">
-        {AI_EDIT_SUGGESTIONS[scope].map((suggestion) => (
+        {AI_EDIT_SUGGESTIONS.map((suggestion) => (
           <button
             key={suggestion}
             type="button"
