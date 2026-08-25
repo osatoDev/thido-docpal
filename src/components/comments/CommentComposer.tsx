@@ -2,12 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const AI_EDIT_SUGGESTIONS = [
-  "Expand this with a useful example",
-  "Remove this passage",
-  "Rewrite this more clearly",
-] as const;
-
 export function CommentComposer({
   quotedText,
   onSubmit,
@@ -53,18 +47,6 @@ export function CommentComposer({
         aria-label="Comment about the selected text"
         className="app-input resize-none rounded-sm p-2 text-sm outline-none"
       />
-      <div className="flex flex-wrap gap-1.5" aria-label="Example instructions">
-        {AI_EDIT_SUGGESTIONS.map((suggestion) => (
-          <button
-            key={suggestion}
-            type="button"
-            onClick={() => setBody(suggestion)}
-            className="rounded-full border border-[var(--border)] px-2 py-1 text-left text-[11px] leading-4 text-[var(--muted)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-subtle)]"
-          >
-            {suggestion}
-          </button>
-        ))}
-      </div>
       <div className="flex justify-end gap-2">
         <button
           type="button"

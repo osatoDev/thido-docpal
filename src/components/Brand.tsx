@@ -27,7 +27,13 @@ function ThidoMark() {
   );
 }
 
-export function Brand({ href = "/" }: { href?: string }) {
+export function Brand({
+  href = "/",
+  showWordmark = true,
+}: {
+  href?: string;
+  showWordmark?: boolean;
+}) {
   return (
     <Link
       href={href}
@@ -35,7 +41,7 @@ export function Brand({ href = "/" }: { href?: string }) {
       aria-label="Thido home"
     >
       <ThidoMark />
-      <span className="brand-wordmark">Thido</span>
+      {showWordmark && <span className="brand-wordmark">Thido</span>}
       {/*
         <span
           aria-hidden="true"

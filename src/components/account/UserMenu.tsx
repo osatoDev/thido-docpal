@@ -2,9 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { logout } from "@/app/account-actions";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  FounderFeedbackPanel,
+  type FounderFeedbackPanelHandle,
+} from "@/components/feedback/FounderFeedbackLauncher";
 import { getUserInitials } from "@/lib/userProfile";
 
 export type UserMenuProfile = {
@@ -14,10 +19,12 @@ export type UserMenuProfile = {
 };
 
 export function UserMenu({ user }: { user: UserMenuProfile }) {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const feedbackPanelRef = useRef<FounderFeedbackPanelHandle>(null);
   const menuId = useId();
   const displayName = user.name?.trim() || user.email || "Thido user";
   const initials = getUserInitials(user.name, user.email);
@@ -109,6 +116,29 @@ export function UserMenu({ user }: { user: UserMenuProfile }) {
               </svg>
               Settings
             </Link>
+            {pathname !== "/feedback" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  feedbackPanelRef.current?.open();
+                }}
+                className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-[var(--foreground)] hover:bg-[var(--surface-subtle)]"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  className="h-4 w-4 text-[var(--muted)]"
+                >
+                  <path d="M5 5.5h14v10H9l-4 3v-13Z" strokeLinejoin="round" />
+                  <path d="M8 9h8M8 12h5" strokeLinecap="round" />
+                </svg>
+                Feedback
+              </button>
+            ) : null}
             <form action={logout}>
               <button
                 type="submit"
@@ -130,6 +160,8 @@ export function UserMenu({ user }: { user: UserMenuProfile }) {
           </div>
         </div>
       ) : null}
+
+      <FounderFeedbackPanel ref={feedbackPanelRef} contextPath={pathname} />
     </div>
   );
 }

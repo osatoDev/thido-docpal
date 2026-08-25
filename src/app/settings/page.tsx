@@ -102,7 +102,6 @@ export default async function SettingsPage({
         notice={accountsNotice}
       />
       <BillingPanel
-        betaSeat={user.betaSeat}
         subscriptionStatus={user.stripeSubscriptionStatus}
         currentPeriodEnd={user.stripeCurrentPeriodEnd}
         cancelAtPeriodEnd={user.stripeCancelAtPeriodEnd}

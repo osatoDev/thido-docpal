@@ -914,7 +914,7 @@ export function TiptapEditor({
         <div className="print-hidden sticky top-0 z-30 flex flex-col gap-3 bg-[var(--background)]">
         <header className="mx-auto flex w-full max-w-none flex-col gap-3 border-b border-[var(--border)] pb-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <Brand href="/dashboard" />
+            <Brand href="/dashboard" showWordmark={false} />
             <div className="min-w-0 flex-1">
               <input
                 value={visibleTitle}

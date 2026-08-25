@@ -13,7 +13,6 @@ const BILLING_MESSAGES: Record<string, string> = {
 };
 
 export function BillingPanel({
-  betaSeat,
   subscriptionStatus,
   currentPeriodEnd,
   cancelAtPeriodEnd,
@@ -21,7 +20,6 @@ export function BillingPanel({
   notice,
   aiAllowance,
 }: {
-  betaSeat: number;
   subscriptionStatus: string | null;
   currentPeriodEnd: Date | null;
   cancelAtPeriodEnd: boolean;
@@ -49,10 +47,6 @@ export function BillingPanel({
           <h2 id="billing-heading" className="font-semibold">
             Plan and billing
           </h2>
-          <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-            You’re beta member #{betaSeat}. The first 100 places were automatic;
-            later places are approved from the waitlist. No card is required.
-          </p>
           {noticeMessage && (
             <p className="mt-3 text-sm text-[var(--foreground)]" role="status">
               {noticeMessage}

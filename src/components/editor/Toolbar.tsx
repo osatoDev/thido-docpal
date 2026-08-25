@@ -818,6 +818,15 @@ export function Toolbar({
           insert: [
             [
               {
+                label: "Table (3 × 3)",
+                onSelect: () =>
+                  editor
+                    .chain()
+                    .focus()
+                    .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                    .run(),
+              },
+              {
                 label: "Links and references",
                 children: [
                   {
@@ -859,15 +868,6 @@ export function Toolbar({
                     label: "Page break",
                     shortcut: "Ctrl/⌘ + Enter",
                     onSelect: () => editor.chain().focus().setPageBreak().run(),
-                  },
-                  {
-                    label: "Table (3 × 3)",
-                    onSelect: () =>
-                      editor
-                        .chain()
-                        .focus()
-                        .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-                        .run(),
                   },
                 ],
               },

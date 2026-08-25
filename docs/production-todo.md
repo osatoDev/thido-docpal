@@ -1,6 +1,6 @@
 # Thido production checklist
 
-Last reviewed: 25 August 2026
+Last reviewed: 25 August 2026 (updated same day)
 
 This is the running source of truth for production-readiness work. Completed boxes indicate repository evidence or a verified check. External configuration remains unchecked until it is explicitly verified.
 
@@ -279,6 +279,13 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Automatically scroll a newly opened comment composer into view (`CommentComposer.tsx`) so starting a comment deep in a long document no longer requires manually hunting for the input box, since the comments panel stacks below the document on narrower-than-`lg` viewports.
 - [x] Show a spinner alongside the **Importing document…** File-menu label and the drag-and-drop import loading banner so a file import in progress is visually distinguishable from an idle state, not just disabled/text-only.
 - [ ] Browser-check the removed whole-document comment option, the auto-scrolled comment composer on a long document at a sub-`lg` viewport width, and the File-menu/drag-and-drop import spinners at desktop and 390 px.
+- [x] Add a `src/app/settings/loading.tsx` route-level skeleton (`PageLoadingSkeleton`, `variant="page"`) so navigating to Settings shows a visible loading state instead of a blank screen while its session, Prisma, billing-offer, and AI-allowance data resolve.
+- [x] Remove the canned example-instruction buttons (`AI_EDIT_SUGGESTIONS`) from the comment composer; a comment is a short note to a human reviewer, so pre-written AI-style prompt suggestions there were unnecessary.
+- [x] Promote **Table (3 × 3)** out of the Insert menu's **Structure** submenu to a direct top-level item under **Insert**, alongside Horizontal line and Page break which remain under Structure.
+- [x] Move the **Feedback** launcher out of the persistent top-right utility row (`SignedInPageActions`, mounted globally in `src/app/layout.tsx`) and into the account/avatar dropdown (`UserMenu`), between **Settings** and **Log out**; it opens the same slide-over panel (`FounderFeedbackPanel` in `src/components/feedback/FounderFeedbackLauncher.tsx`, now a `forwardRef`-exposed panel rather than a self-contained button) and still hides itself on `/feedback`. This supersedes the top-right-row placement recorded above.
+- [x] Remove the "Thido" wordmark text from the document editor header's brand mark (`Brand` now takes a `showWordmark` prop, defaulting to `true`; the editor passes `showWordmark={false}`) so the logo no longer reads like a second document heading next to the actual document title. Every other `Brand` usage (dashboard, settings, auth pages, etc.) is unaffected.
+- [x] Remove the "You're beta member #N. The first 100 places were automatic; later places are approved from the waitlist. No card is required." paragraph from the Settings billing panel; the now-unused `betaSeat` prop was removed from `BillingPanel` (the underlying `user.betaSeat` value is still used server-side to gate access to the Settings page).
+- [ ] Browser-check the Settings loading skeleton on a throttled connection, the simplified comment composer (no suggestion chips), the promoted **Insert → Table (3 × 3)** menu item, the account-menu **Feedback** item (including that it opens the same panel and is hidden on `/feedback`), the logo-only document editor header, and the trimmed billing panel copy, at desktop and 390 px.
 
 ## Beta access and billing
 
