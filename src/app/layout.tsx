@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { Suspense } from "react";
+import { ApplicationStyleSync } from "@/components/ApplicationStyleSync";
 import { RedditPixel } from "@/components/RedditPixel";
 import { SignedInPageActions } from "@/components/SignedInPageActions";
 import {
   APPLICATION_STYLE_COOKIE_NAME,
   DEFAULT_APPLICATION_STYLE,
+  type ApplicationStyle,
   isApplicationStyle,
 } from "@/lib/applicationStyle";
 import { getCurrentSession } from "@/lib/currentSession";
@@ -29,25 +32,49 @@ export const metadata: Metadata = {
   icons: { icon: "/thido-docpal-mark.svg" },
 };
 
+async function SessionPageActions({
+  initialApplicationStyle,
+}: {
+  initialApplicationStyle: ApplicationStyle;
+}) {
+  const session = await getCurrentSession();
+  const applicationStyle = isApplicationStyle(session?.user?.applicationStyle)
+    ? session.user.applicationStyle
+    : initialApplicationStyle;
+
+  return (
+    <>
+      <ApplicationStyleSync applicationStyle={applicationStyle} />
+      <SignedInPageActions signedIn={Boolean(session?.user?.id)} />
+    </>
+  );
+}
+
+async function SessionRedditPixel() {
+  const session = await getCurrentSession();
+
+  return (
+    <RedditPixel
+      email={session?.user?.email}
+      externalId={session?.user?.id}
+    />
+  );
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [cookieStore, session] = await Promise.all([
-    cookies(),
-    getCurrentSession(),
-  ]);
+  const cookieStore = await cookies();
   const savedTheme = cookieStore.get(THEME_COOKIE_NAME)?.value;
   const theme = isTheme(savedTheme) ? savedTheme : "light";
   const savedApplicationStyle = cookieStore.get(
     APPLICATION_STYLE_COOKIE_NAME,
   )?.value;
-  const applicationStyle = isApplicationStyle(session?.user?.applicationStyle)
-    ? session.user.applicationStyle
-    : isApplicationStyle(savedApplicationStyle)
-      ? savedApplicationStyle
-      : DEFAULT_APPLICATION_STYLE;
+  const applicationStyle = isApplicationStyle(savedApplicationStyle)
+    ? savedApplicationStyle
+    : DEFAULT_APPLICATION_STYLE;
 
   return (
     <html
@@ -57,10 +84,14 @@ export default async function RootLayout({
       data-app-style={applicationStyle}
     >
       <body className="flex min-h-full flex-col">
-        <SignedInPageActions signedIn={Boolean(session?.user?.id)} />
+        <Suspense fallback={null}>
+          <SessionPageActions initialApplicationStyle={applicationStyle} />
+        </Suspense>
         {children}
         <Analytics />
-        <RedditPixel email={session?.user?.email} externalId={session?.user?.id} />
+        <Suspense fallback={null}>
+          <SessionRedditPixel />
+        </Suspense>
       </body>
     </html>
   );
