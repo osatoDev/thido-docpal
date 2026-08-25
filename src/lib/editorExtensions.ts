@@ -74,7 +74,7 @@ export function getEditorExtensions(
         autolink: true,
         enableClickSelection: true,
         linkOnPaste: true,
-        openOnClick: false,
+        openOnClick: true,
         HTMLAttributes: {
           target: "_blank",
           rel: "noopener noreferrer",

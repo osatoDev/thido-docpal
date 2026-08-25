@@ -117,6 +117,36 @@ describe("priority-one document structures", () => {
     expect(unsafeText?.marks).toBeUndefined();
   });
 
+  it("renders document links to open in a protected new tab", () => {
+    const html = generateHTML(
+      {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "Reference",
+                marks: [
+                  {
+                    type: "link",
+                    attrs: { href: "https://example.com/reference" },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      getEditorExtensions(),
+    );
+
+    expect(html).toContain('href="https://example.com/reference"');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noopener noreferrer"');
+  });
+
   it("round-trips task lists and accessible tables", () => {
     const content = generateJSON(
       [

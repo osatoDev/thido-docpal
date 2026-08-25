@@ -2,7 +2,7 @@
 
 import { Editor, type Content } from "@tiptap/core";
 import { NodeSelection } from "@tiptap/pm/state";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { readDocumentBookmarks } from "@/components/editor/extensions/Bookmarks";
 import {
@@ -30,6 +30,58 @@ function topLevelText(editor: Editor) {
 
 afterEach(() => {
   for (const editor of editors.splice(0)) editor.destroy();
+  vi.restoreAllMocks();
+});
+
+describe("document links", () => {
+  it("opens an editable document link in a new tab when clicked", () => {
+    const open = vi.spyOn(window, "open").mockImplementation(() => null);
+    const editor = makeEditor({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: "Reference",
+              marks: [
+                {
+                  type: "link",
+                  attrs: { href: "https://example.com/reference" },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const link = editor.view.dom.querySelector<HTMLAnchorElement>("a");
+    const linkPlugin = editor.state.plugins.find(
+      (plugin) =>
+        (plugin as typeof plugin & { key: string }).key === "handleClickLink$",
+    );
+
+    expect(link).not.toBeNull();
+    expect(linkPlugin).toBeDefined();
+    if (!link || !linkPlugin?.props.handleClick) {
+      throw new Error("Expected the rendered link and link click plugin.");
+    }
+    const event = new MouseEvent("click", { button: 0 });
+    Object.defineProperty(event, "target", { value: link });
+    const handled = linkPlugin.props.handleClick.call(
+      linkPlugin,
+      editor.view,
+      2,
+      event,
+    );
+
+    expect(handled).toBe(true);
+    expect(open).toHaveBeenCalledWith(
+      "https://example.com/reference",
+      "_blank",
+    );
+  });
 });
 
 describe("block productivity commands", () => {
