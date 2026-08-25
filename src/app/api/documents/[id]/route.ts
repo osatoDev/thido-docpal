@@ -200,11 +200,7 @@ export async function PATCH(request: Request, { params }: Params) {
     }
 
     await expireStaleCommentAiJobs(transaction, id);
-    if (
-      await hasActiveCommentAiJob(transaction, id, {
-        documentWideOnly: true,
-      })
-    ) {
+    if (await hasActiveCommentAiJob(transaction, id)) {
       return { kind: "locked" as const };
     }
 
@@ -297,11 +293,7 @@ export async function DELETE(_request: Request, { params }: Params) {
     if (!documentExists) return "missing" as const;
 
     await expireStaleCommentAiJobs(transaction, id);
-    if (
-      await hasActiveCommentAiJob(transaction, id, {
-        documentWideOnly: true,
-      })
-    ) {
+    if (await hasActiveCommentAiJob(transaction, id)) {
       return "locked" as const;
     }
 

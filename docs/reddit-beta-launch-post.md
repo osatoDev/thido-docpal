@@ -11,7 +11,7 @@ Draft invite post for recruiting beta testers, plus target subreddits. Companion
 Hey — I've been building [Thido](https://thido.ai), a document editor that works like Google Docs but treats AI as part of the writing surface instead of a chatbot bolted to the side. A few things it does:
 
 - Ask it to draft, extend, or rewrite directly in the document — no copy-pasting in and out of a separate chat window
-- Leave a comment and have AI respond to it in context, propose an edit, or apply one directly
+- Leave several targeted or whole-document comments, then have AI action them together as one coherent revision
 - Full version history, so AI or human edits are never a one-way door
 - Import/export Word and PDF, plus basic spreadsheets alongside your docs
 
@@ -27,7 +27,7 @@ We have been building Thido (https://thido.ai), a document editor that works lik
 
 
 - Ask it to draft, extend, or rewrite directly in the document — no copy-pasting in and out of a separate chat window
-- Leave a comment and have AI respond to it in context, propose an edit, or apply one directly
+- Leave several targeted or whole-document comments, then have AI action them together as one coherent revision
 - Full version history
 - Import/export Word and PDF alongside your docs
 

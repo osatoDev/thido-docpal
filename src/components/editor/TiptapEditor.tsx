@@ -31,11 +31,13 @@ import {
 import { type RestoredDocument } from "@/components/documents/VersionHistoryControl";
 import { Brand } from "@/components/Brand";
 import type {
-  CommentAiProgress,
   CommentWithReplies,
   SuggestionWithStatus,
 } from "@/lib/types";
-import { isDocumentWideCommentRequest } from "@/lib/commentProcessing";
+import {
+  isCommentQueuedForBatch,
+  isDocumentWideCommentRequest,
+} from "@/lib/commentProcessing";
 import {
   createLocalizedDefaultDocumentTitle,
   hasMeaningfulDocumentContent,
@@ -65,7 +67,6 @@ type Props = {
   initialContent: JSONContent | null;
   initialRevision: number;
   initialComments: CommentWithReplies[];
-  initialCommentProgress: Record<string, CommentAiProgress>;
   initialDocumentAiLocked: boolean;
   initialShareToken: string | null;
   initialSharePermission: CollaboratorPermission;
@@ -112,7 +113,6 @@ export function TiptapEditor({
   initialContent,
   initialRevision,
   initialComments,
-  initialCommentProgress,
   initialDocumentAiLocked,
   initialShareToken,
   initialSharePermission,
@@ -150,17 +150,6 @@ export function TiptapEditor({
   );
   const [documentOutlineOpen, setDocumentOutlineOpen] = useState(false);
   const [editorZoom, setEditorZoom] = useState(100);
-  const [pendingCommentIds, setPendingCommentIds] = useState<Set<string>>(() => {
-    return new Set(
-      Object.entries(initialCommentProgress).flatMap(([commentId, progress]) =>
-        progress.status === "PENDING" ? [commentId] : [],
-      ),
-    );
-  });
-  const [foregroundCommentCount, setForegroundCommentCount] = useState(0);
-  const [commentProgress, setCommentProgress] = useState<
-    Record<string, CommentAiProgress>
-  >(initialCommentProgress);
   const [documentAiLocked, setDocumentAiLocked] = useState(
     initialDocumentAiLocked,
   );
@@ -743,14 +732,6 @@ export function TiptapEditor({
   }
 
   async function persistComment(composer: ActiveComposer, body: string) {
-    const waitForAi =
-      composer.scope === "DOCUMENT" || isDocumentWideCommentRequest(body);
-    let existingDocumentLock = false;
-    if (waitForAi) {
-      setForegroundCommentCount((count) => count + 1);
-      updateDocumentAiLock(true);
-    }
-
     try {
       if (!editor) throw new Error("Editor is not ready");
       if (debounceRef.current) {
@@ -770,7 +751,6 @@ export function TiptapEditor({
       if (!saveResult.ok) {
         const errorBody = saveResult.body;
         if (errorBody?.documentAiLocked === true) {
-          existingDocumentLock = true;
           updateDocumentAiLock(true);
           void pollForDocumentUnlock();
         }
@@ -802,7 +782,6 @@ export function TiptapEditor({
       if (!res.ok) {
         const errorBody = await res.json().catch(() => null);
         if (errorBody?.documentAiLocked === true) {
-          existingDocumentLock = true;
           updateDocumentAiLock(true);
           void pollForDocumentUnlock();
         }
@@ -821,29 +800,6 @@ export function TiptapEditor({
 
       if (!mountedRef.current) return;
       setComments((prev) => [savedComment, ...prev]);
-
-      if (data.aiProcessing === "background") {
-        setPendingCommentIds((prev) => new Set(prev).add(savedComment.id));
-        setCommentProgress((previous) => ({
-          ...previous,
-          [savedComment.id]: { status: "QUEUED", startedAt: null },
-        }));
-        void pollForAiResponse(savedComment.id);
-      } else if (data.aiProcessing === "failed") {
-        setCommentError(
-          "The comment was saved, but Thido could not finish responding. You can keep editing and try again.",
-        );
-      }
-
-      if (data.documentContent && editor) {
-        editor.commands.setContent(data.documentContent, { emitUpdate: false });
-        if (typeof data.documentRevision === "number") {
-          updateRevision(data.documentRevision);
-        }
-        if (savedComment.suggestion?.status === "AUTO_APPLIED") {
-          setRecentThidoChange(savedComment.suggestion);
-        }
-      }
     } catch (error) {
       if (!mountedRef.current) return;
       setSaveState("error");
@@ -852,89 +808,8 @@ export function TiptapEditor({
           ? error.message
           : "The comment could not be saved. You can keep editing and try again.",
       );
-    } finally {
-      if (waitForAi && mountedRef.current) {
-        setForegroundCommentCount((count) => Math.max(0, count - 1));
-        if (!existingDocumentLock) {
-          updateDocumentAiLock(false);
-        }
-      }
     }
   }
-
-  const pollForAiResponse = useCallback(async (commentId: string) => {
-    for (let attempt = 0; attempt < 480; attempt += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 1250));
-      if (!mountedRef.current) return;
-
-      try {
-        const res = await fetch(`/api/documents/${documentId}/comments`, {
-          cache: "no-store",
-        });
-        if (!res.ok) continue;
-        const data = await res.json();
-        const refreshed = data.comments as CommentWithReplies[];
-        const target = refreshed.find((comment) => comment.id === commentId);
-        const progress = data.aiProgress?.[commentId] as
-          | CommentAiProgress
-          | undefined;
-
-        setComments(refreshed);
-        updateDocumentAiLock(data.documentAiLocked === true);
-        if (progress) {
-          setCommentProgress((previous) => ({
-            ...previous,
-            [commentId]: progress,
-          }));
-        }
-
-        if (progress?.status === "FAILED") {
-          setPendingCommentIds((prev) => {
-            const next = new Set(prev);
-            next.delete(commentId);
-            return next;
-          });
-          return;
-        }
-
-        const finished =
-          !!target && (target.replies.length > 0 || !!target.suggestion);
-        if (finished) {
-          setPendingCommentIds((prev) => {
-            const next = new Set(prev);
-            next.delete(commentId);
-            return next;
-          });
-          setCommentProgress((previous) => {
-            const next = { ...previous };
-            delete next[commentId];
-            return next;
-          });
-
-          if (
-            target.suggestion?.status === "AUTO_APPLIED" &&
-            data.documentContent &&
-            editorRef.current
-          ) {
-            editorRef.current.commands.setContent(data.documentContent, {
-              emitUpdate: false,
-            });
-            if (typeof data.documentRevision === "number") {
-              updateRevision(data.documentRevision);
-            }
-            setRecentThidoChange(target.suggestion);
-          }
-          return;
-        }
-      } catch {
-        // A transient refresh failure should not interrupt editing or other
-        // comment submissions. The next polling attempt can recover.
-      }
-    }
-
-    // Keep the accurate processing state if the response is unusually slow.
-    // A later page load will include the completed server-side response.
-  }, [documentId, updateDocumentAiLock, updateRevision]);
 
   const pollForDocumentUnlock = useCallback(async () => {
     for (let attempt = 0; attempt < 480; attempt += 1) {
@@ -949,19 +824,8 @@ export function TiptapEditor({
         if (!response.ok) continue;
         const data = await response.json();
         const locked = data.documentAiLocked === true;
-        const progress =
-          (data.aiProgress as Record<string, CommentAiProgress> | undefined) ??
-          {};
-
-        setComments(data.comments as CommentWithReplies[]);
-        setCommentProgress(progress);
-        setPendingCommentIds(
-          new Set(
-            Object.entries(progress).flatMap(([commentId, item]) =>
-              item.status === "PENDING" ? [commentId] : [],
-            ),
-          ),
-        );
+        const refreshedComments = data.comments as CommentWithReplies[];
+        setComments(refreshedComments);
         updateDocumentAiLock(locked);
 
         if (!locked) {
@@ -972,6 +836,10 @@ export function TiptapEditor({
             if (typeof data.documentRevision === "number") {
               updateRevision(data.documentRevision);
             }
+            const appliedSuggestion = refreshedComments
+              .map((comment) => comment.suggestion)
+              .find((suggestion) => suggestion?.status === "AUTO_APPLIED");
+            if (appliedSuggestion) setRecentThidoChange(appliedSuggestion);
           }
           return;
         }
@@ -982,14 +850,8 @@ export function TiptapEditor({
   }, [documentId, updateDocumentAiLock, updateRevision]);
 
   useEffect(() => {
-    for (const [commentId, progress] of Object.entries(
-      initialCommentProgress,
-    )) {
-      if (progress.status === "PENDING") {
-        void pollForAiResponse(commentId);
-      }
-    }
-  }, [initialCommentProgress, pollForAiResponse]);
+    if (initialDocumentAiLocked) void pollForDocumentUnlock();
+  }, [initialDocumentAiLocked, pollForDocumentUnlock]);
 
   function handleCommentChange(updated: CommentWithReplies) {
     setComments((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
@@ -997,16 +859,89 @@ export function TiptapEditor({
 
   function handleCommentDelete(id: string) {
     setComments((prev) => prev.filter((c) => c.id !== id));
-    setPendingCommentIds((previous) => {
-      const next = new Set(previous);
-      next.delete(id);
-      return next;
-    });
-    setCommentProgress((previous) => {
-      const next = { ...previous };
-      delete next[id];
-      return next;
-    });
+  }
+
+  async function actionQueuedComments() {
+    if (
+      !editor ||
+      documentAiLockedRef.current ||
+      !comments.some(isCommentQueuedForBatch)
+    ) {
+      return;
+    }
+
+    setCommentError(null);
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+
+    let requestStarted = false;
+    let responseReceived = false;
+    let keepLocked = false;
+    try {
+      setSaveState("saving");
+      const pendingSave = pendingSaveRef.current;
+      pendingSaveRef.current = null;
+      const saveResult = await saveDocumentUpdate({
+        ...pendingSave,
+        content: editor.getJSON(),
+      });
+      if (!saveResult.ok) {
+        throw new Error(
+          typeof saveResult.body?.error === "string"
+            ? saveResult.body.error
+            : "Could not save the document before actioning comments.",
+        );
+      }
+
+      updateDocumentAiLock(true);
+      requestStarted = true;
+      const response = await fetch(
+        `/api/documents/${documentId}/comments/action`,
+        { method: "POST" },
+      );
+      responseReceived = true;
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        if (data?.documentAiLocked === true) {
+          keepLocked = true;
+          void pollForDocumentUnlock();
+        }
+        throw new Error(
+          typeof data?.error === "string"
+            ? data.error
+            : "Thido could not action these comments.",
+        );
+      }
+
+      const refreshedComments = data.comments as CommentWithReplies[];
+      setComments(refreshedComments);
+      if (data.documentContent) {
+        editor.commands.setContent(data.documentContent, { emitUpdate: false });
+      }
+      if (typeof data.documentRevision === "number") {
+        updateRevision(data.documentRevision);
+      }
+      const appliedSuggestion = refreshedComments
+        .map((comment) => comment.suggestion)
+        .find((suggestion) => suggestion?.status === "AUTO_APPLIED");
+      if (appliedSuggestion) setRecentThidoChange(appliedSuggestion);
+      setSaveState("saved");
+    } catch (error) {
+      if (!mountedRef.current) return;
+      if (requestStarted && !responseReceived) {
+        keepLocked = true;
+        void pollForDocumentUnlock();
+      }
+      setCommentError(
+        error instanceof Error
+          ? error.message
+          : "Thido could not action these comments. They are ready to retry.",
+      );
+    } finally {
+      if (!keepLocked && mountedRef.current) updateDocumentAiLock(false);
+    }
   }
 
   function handleDocumentContentUpdated(
@@ -1051,7 +986,7 @@ export function TiptapEditor({
               <div className="flex min-h-5 items-center gap-2 px-1">
                 <span className="text-[11px] text-[var(--muted-soft)]">
                   {documentAiLocked
-                    ? "Thido is revising…"
+                    ? "Thido is actioning comments…"
                     : saveState === "saving"
                       ? "Saving…"
                       : saveState === "saved"
@@ -1178,8 +1113,8 @@ export function TiptapEditor({
             <p className="text-sm font-medium">Paste your document below.</p>
             <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
               When it is saved, highlight any passage to target it, or choose
-              Edit with Thido to add, remove, or rewrite content across the
-              document.
+              Add comments on selected passages or the whole document, then
+              action them together with Thido.
             </p>
           </div>
         )}
@@ -1236,7 +1171,7 @@ export function TiptapEditor({
                   onClick={startComment}
                   className="rounded-sm px-2 py-1 text-xs font-medium hover:bg-[var(--surface-subtle)]"
                 >
-                  Edit or ask Thido
+                  Add comment
                 </button>
               </div>
             </BubbleMenu>
@@ -1293,13 +1228,12 @@ export function TiptapEditor({
             onChange={handleCommentChange}
             onDelete={handleCommentDelete}
             onDocumentContentUpdated={handleDocumentContentUpdated}
-            pendingCommentIds={pendingCommentIds}
-            commentProgress={commentProgress}
-            foregroundCommentCount={foregroundCommentCount}
             documentAiLocked={documentAiLocked}
+            onActionComments={actionQueuedComments}
             onStartDocumentComment={startDocumentComment}
             documentComposerOpen={activeComposer?.scope === "DOCUMENT"}
             canCreateComments={canCommentNow && !!editor}
+            canActionComments={canEdit && !!editor}
             canManageComments={canEditNow}
           />
         </div>

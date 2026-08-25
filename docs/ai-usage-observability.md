@@ -40,7 +40,7 @@ features:
 | --- | --- | --- |
 | `document.followups` | `src/lib/ai/generateFollowups.ts` | Planning questions generated from the initial brief |
 | `document.generate` | `src/app/api/documents/[id]/generate/route.ts` | Full streamed document generation |
-| `comment.respond` | `src/app/api/documents/[id]/comments/route.ts` | AI replies and proposed edits for comments |
+| `comment.respond` | `src/app/api/documents/[id]/comments/action/route.ts` | Batched AI replies and one full-document revision for queued comments |
 
 Keep these keys stable if routes or files move. Add a new key whenever Thido
 introduces a materially different AI workflow.

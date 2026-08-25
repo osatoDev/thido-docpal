@@ -34,7 +34,7 @@ The current AI allowance is shared per authenticated user across the protected A
 | Reset-password submission | Slow repeated attempts using invalid or stolen links |
 | AI follow-up generation | Protect paid Anthropic usage and server capacity |
 | Document generation | Protect paid Anthropic usage and server capacity |
-| AI comment responses | Protect paid Anthropic usage and server capacity |
+| Batched comment revisions | Protect paid Anthropic usage and server capacity |
 
 The current limiter is deliberately a first layer. Because it is stored in application memory, it is not a strict global limit across every Vercel instance. A shared Redis-backed limiter is the appropriate production upgrade when traffic or abuse risk grows.
 

@@ -13,7 +13,6 @@ import {
 } from "@/lib/documentAuth";
 import { documentEditPath } from "@/lib/documentUrls";
 import { prisma } from "@/lib/prisma";
-import type { CommentAiProgress } from "@/lib/types";
 
 export type EditDocumentSearchParams = Record<
   string,
@@ -133,26 +132,8 @@ export async function EditDocumentPageContent({
     collaboratorPermission,
     linkPermission,
   });
-  const initialCommentProgress: Record<string, CommentAiProgress> =
-    Object.fromEntries(
-      document.comments.flatMap((comment) => {
-        const isActive = isCommentAiJobActive(comment);
-        return isActive || comment.aiStatus === "FAILED"
-          ? [
-              [
-                comment.id,
-                {
-                  status: isActive ? "PENDING" : "FAILED",
-                  startedAt: comment.aiStartedAt?.toISOString() ?? null,
-                },
-              ],
-            ]
-          : [];
-      }),
-    );
   const initialDocumentAiLocked = document.comments.some(
-    (comment) =>
-      comment.scope === "DOCUMENT" && isCommentAiJobActive(comment),
+    (comment) => isCommentAiJobActive(comment),
   );
   const start = searchParams.start;
 
@@ -165,7 +146,6 @@ export async function EditDocumentPageContent({
       initialContent={content}
       initialRevision={document.revision}
       initialComments={document.comments}
-      initialCommentProgress={initialCommentProgress}
       initialDocumentAiLocked={initialDocumentAiLocked}
       initialShareToken={document.shareToken}
       initialSharePermission={document.sharePermission}

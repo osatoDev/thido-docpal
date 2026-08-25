@@ -14,27 +14,6 @@ export function isDocumentWideCommentRequest(body: string) {
   return DOCUMENT_WIDE_REQUESTS.some((pattern) => pattern.test(body));
 }
 
-export type AiCommentMode = "PROPOSE" | "AUTO" | "AUTO_APPLY";
-export type AiSuggestionAction = "apply" | "propose";
-
-/**
- * Explicit preferences always win. Auto follows the model's structured
- * judgment about whether the prompt is a direct edit instruction, but never
- * applies anything for a collaborator who cannot edit the document.
- */
-export function shouldApplyCommentSuggestion({
-  mode,
-  suggestionAction,
-  allowAutoApply,
-}: {
-  mode: AiCommentMode;
-  suggestionAction: AiSuggestionAction;
-  allowAutoApply: boolean;
-}) {
-  if (!allowAutoApply || mode === "PROPOSE") return false;
-  return mode === "AUTO_APPLY" || suggestionAction === "apply";
-}
-
 export function partitionCommentThreads<
   CommentThread extends { status: "OPEN" | "RESOLVED" },
 >(comments: CommentThread[]) {
@@ -50,4 +29,22 @@ export function partitionCommentThreads<
   }
 
   return { open, archived };
+}
+
+/**
+ * User comments stay queued until an editor explicitly asks Thido to action
+ * the document's open comments as one coherent revision.
+ */
+export function isCommentQueuedForBatch(comment: {
+  aiStatus: "NOT_REQUESTED" | "PENDING" | "SUCCEEDED" | "FAILED";
+  authorType: "USER" | "AI";
+  status: "OPEN" | "RESOLVED";
+  suggestion?: unknown | null;
+}) {
+  return (
+    comment.authorType === "USER" &&
+    comment.status === "OPEN" &&
+    (comment.aiStatus === "NOT_REQUESTED" || comment.aiStatus === "FAILED") &&
+    !comment.suggestion
+  );
 }

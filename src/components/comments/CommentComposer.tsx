@@ -41,17 +41,17 @@ export function CommentComposer({
       {scope === "DOCUMENT" ? (
         <div className="rounded-sm bg-[var(--surface-subtle)] p-3">
           <p className="text-xs font-semibold text-[var(--foreground)]">
-            Edit the document with Thido
+            Comment on the whole document
           </p>
           <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-            Tell Thido what to add, remove, rewrite, or restyle. Clear edit
-            instructions follow your AI edit preference in Settings.
+            Add an instruction or question to the queue. Thido will consider it
+            with the other comments when you action them.
           </p>
         </div>
       ) : (
         <div>
           <p className="mb-2 text-xs font-semibold text-[var(--foreground)]">
-            Edit the selected text with Thido
+            Comment on the selected text
           </p>
           <blockquote className="border-l-2 border-[var(--warm)] pl-2 text-xs italic text-[var(--muted)]">
             &ldquo;{quotedText}&rdquo;
@@ -70,8 +70,8 @@ export function CommentComposer({
         }
         aria-label={
           scope === "DOCUMENT"
-            ? "Instruction for Thido about the document"
-            : "Instruction for Thido about the selected text"
+            ? "Comment about the whole document"
+            : "Comment about the selected text"
         }
         className="app-input resize-none rounded-sm p-2 text-sm outline-none"
       />
@@ -100,7 +100,7 @@ export function CommentComposer({
           disabled={!body.trim()}
           className="primary-button rounded-sm px-3 py-1.5 text-xs font-medium disabled:opacity-50"
         >
-          Send to Thido
+          Add comment
         </button>
       </div>
     </form>

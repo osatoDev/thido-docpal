@@ -5,11 +5,6 @@ import type {
 
 export type SuggestionWithStatus = PrismaSuggestion;
 
-export type CommentAiProgress = {
-  status: "QUEUED" | "PENDING" | "SUCCEEDED" | "FAILED";
-  startedAt: string | null;
-};
-
 type CommentWithAuthor = PrismaComment & {
   author: { name: string | null } | null;
 };

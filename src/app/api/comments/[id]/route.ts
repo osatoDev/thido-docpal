@@ -58,11 +58,7 @@ export async function PATCH(request: Request, { params }: Params) {
     if (!documentExists) return { kind: "missing" as const };
 
     await expireStaleCommentAiJobs(transaction, existing.documentId);
-    if (
-      await hasActiveCommentAiJob(transaction, existing.documentId, {
-        documentWideOnly: true,
-      })
-    ) {
+    if (await hasActiveCommentAiJob(transaction, existing.documentId)) {
       return { kind: "locked" as const };
     }
 
@@ -128,11 +124,7 @@ export async function DELETE(_request: Request, { params }: Params) {
     if (!documentExists) return "missing" as const;
 
     await expireStaleCommentAiJobs(transaction, existing.documentId);
-    if (
-      await hasActiveCommentAiJob(transaction, existing.documentId, {
-        documentWideOnly: true,
-      })
-    ) {
+    if (await hasActiveCommentAiJob(transaction, existing.documentId)) {
       return "locked" as const;
     }
 

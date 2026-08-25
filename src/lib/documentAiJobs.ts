@@ -2,9 +2,7 @@ import type { Comment, Prisma } from "@prisma/client";
 
 export const COMMENT_AI_JOB_TIMEOUT_MS = 10 * 60_000;
 export const DOCUMENT_AI_LOCK_MESSAGE =
-  "Thido is working across the whole document. Wait for it to finish before editing or adding another comment.";
-export const COMMENT_AI_BUSY_MESSAGE =
-  "Thido is already responding to another comment. Wait for it to finish before starting a whole-document action.";
+  "Thido is actioning this document's comments. Wait for it to finish before editing or adding another comment.";
 
 type CommentAiJobClient = Pick<Prisma.TransactionClient, "comment">;
 
@@ -61,19 +59,12 @@ export async function expireStaleCommentAiJobs(
 export async function hasActiveCommentAiJob(
   client: CommentAiJobClient,
   documentId: string,
-  {
-    documentWideOnly = false,
-    now = new Date(),
-  }: {
-    documentWideOnly?: boolean;
-    now?: Date;
-  } = {},
+  { now = new Date() }: { now?: Date } = {},
 ) {
   const comment = await client.comment.findFirst({
     where: {
       documentId,
       parentId: null,
-      ...(documentWideOnly ? { scope: "DOCUMENT" as const } : {}),
       aiStatus: "PENDING",
       aiStartedAt: { gt: commentAiJobCutoff(now) },
     },

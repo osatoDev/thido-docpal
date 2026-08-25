@@ -2,53 +2,38 @@
 
 Thido supports two explicit comment targets:
 
-- `SELECTION` for feedback tied to highlighted text.
-- `DOCUMENT` for feedback or changes that apply to the entire draft.
+- `SELECTION` for feedback attached to highlighted text.
+- `DOCUMENT` for feedback about the draft as a whole.
 
-## User experience
+The comments sidebar exposes **Comment on whole document**, so a reviewer can
+create a document comment without selecting text. Selection comments begin
+from the editor's **Add comment** action. Whole-document threads retain a
+visible **Whole document** label.
 
-The comments sidebar contains a visible **Comment on whole document** action. It
-opens a composer that explains the scope and gives a concrete example such as
-“Remove all Markdown from this document.” No text selection is required.
+Saving either kind of comment only adds it to the queue. It does not call the
+model or wait for an individual response. Reviewers can leave multiple comments
+and add context to open threads before an editor starts a batch.
 
-Selection comments still begin from the editor’s Comment action. If a user
-starts from selected text but writes an unmistakably document-wide request,
-Thido removes the temporary selection anchor and promotes the request to the
-document scope.
+## Actioning comments
 
-Document comments and their threads carry a **Whole document** label so the
-scope stays visible after submission.
+An editor uses **Action comments with Thido** to process every open queued
+comment together. Thido reads the full document and all comment targets, then
+returns one coherent full-document revision. A selected target explains where
+the concern originated but does not constrain the edit: the best solution may
+change related text elsewhere in the document.
 
-## Editing behavior
+The editor remains visibly loading and the document is locked during the
+foreground request. A revision is written only if the document has not changed
+since the batch started. Successful batches add a reply to every comment,
+resolve those threads, retain the applied full-document suggestion in the
+archive, and record a normal AI document revision.
 
-Document comments are processed in the foreground. Thido reads the complete
-document and:
-
-- returns a reply without changing the draft for questions or feedback; or
-- creates a full-document revision for change requests.
-
-Auto is the default edit mode. The structured AI response separately decides
-whether the user's prompt is a clear instruction to edit now or a prompt that
-should remain a proposal. Direct orders such as “Add a conclusion” can be
-applied immediately; questions, feedback, advice requests, and ambiguous
-prompts do not change the document automatically. Users can override this by
-choosing **Always ask for my approval** or **Always apply automatically**.
-
-An automatic revision is applied only if the document has not changed while
-the model was working. Concurrent edits cause the revision to remain pending
-instead of overwriting newer work.
-
-Document text is converted back into the editor’s structured format when a
-full-document revision is accepted or safely auto-applied.
-
-After Thido changes the document, a dismissible notice above the editor shows
-what the text was changed to. The associated suggestion remains in the comment
-thread with explicit before-and-after text, including after the resolved thread
-moves to the archive.
+If the model call or safe application fails, the document is left untouched and
+the comments remain available for retry.
 
 ## Data model
 
-`Comment.scope` and `Suggestion.scope` use `SELECTION` or `DOCUMENT`.
-`anchorMarkId` and `quotedText` are nullable because document comments do not
-pretend to be attached to the title or first paragraph. Existing comments and
-suggestions default to `SELECTION`.
+`Comment.scope` and `Suggestion.scope` continue to use `SELECTION` or
+`DOCUMENT`. Queued comments use `Comment.aiStatus = NOT_REQUESTED`; all comments
+claimed by an active batch use `PENDING`, and end as `SUCCEEDED` or `FAILED`.
+No database migration is required.

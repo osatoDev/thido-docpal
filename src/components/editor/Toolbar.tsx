@@ -1210,7 +1210,7 @@ export function Toolbar({
                         label: "Thido",
                         children: [
                           {
-                            label: "Edit with Thido",
+                            label: "Add comment",
                             onSelect: onEditWithAi,
                           },
                         ],
@@ -1300,8 +1300,8 @@ export function Toolbar({
             type="button"
             onClick={onEditWithAi}
             className="mr-1 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-[var(--foreground)] px-3 text-xs font-semibold text-[var(--background)] transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-strong)]"
-            aria-label="Edit with Thido"
-            title="Ask Thido to add, remove, or rewrite document content"
+            aria-label="Add comment"
+            title="Queue a selected or whole-document comment for Thido"
           >
             <svg
               aria-hidden="true"
@@ -1314,7 +1314,7 @@ export function Toolbar({
               <path d="m12 3 1.4 4.1L17.5 8.5l-4.1 1.4L12 14l-1.4-4.1-4.1-1.4 4.1-1.4L12 3Z" />
               <path d="m18.5 14 .8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z" />
             </svg>
-            Edit with Thido
+            Add comment
           </button>
           <ToolbarButton
             label="Undo"

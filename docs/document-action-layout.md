@@ -24,7 +24,7 @@ This keeps downloads discoverable in the place users expect while avoiding an un
 
 ## Formatting controls
 
-The toolbar uses icons for undo, redo, bold, italic, underline, links, bulleted lists, numbered lists, and checklists. It retains the standard paragraph-style selector and the product-defining **Edit with Thido** action. Zoom, typography, colors, list variants, strikethrough, and block quotes remain in **View** or **Format** instead of duplicating them in the toolbar.
+The toolbar uses icons for undo, redo, bold, italic, underline, links, bulleted lists, numbered lists, and checklists. It retains the standard paragraph-style selector and a prominent **Add comment** action. Reviewers can queue comments before an editor actions them together with Thido. Zoom, typography, colors, list variants, strikethrough, and block quotes remain in **View** or **Format** instead of duplicating them in the toolbar.
 
 Less-frequent insertion and formatting commands remain available through **Insert** and **Format**. Table cell operations also remain available through the table right-click menu.
 

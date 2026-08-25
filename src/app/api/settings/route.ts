@@ -32,31 +32,11 @@ export async function PATCH(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   const data: {
-    aiCommentMode?: "PROPOSE" | "AUTO" | "AUTO_APPLY";
     aiModel?: string;
     documentStartMode?: "NEW_DOCUMENT" | "MOST_RECENT";
     applicationStyle?: string;
     checklistMoveControls?: boolean;
   } = {};
-
-  if (body.aiCommentMode !== undefined) {
-    if (
-      body.aiCommentMode !== "PROPOSE" &&
-      body.aiCommentMode !== "AUTO" &&
-      body.aiCommentMode !== "AUTO_APPLY"
-    ) {
-      await reportServerError(new Error("Invalid aiCommentMode"), {
-        source: "settings",
-        operation: "invalid-ai-comment-mode",
-        status: 400,
-      });
-      return NextResponse.json(
-        { error: "aiCommentMode must be PROPOSE, AUTO, or AUTO_APPLY" },
-        { status: 400 },
-      );
-    }
-    data.aiCommentMode = body.aiCommentMode;
-  }
 
   if (body.aiModel !== undefined) {
     if (!isAiModelId(body.aiModel)) {

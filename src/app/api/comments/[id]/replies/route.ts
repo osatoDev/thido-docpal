@@ -1,40 +1,18 @@
 import { NextResponse } from "next/server";
-import type { JSONContent } from "@tiptap/react";
 
-import { anthropic } from "@/lib/ai/client";
-import {
-  startAiGeneration,
-  type TrackedAnthropicMessage,
-} from "@/lib/ai/telemetry";
-import { getUserAiModel } from "@/lib/ai/userModel";
-import { auth } from "@/lib/auth";
 import { unauthorizedResponse } from "@/lib/apiResponses";
-import { formatCommentConversation } from "@/lib/commentConversation";
+import { auth } from "@/lib/auth";
 import { getCommentForUser } from "@/lib/documentAuth";
 import {
-  AiAllowanceExceededError,
-  checkAndConsumeAiAllowance,
-} from "@/lib/entitlements";
-import {
-  COMMENT_AI_BUSY_MESSAGE,
   DOCUMENT_AI_LOCK_MESSAGE,
   expireStaleCommentAiJobs,
   hasActiveCommentAiJob,
   lockDocumentForCommentAi,
 } from "@/lib/documentAiJobs";
-import { getDocumentText } from "@/lib/documentMarks";
 import { prisma } from "@/lib/prisma";
-import { checkRateLimit } from "@/lib/rateLimit";
 import { reportServerError } from "@/lib/rollbar/server";
 
 type Params = { params: Promise<{ id: string }> };
-
-function responseText(message: { content: Array<{ type: string; text?: string }> }) {
-  return message.content
-    .flatMap((block) => (block.type === "text" && block.text ? [block.text] : []))
-    .join("\n")
-    .trim();
-}
 
 export async function POST(request: Request, { params }: Params) {
   const session = await auth();
@@ -60,63 +38,28 @@ export async function POST(request: Request, { params }: Params) {
   const payload = await request.json().catch(() => ({}));
   const body = typeof payload.body === "string" ? payload.body.trim() : "";
   if (!body || body.length > 4_000) {
-    await reportServerError(new Error("Invalid reply body length"), {
-      source: "comment-reply",
-      operation: "invalid-body",
-      status: 400,
-      entryId: id,
-    });
     return NextResponse.json(
       { error: "Write a message between 1 and 4,000 characters." },
       { status: 400 },
     );
   }
   if (existing.status !== "OPEN") {
-    await reportServerError(new Error("Comment thread is not open"), {
-      source: "comment-reply",
-      operation: "not-open",
-      status: 409,
-      entryId: id,
-    });
     return NextResponse.json(
       { error: "Reopen this comment before adding another message." },
       { status: 409 },
     );
   }
 
-  const aiStartedAt = new Date();
-  const admission = await prisma.$transaction(async (transaction) => {
-    const documentExists = await lockDocumentForCommentAi(
-      transaction,
-      existing.documentId,
-    );
-    if (!documentExists) return { kind: "missing" as const };
-
-    await expireStaleCommentAiJobs(transaction, existing.documentId, aiStartedAt);
-    const conflictingJob = await hasActiveCommentAiJob(
-      transaction,
-      existing.documentId,
-      { documentWideOnly: existing.scope !== "DOCUMENT", now: aiStartedAt },
-    );
-    if (conflictingJob) {
-      return {
-        kind: "locked" as const,
-        documentAiLocked: await hasActiveCommentAiJob(
-          transaction,
-          existing.documentId,
-          { documentWideOnly: true, now: aiStartedAt },
-        ),
-      };
+  const result = await prisma.$transaction(async (transaction) => {
+    if (!(await lockDocumentForCommentAi(transaction, existing.documentId))) {
+      return { kind: "missing" as const };
     }
 
-    await transaction.comment.update({
-      where: { id },
-      data: {
-        aiStatus: "PENDING",
-        aiStartedAt,
-        aiCompletedAt: null,
-      },
-    });
+    await expireStaleCommentAiJobs(transaction, existing.documentId);
+    if (await hasActiveCommentAiJob(transaction, existing.documentId)) {
+      return { kind: "locked" as const };
+    }
+
     await transaction.comment.create({
       data: {
         documentId: existing.documentId,
@@ -129,151 +72,27 @@ export async function POST(request: Request, { params }: Params) {
         body,
       },
     });
+    if (!existing.suggestion) {
+      await transaction.comment.update({
+        where: { id },
+        data: {
+          aiStatus: "NOT_REQUESTED",
+          aiStartedAt: null,
+          aiCompletedAt: null,
+        },
+      });
+    }
     return { kind: "created" as const };
   });
 
-  if (admission.kind === "missing") {
-    await reportServerError(new Error("Document missing during reply"), {
-      source: "comment-reply",
-      operation: "document-missing",
-      status: 404,
-      entryId: id,
-    });
+  if (result.kind === "missing") {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  if (admission.kind === "locked") {
-    await reportServerError(new Error("Document AI locked"), {
-      source: "comment-reply",
-      operation: "locked",
-      status: 409,
-      entryId: id,
-    });
+  if (result.kind === "locked") {
     return NextResponse.json(
-      {
-        error: admission.documentAiLocked
-          ? DOCUMENT_AI_LOCK_MESSAGE
-          : COMMENT_AI_BUSY_MESSAGE,
-        documentAiLocked: admission.documentAiLocked,
-      },
+      { error: DOCUMENT_AI_LOCK_MESSAGE, documentAiLocked: true },
       { status: 409 },
     );
-  }
-
-  let completed = false;
-  let telemetry: Awaited<ReturnType<typeof startAiGeneration>> | undefined;
-  let trackedMessage: TrackedAnthropicMessage | undefined;
-  try {
-    const [thread, document, model] = await Promise.all([
-      prisma.comment.findUniqueOrThrow({
-        where: { id },
-        include: {
-          replies: { orderBy: { createdAt: "asc" } },
-        },
-      }),
-      prisma.document.findUniqueOrThrow({
-        where: { id: existing.documentId },
-        select: { content: true },
-      }),
-      getUserAiModel(session.user.id),
-    ]);
-    let allowanceError: AiAllowanceExceededError | null = null;
-    try {
-      await checkAndConsumeAiAllowance(
-        session.user.id,
-        "COMMENT_FOLLOWUP_REPLY",
-        model,
-      );
-    } catch (error) {
-      if (!(error instanceof AiAllowanceExceededError)) throw error;
-      allowanceError = error;
-    }
-
-    if (allowanceError) {
-      await prisma.$transaction([
-        prisma.comment.create({
-          data: {
-            documentId: existing.documentId,
-            authorType: "AI",
-            parentId: id,
-            scope: existing.scope,
-            anchorMarkId: existing.anchorMarkId,
-            quotedText: existing.quotedText,
-            body: allowanceError.message,
-          },
-        }),
-        prisma.comment.update({
-          where: { id },
-          data: { aiStatus: "SUCCEEDED", aiCompletedAt: new Date() },
-        }),
-      ]);
-      completed = true;
-    } else {
-      if (!checkRateLimit(`ai:${session.user.id}`, 15, 60_000)) {
-        throw new Error("Rate limited. Skipping AI response for this message.");
-      }
-      telemetry = await startAiGeneration({
-        feature: "COMMENT_RESPOND",
-        model,
-        userId: session.user.id,
-        documentId: existing.documentId,
-        commentId: id,
-      });
-      const documentText =
-        document.content && typeof document.content === "object"
-          ? getDocumentText(document.content as JSONContent)
-          : "";
-      const transcript = formatCommentConversation(thread.body, thread.replies);
-      const message = await anthropic.messages.create({
-        model,
-        max_tokens: 2_048,
-        system:
-          "You are Thido, an editorial assistant continuing an existing document comment thread. " +
-          "Answer the user's latest message directly and concisely. Use the document and quoted target as context. " +
-          "Do not claim that you changed the document in this conversational reply.",
-        messages: [
-          {
-            role: "user",
-            content:
-              `DOCUMENT:\n${documentText || "(empty)"}\n\n` +
-              `COMMENT TARGET:\n${thread.quotedText || "Entire document"}\n\n` +
-              `THREAD:\n${transcript}`,
-          },
-        ],
-      });
-      trackedMessage = message;
-      const aiBody = responseText(message);
-      if (!aiBody) throw new Error("AI returned an empty comment reply");
-
-      await prisma.$transaction([
-        prisma.comment.create({
-          data: {
-            documentId: existing.documentId,
-            authorType: "AI",
-            parentId: id,
-            scope: existing.scope,
-            anchorMarkId: existing.anchorMarkId,
-            quotedText: existing.quotedText,
-            body: aiBody,
-          },
-        }),
-        prisma.comment.update({
-          where: { id },
-          data: {
-            aiStatus: "SUCCEEDED",
-            aiCompletedAt: new Date(),
-          },
-        }),
-      ]);
-      await telemetry.succeed(message);
-      completed = true;
-    }
-  } catch (error) {
-    await telemetry?.fail(error, trackedMessage);
-    await prisma.comment.updateMany({
-      where: { id, aiStatus: "PENDING" },
-      data: { aiStatus: "FAILED", aiCompletedAt: new Date() },
-    });
-    console.error("AI comment follow-up failed", error);
   }
 
   const comment = await prisma.comment.findUniqueOrThrow({
@@ -288,7 +107,7 @@ export async function POST(request: Request, { params }: Params) {
     },
   });
   return NextResponse.json(
-    { comment, aiProcessing: completed ? "completed" : "failed" },
+    { comment, aiProcessing: existing.suggestion ? "saved" : "queued" },
     { status: 201 },
   );
 }

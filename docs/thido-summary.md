@@ -32,8 +32,8 @@ An AI document-creation platform: a user answers a short questionnaire or gives 
 **Drafting and editing**
 - Guest-first AI drafting flow (guided questions or freeform prompt) that requires sign-in only before generation or permanent storage.
 - Full-featured rich text editor: headings with a navigable outline, tables, checklists with reordering, footnotes, table of contents, bookmarks, page breaks, zoom, alignment/spacing/typography controls, five global app styles (Classic, Clean, Editorial, Warm, Bold), find/replace, and dozens of other Google Docs-parity commands.
-- AI-assisted editing ("Edit with Thido"): selection-scoped or whole-document rewrites, an Auto edit mode that applies clear instructions and proposes ambiguous ones, and document-locking during whole-document AI operations.
-- Comments: anchored inline comments and first-class whole-document comment threads, with archiving/resolving and a collapsible sidebar.
+- AI-assisted editing: reviewers queue anchored or whole-document comments, then an editor asks Thido to action them together as one coherent full-document revision with safe document locking.
+- Comments: anchored inline comments and first-class whole-document threads, additional queued context, batch loading and retry states, and archiving/resolving in a collapsible sidebar.
 - Durable version history with restore, and revision-based stale-write protection for concurrent edits.
 
 **Document management**

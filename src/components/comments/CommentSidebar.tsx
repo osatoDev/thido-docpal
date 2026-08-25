@@ -1,11 +1,10 @@
 "use client";
 
-import type {
-  CommentAiProgress,
-  CommentWithReplies,
-  SuggestionWithStatus,
-} from "@/lib/types";
-import { partitionCommentThreads } from "@/lib/commentProcessing";
+import type { CommentWithReplies, SuggestionWithStatus } from "@/lib/types";
+import {
+  isCommentQueuedForBatch,
+  partitionCommentThreads,
+} from "@/lib/commentProcessing";
 import { CommentThread } from "./CommentThread";
 
 export function CommentSidebar({
@@ -13,13 +12,12 @@ export function CommentSidebar({
   onChange,
   onDelete,
   onDocumentContentUpdated,
-  pendingCommentIds,
-  commentProgress,
-  foregroundCommentCount,
   documentAiLocked,
+  onActionComments,
   onStartDocumentComment,
   documentComposerOpen,
   canCreateComments,
+  canActionComments,
   canManageComments,
 }: {
   comments: CommentWithReplies[];
@@ -30,17 +28,17 @@ export function CommentSidebar({
     suggestion: SuggestionWithStatus,
     revision?: number,
   ) => void;
-  pendingCommentIds: Set<string>;
-  commentProgress: Record<string, CommentAiProgress>;
-  foregroundCommentCount: number;
   documentAiLocked: boolean;
+  onActionComments: () => void;
   onStartDocumentComment: () => void;
   documentComposerOpen: boolean;
   canCreateComments: boolean;
+  canActionComments: boolean;
   canManageComments: boolean;
 }) {
   const { open: openComments, archived: archivedComments } =
     partitionCommentThreads(comments);
+  const queuedComments = openComments.filter(isCommentQueuedForBatch);
 
   return (
     <aside className="flex h-full w-full shrink-0 flex-col gap-4 overflow-y-auto border-l border-[var(--border)] bg-[var(--background)] p-5 lg:w-80">
@@ -53,12 +51,40 @@ export function CommentSidebar({
             </span>
           )}
         </h2>
-        {pendingCommentIds.size > 0 && (
+        {queuedComments.length > 0 && (
           <span className="text-xs text-[var(--muted)]">
-            {pendingCommentIds.size} processing
+            {queuedComments.length} queued
           </span>
         )}
       </div>
+
+      {queuedComments.length > 0 && canActionComments && (
+        <div className="rounded-md border border-[var(--border-strong)] bg-[var(--surface)] p-3">
+          <button
+            type="button"
+            onClick={onActionComments}
+            disabled={documentAiLocked}
+            className="primary-button flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-semibold disabled:opacity-60"
+          >
+            {documentAiLocked && (
+              <span className="h-2 w-2 animate-pulse rounded-full bg-current" />
+            )}
+            {documentAiLocked
+              ? `Actioning ${queuedComments.length} ${queuedComments.length === 1 ? "comment" : "comments"}…`
+              : `Action ${queuedComments.length} ${queuedComments.length === 1 ? "comment" : "comments"} with Thido`}
+          </button>
+          <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
+            Thido will read all queued feedback together and may revise any
+            part of the document to produce one coherent result.
+          </p>
+        </div>
+      )}
+
+      {queuedComments.length > 0 && !canActionComments && (
+        <p className="rounded-sm bg-[var(--surface)] p-3 text-xs leading-5 text-[var(--muted)]">
+          These comments are ready for a document editor to action together.
+        </p>
+      )}
 
       {canCreateComments && !documentComposerOpen && (
         <div>
@@ -78,10 +104,10 @@ export function CommentSidebar({
               <path d="M6.75 3.75h7.5l3 3v13.5H6.75z" />
               <path d="M14.25 3.75v3h3M9.5 11h5M9.5 14h5" />
             </svg>
-            Edit document with Thido
+            Comment on whole document
           </button>
           <p className="mt-1.5 text-xs leading-5 text-[var(--muted-soft)]">
-            Ask a question, or tell Thido what to add, remove, or rewrite.
+            Queue feedback that is not tied to one selected passage.
           </p>
         </div>
       )}
@@ -93,21 +119,21 @@ export function CommentSidebar({
         >
           <span className="mt-1 h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[var(--accent-strong)]" />
           <span>
-            Thido is working across the whole document. Editing and new
-            comments will return when this response is complete.
+            Thido is reading the queued comments and revising the document as
+            one piece. Editing and new comments will return when it finishes.
           </span>
         </div>
       )}
 
-      {comments.length === 0 && foregroundCommentCount === 0 ? (
+      {comments.length === 0 ? (
         <p className="text-xs leading-5 text-[var(--muted-soft)]">
           {documentComposerOpen
-            ? "Send your document instruction to Thido above."
+            ? "Add your whole-document comment above."
             : canCreateComments
-              ? "Select text and choose “Edit or ask Thido” for a specific passage, or use the whole-document action above."
+              ? "Select text and choose “Add comment” for a specific passage, or use the whole-document comment above."
               : "No comments yet."}
         </p>
-      ) : openComments.length === 0 && foregroundCommentCount === 0 ? (
+      ) : openComments.length === 0 ? (
         <p className="text-xs leading-5 text-[var(--muted-soft)]">
           No open comments.
         </p>
@@ -119,8 +145,7 @@ export function CommentSidebar({
             onChange={onChange}
             onDelete={onDelete}
             onDocumentContentUpdated={onDocumentContentUpdated}
-            isPending={pendingCommentIds.has(comment.id)}
-            aiProgress={commentProgress[comment.id]}
+            isQueued={isCommentQueuedForBatch(comment)}
             canManage={canManageComments}
             canReply={canCreateComments && !documentAiLocked}
           />
@@ -144,8 +169,7 @@ export function CommentSidebar({
                 onChange={onChange}
                 onDelete={onDelete}
                 onDocumentContentUpdated={onDocumentContentUpdated}
-                isPending={pendingCommentIds.has(comment.id)}
-                aiProgress={commentProgress[comment.id]}
+                isQueued={false}
                 canManage={canManageComments}
                 canReply={canCreateComments && !documentAiLocked}
               />

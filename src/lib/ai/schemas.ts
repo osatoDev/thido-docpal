@@ -13,10 +13,14 @@ export const followupQuestionsSchema = z.object({
 });
 export type FollowupQuestions = z.infer<typeof followupQuestionsSchema>;
 
-export const commentResponseSchema = z.object({
-  intent: z.enum(["question", "change_request", "feedback"]),
-  suggestion_action: z.enum(["apply", "propose"]),
-  reply: z.string().min(1),
-  proposed_text: z.string().optional(),
+export const commentBatchResponseSchema = z.object({
+  summary: z.string().min(1),
+  responses: z.array(
+    z.object({
+      comment_id: z.string().min(1),
+      reply: z.string().min(1),
+    }),
+  ),
+  revised_document: z.string().nullable(),
 });
-export type CommentResponse = z.infer<typeof commentResponseSchema>;
+export type CommentBatchResponse = z.infer<typeof commentBatchResponseSchema>;

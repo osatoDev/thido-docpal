@@ -278,11 +278,7 @@ export async function POST(request: Request, { params }: Params) {
         };
       }
       await expireStaleCommentAiJobs(transaction, documentId);
-      if (
-        await hasActiveCommentAiJob(transaction, documentId, {
-          documentWideOnly: true,
-        })
-      ) {
+      if (await hasActiveCommentAiJob(transaction, documentId)) {
         return { kind: "locked" as const };
       }
 

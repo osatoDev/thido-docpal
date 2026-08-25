@@ -18,8 +18,8 @@ server error in the terminal.
 
 ## Finding the error behind “Thido could not finish responding”
 
-The progress panel in the editor reports the safe user-facing outcome. It does
-not show the raw server exception or provider response.
+The batched-comment loading state and error notice report the safe user-facing
+outcome. They do not show the raw server exception or provider response.
 
 For the failure shown in the screenshot at approximately **22:32 on 30 July
 2026**:
@@ -40,10 +40,11 @@ For the failure shown in the screenshot at approximately **22:32 on 30 July
 Berlin is on UTC+2 in July. If the log viewer is configured to show UTC,
 22:32 Berlin corresponds to approximately **20:32 UTC**.
 
-The browser's Network panel may show the comment request as successful with
-HTTP `201`. That is expected: Thido saved the comment and returned before the
-background AI operation failed. The failure therefore belongs in Runtime Logs,
-not necessarily in the browser response.
+The July incident used the former background-response flow, so its comment
+request may show HTTP `201` even though the later AI operation failed. Current
+comments are saved without an AI call; failures from actioning a queue are
+returned by `POST /api/documents/[id]/comments/action` while the loading state
+is visible and are also recorded in Runtime Logs.
 
 If no matching entry appears, verify the selected Vercel environment and
 deployment, widen the time range, then reproduce the comment failure while

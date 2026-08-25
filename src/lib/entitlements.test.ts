@@ -26,18 +26,18 @@ import {
 } from "@/lib/entitlements";
 
 describe("AI action credit weights", () => {
-  it("weighs a short selection action as one credit on a non-premium model", () => {
-    expect(actionCreditWeight("COMMENT_RESPOND_SELECTION", "claude-sonnet-5")).toBe(1);
+  it("weighs a short planning action as one credit on a non-premium model", () => {
     expect(actionCreditWeight("DOCUMENT_FOLLOWUPS", "claude-haiku-4-5")).toBe(1);
   });
 
   it("weighs whole-document actions higher than short actions", () => {
     expect(actionCreditWeight("DOCUMENT_GENERATE", "claude-sonnet-5")).toBe(5);
-    expect(actionCreditWeight("COMMENT_RESPOND_DOCUMENT", "claude-sonnet-5")).toBe(5);
+    expect(
+      actionCreditWeight("COMMENT_RESPOND_DOCUMENT", "claude-sonnet-5"),
+    ).toBe(5);
   });
 
   it("doubles the weight for the premium Opus model", () => {
-    expect(actionCreditWeight("COMMENT_RESPOND_SELECTION", "claude-opus-4-8")).toBe(2);
     expect(actionCreditWeight("DOCUMENT_GENERATE", "claude-opus-4-8")).toBe(10);
   });
 });

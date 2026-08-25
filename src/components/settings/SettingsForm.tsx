@@ -8,11 +8,8 @@ import {
   type ApplicationStyle,
 } from "@/lib/applicationStyle";
 
-type CommentMode = "PROPOSE" | "AUTO" | "AUTO_APPLY";
-
 type Props = {
   initialAiModel: AiModelId;
-  initialCommentMode: CommentMode;
   initialApplicationStyle: ApplicationStyle;
   initialDocumentStartMode: "NEW_DOCUMENT" | "MOST_RECENT";
   initialChecklistMoveControls: boolean;
@@ -20,14 +17,12 @@ type Props = {
 
 export function SettingsForm({
   initialAiModel,
-  initialCommentMode,
   initialApplicationStyle,
   initialDocumentStartMode,
   initialChecklistMoveControls,
 }: Props) {
   const router = useRouter();
   const [aiModel, setAiModel] = useState(initialAiModel);
-  const [commentMode, setCommentMode] = useState(initialCommentMode);
   const [applicationStyle, setApplicationStyle] = useState(
     initialApplicationStyle,
   );
@@ -121,7 +116,8 @@ export function SettingsForm({
           <div>
             <h2 className="font-semibold">AI model</h2>
             <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-              Used for drafting, follow-up questions, and comment responses.
+              Used for drafting, follow-up questions, and batched comment
+              revisions.
             </p>
           </div>
           <select
@@ -139,34 +135,6 @@ export function SettingsForm({
                 {model.label}: {model.description}
               </option>
             ))}
-          </select>
-        </div>
-      </section>
-
-      <section className="border-b border-[var(--border)] py-7">
-        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
-          <div>
-            <h2 className="font-semibold">How Thido applies edits</h2>
-            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-              Choose whether Thido decides from your prompt, asks for approval,
-              or applies changes immediately.
-            </p>
-          </div>
-          <select
-            aria-label="How Thido applies edits"
-            value={commentMode}
-            onChange={(event) => {
-              const next = event.target.value as CommentMode;
-              setCommentMode(next);
-              void save({ aiCommentMode: next });
-            }}
-            className="app-input rounded-md px-3 py-2.5 text-sm outline-none"
-          >
-            <option value="AUTO">
-              Auto: decide from my prompt (recommended)
-            </option>
-            <option value="PROPOSE">Always ask for my approval</option>
-            <option value="AUTO_APPLY">Always apply automatically</option>
           </select>
         </div>
       </section>

@@ -1,21 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import type {
-  CommentAiProgress,
-  CommentWithReplies,
-  SuggestionWithStatus,
-} from "@/lib/types";
+import type { CommentWithReplies, SuggestionWithStatus } from "@/lib/types";
 import { SuggestionCard } from "./SuggestionCard";
-import { CommentResponseProgress } from "./CommentResponseProgress";
 
 export function CommentThread({
   comment,
   onChange,
   onDelete,
   onDocumentContentUpdated,
-  isPending = false,
-  aiProgress,
+  isQueued = false,
   canManage,
   canReply,
 }: {
@@ -27,8 +21,7 @@ export function CommentThread({
     suggestion: SuggestionWithStatus,
     revision?: number,
   ) => void;
-  isPending?: boolean;
-  aiProgress?: CommentAiProgress;
+  isQueued?: boolean;
   canManage: boolean;
   canReply: boolean;
 }) {
@@ -88,11 +81,6 @@ export function CommentThread({
       }
       onChange(result.comment);
       setReplyBody("");
-      if (result.aiProcessing === "failed") {
-        setReplyError(
-          "Your message was saved, but Thido could not finish responding.",
-        );
-      }
     } catch (reason) {
       setReplyError(
         reason instanceof Error ? reason.message : "Something went wrong.",
@@ -142,12 +130,10 @@ export function CommentThread({
       </p>
       <p>{comment.body}</p>
 
-      {(isPending || aiProgress?.status === "FAILED") && (
-        <CommentResponseProgress
-          progress={
-            aiProgress ?? { status: "QUEUED", startedAt: null }
-          }
-        />
+      {isQueued && (
+        <p className="w-fit rounded-full bg-[var(--surface-subtle)] px-2.5 py-1 text-xs font-medium text-[var(--muted)]">
+          {comment.aiStatus === "FAILED" ? "Ready to retry" : "Ready for Thido"}
+        </p>
       )}
       {comment.suggestion && (
         <SuggestionCard
@@ -172,40 +158,38 @@ export function CommentThread({
         </div>
       )}
 
-      {canReply &&
-        comment.status === "OPEN" &&
-        comment.replies.some((reply) => reply.authorType === "AI") && (
-          <form onSubmit={addMessage} className="flex flex-col gap-2">
-            <label
-              htmlFor={`comment-reply-${comment.id}`}
-              className="text-xs font-medium text-[var(--muted)]"
-            >
-              Add another message
-            </label>
-            <textarea
-              id={`comment-reply-${comment.id}`}
-              rows={2}
-              maxLength={4_000}
-              value={replyBody}
-              disabled={busy}
-              onChange={(event) => setReplyBody(event.target.value)}
-              placeholder="Continue this conversation…"
-              className="app-input resize-none rounded-sm p-2 text-xs outline-none disabled:opacity-60"
-            />
-            <button
-              type="submit"
-              disabled={busy || !replyBody.trim()}
-              className="primary-button self-end rounded-sm px-2.5 py-1.5 text-xs font-medium disabled:opacity-50"
-            >
-              {busy ? "Sending…" : "Send"}
-            </button>
-            {replyError && (
-              <p className="text-xs text-[var(--danger)]" role="alert">
-                {replyError}
-              </p>
-            )}
-          </form>
-        )}
+      {canReply && comment.status === "OPEN" && (
+        <form onSubmit={addMessage} className="flex flex-col gap-2">
+          <label
+            htmlFor={`comment-reply-${comment.id}`}
+            className="text-xs font-medium text-[var(--muted)]"
+          >
+            {comment.replies.length > 0 ? "Add more context" : "Add context"}
+          </label>
+          <textarea
+            id={`comment-reply-${comment.id}`}
+            rows={2}
+            maxLength={4_000}
+            value={replyBody}
+            disabled={busy}
+            onChange={(event) => setReplyBody(event.target.value)}
+            placeholder="Add detail before Thido actions this comment…"
+            className="app-input resize-none rounded-sm p-2 text-xs outline-none disabled:opacity-60"
+          />
+          <button
+            type="submit"
+            disabled={busy || !replyBody.trim()}
+            className="primary-button self-end rounded-sm px-2.5 py-1.5 text-xs font-medium disabled:opacity-50"
+          >
+            {busy ? "Saving…" : "Add to comment"}
+          </button>
+          {replyError && (
+            <p className="text-xs text-[var(--danger)]" role="alert">
+              {replyError}
+            </p>
+          )}
+        </form>
+      )}
 
       {canManage && (
         <div className="flex items-center gap-3 text-xs text-[var(--muted-soft)]">

@@ -1,61 +1,41 @@
 # Comment scope policy
 
-Yes, that is the right default.
+A comment's scope describes where the reviewer noticed a problem. It does not
+limit where Thido may edit when the comments are actioned.
 
-Each comment should stay selection-scoped by default, and only expand beyond the selected text when the user's request clearly implies a broader rewrite.
+## Comment targets
 
-## Recommended behavior
+- `SELECTION` comments stay visibly anchored to a highlighted passage.
+- `DOCUMENT` comments apply to the draft as a whole and have no text anchor.
 
-1. Treat the highlighted selection as the primary target of the comment.
-2. Allow the model to read bounded surrounding context so it can interpret tone, references, and paragraph flow.
-3. Keep the replacement constrained to the selected anchor unless the request explicitly calls for a larger unit such as:
-   - "rewrite this paragraph"
-   - "make this whole section stronger"
-   - "rework the introduction"
-4. If the user asks for a broader change than the selected span can safely support, the system should escalate deliberately rather than silently widening the edit.
+Both kinds are saved without starting an AI request. Reviewers can add several
+comments, add further context to any open thread, and continue editing before an
+editor asks Thido to action the queue.
 
-## Why
+## Batch editing policy
 
-This gives the safest editing model:
+When an editor chooses **Action comments with Thido**, Thido receives the
+complete current document and all open queued comments in one request. A
+selection anchor is evidence about the reviewer's concern, not a replacement
+boundary. Thido may change another sentence, a larger section, document
+structure, or several related passages when that produces the best coherent
+solution.
 
-- The user stays in control of what is being changed.
-- AI edits remain predictable and reviewable.
-- The system still has enough nearby context to avoid awkward local rewrites.
-- Broader edits become an explicit product decision, not an accidental side effect of an anchored comment.
+The batch prompt requires Thido to:
 
-## Important distinction
+- read every comment before editing;
+- reconcile overlapping or dependent requests;
+- preserve content and structure unrelated to the feedback;
+- return one complete revised document rather than independent patches; and
+- provide one concise reply for every processed comment.
 
-There are really two different scopes here:
+This deliberately replaces the older policy that constrained selection-comment
+replacements to the active anchor.
 
-- `interpretation scope`: how much surrounding context the model is allowed to read
-- `edit scope`: how much text the model is allowed to change
+## Concurrency and control
 
-The correct policy is:
-
-- interpretation scope can be larger than the selection
-- edit scope should remain the selection by default
-
-That is also consistent with the existing open production requirement in [docs/production-todo.md](/Users/osatohanmwenguobadia/Documents/GitHub/thido-docpal/docs/production-todo.md), which says comment-driven revisions should use bounded surrounding context while keeping replacements constrained to the selected anchor.
-
-## When to allow a larger span
-
-A larger span should be explicit, not inferred loosely. Good triggers are:
-
-- the comment names a broader unit like paragraph, section, intro, or conclusion
-- the selected text is obviously incomplete for the requested rewrite
-- the requested improvement depends on restructuring multiple adjacent sentences
-
-Even then, the UI should make that scope visible, for example by showing `Apply to paragraph` or `Apply to section`, rather than silently expanding from a sentence to a larger block.
-
-## Processing behavior
-
-Explicit whole-document wording such as “entire document,” “whole draft,” or
-“across the document” is promoted to the first-class `DOCUMENT` scope and
-processed in the foreground. The same scope is available directly through the
-visible **Comment on whole document** action, without selecting text. Thido
-keeps a visible working state and returns the completed AI response with the
-newly created comment instead of creating the comment and polling for a
-background result.
-
-Selection- and paragraph-scoped comments retain the faster background response
-flow. Their anchored edit boundary remains unchanged.
+The action button is an explicit instruction to apply the queued feedback. The
+document is locked while the batch runs and the editor shows a visible loading
+state. Thido applies the revision only when the stored document revision still
+matches the snapshot used for generation. If it changed, the result is not
+written and the comments remain ready to retry.

@@ -62,11 +62,7 @@ async function deleteLibraryItem(
     if (!documentExists) return false;
 
     await expireStaleCommentAiJobs(transaction, document.id);
-    if (
-      await hasActiveCommentAiJob(transaction, document.id, {
-        documentWideOnly: true,
-      })
-    ) {
+    if (await hasActiveCommentAiJob(transaction, document.id)) {
       return false;
     }
     await transaction.document.delete({ where: { id: document.id } });

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   isDocumentWideCommentRequest,
+  isCommentQueuedForBatch,
   partitionCommentThreads,
-  shouldApplyCommentSuggestion,
 } from "@/lib/commentProcessing";
 
 describe("document-wide comment processing", () => {
@@ -13,8 +13,52 @@ describe("document-wide comment processing", () => {
     "Review the document overall",
     "Apply this document-wide",
     "Remove all markdown from this document",
-  ])("keeps an explicit document-wide request in the foreground: %s", (body) => {
+  ])("promotes an explicit document-wide request: %s", (body) => {
     expect(isDocumentWideCommentRequest(body)).toBe(true);
+  });
+
+  it("queues unresolved user comments that have not been actioned", () => {
+    expect(
+      isCommentQueuedForBatch({
+        aiStatus: "NOT_REQUESTED",
+        authorType: "USER",
+        status: "OPEN",
+        suggestion: null,
+      }),
+    ).toBe(true);
+    expect(
+      isCommentQueuedForBatch({
+        aiStatus: "FAILED",
+        authorType: "USER",
+        status: "OPEN",
+        suggestion: null,
+      }),
+    ).toBe(true);
+  });
+
+  it("does not requeue active, resolved, AI, or suggested comments", () => {
+    const base = {
+      aiStatus: "NOT_REQUESTED" as const,
+      authorType: "USER" as const,
+      status: "OPEN" as const,
+      suggestion: null,
+    };
+
+    expect(
+      isCommentQueuedForBatch({ ...base, aiStatus: "PENDING" }),
+    ).toBe(false);
+    expect(
+      isCommentQueuedForBatch({ ...base, aiStatus: "SUCCEEDED" }),
+    ).toBe(false);
+    expect(
+      isCommentQueuedForBatch({ ...base, status: "RESOLVED" }),
+    ).toBe(false);
+    expect(
+      isCommentQueuedForBatch({ ...base, authorType: "AI" }),
+    ).toBe(false);
+    expect(
+      isCommentQueuedForBatch({ ...base, suggestion: { id: "s1" } }),
+    ).toBe(false);
   });
 
   it.each([
@@ -22,7 +66,7 @@ describe("document-wide comment processing", () => {
     "Make the whole paragraph clearer",
     "Improve this section",
     "Does this claim need a source?",
-  ])("leaves a bounded comment in the background: %s", (body) => {
+  ])("keeps a selection-target request selection-scoped: %s", (body) => {
     expect(isDocumentWideCommentRequest(body)).toBe(false);
   });
 
@@ -34,33 +78,5 @@ describe("document-wide comment processing", () => {
       open: [open],
       archived: [resolved],
     });
-  });
-
-  it.each([
-    ["AUTO", "apply", true],
-    ["AUTO", "propose", false],
-    ["AUTO_APPLY", "propose", true],
-    ["PROPOSE", "apply", false],
-  ] as const)(
-    "resolves %s mode with an AI %s decision to apply=%s",
-    (mode, suggestionAction, expected) => {
-      expect(
-        shouldApplyCommentSuggestion({
-          mode,
-          suggestionAction,
-          allowAutoApply: true,
-        }),
-      ).toBe(expected);
-    },
-  );
-
-  it("never auto-applies when the user lacks edit access", () => {
-    expect(
-      shouldApplyCommentSuggestion({
-        mode: "AUTO_APPLY",
-        suggestionAction: "apply",
-        allowAutoApply: false,
-      }),
-    ).toBe(false);
   });
 });
