@@ -26,6 +26,8 @@ import { getEditorExtensions } from "@/lib/editorExtensions";
 import {
   AiAllowanceExceededError,
   checkAndConsumeAiAllowance,
+  linkAiCreditChargeToGeneration,
+  refundAiCreditCharge,
 } from "@/lib/entitlements";
 import {
   markdownToTiptapJSON,
@@ -156,13 +158,15 @@ export async function POST(_request: Request, { params }: Params) {
 
   let telemetry: Awaited<ReturnType<typeof startAiGeneration>> | undefined;
   let trackedMessage: TrackedAnthropicMessage | undefined;
+  let chargeId: string | undefined;
   try {
     const model = await getUserAiModel(session.user.id);
-    await checkAndConsumeAiAllowance(
+    ({ chargeId } = await checkAndConsumeAiAllowance(
       session.user.id,
       "COMMENT_RESPOND_DOCUMENT",
       model,
-    );
+      { documentId },
+    ));
     if (!checkRateLimit(`ai:${session.user.id}`, 15, 60_000)) {
       throw new Error("Rate limited. Could not action these comments yet.");
     }
@@ -174,6 +178,7 @@ export async function POST(_request: Request, { params }: Params) {
       documentId,
       commentId: comments[0].id,
     });
+    await linkAiCreditChargeToGeneration(chargeId, telemetry.id);
     const message = await anthropic.messages.parse({
       model,
       max_tokens: 16_000,
@@ -313,6 +318,9 @@ export async function POST(_request: Request, { params }: Params) {
     });
   } catch (error) {
     await telemetry?.fail(error, trackedMessage);
+    // The comments stay queued for retry and the user gets no result, so
+    // return the credits rather than charging for the abandoned attempt.
+    if (chargeId) await refundAiCreditCharge(chargeId);
     await prisma.comment.updateMany({
       where: { id: { in: commentIds }, aiStatus: "PENDING" },
       data: { aiStatus: "FAILED", aiCompletedAt: new Date() },

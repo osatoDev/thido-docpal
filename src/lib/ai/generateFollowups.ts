@@ -7,7 +7,11 @@ import {
   startAiGeneration,
   type TrackedAnthropicMessage,
 } from "@/lib/ai/telemetry";
-import { checkAndConsumeAiAllowance } from "@/lib/entitlements";
+import {
+  checkAndConsumeAiAllowance,
+  linkAiCreditChargeToGeneration,
+  refundAiCreditCharge,
+} from "@/lib/entitlements";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 
 /**
@@ -43,10 +47,11 @@ export async function generateFollowupQuestions(documentId: string) {
   });
   if (!document) throw new Error("Document not found");
   const model = await getUserAiModel(document.ownerId);
-  await checkAndConsumeAiAllowance(
+  const { chargeId } = await checkAndConsumeAiAllowance(
     document.ownerId,
     "DOCUMENT_FOLLOWUPS",
     model,
+    { documentId },
   );
   const telemetry = await startAiGeneration({
     feature: "DOCUMENT_FOLLOWUPS",
@@ -54,6 +59,7 @@ export async function generateFollowupQuestions(documentId: string) {
     userId: document.ownerId,
     documentId,
   });
+  await linkAiCreditChargeToGeneration(chargeId, telemetry.id);
   let trackedMessage: TrackedAnthropicMessage | undefined;
 
   try {
@@ -98,6 +104,8 @@ export async function generateFollowupQuestions(documentId: string) {
     return followups;
   } catch (error) {
     await telemetry.fail(error, trackedMessage);
+    // The user receives no follow-ups on any failure here, so return the credits.
+    await refundAiCreditCharge(chargeId);
     throw error;
   }
 }

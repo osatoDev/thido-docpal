@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { AiFeature } from "@prisma/client";
+
 import { hasPaidSubscription } from "@/lib/billing";
 import { prisma } from "@/lib/prisma";
 import type { AiModelId } from "@/lib/ai/models";
@@ -11,6 +13,9 @@ import type { AiModelId } from "@/lib/ai/models";
  * These specific numbers are a functional default pending final approval of
  * paid-plan entitlements (see docs/paid-plan-implementation-status.md); the
  * mechanism, not the exact figures, is the part this module is responsible for.
+ *
+ * Every consumption also writes an `AiCreditCharge` ledger row so a user can
+ * audit what their allowance was spent on (see docs/ai-credit-balance-and-audit.md).
  */
 export type AiActionKind =
   | "DOCUMENT_FOLLOWUPS"
@@ -21,6 +26,16 @@ const BASE_ACTION_WEIGHT: Record<AiActionKind, number> = {
   DOCUMENT_FOLLOWUPS: 1,
   DOCUMENT_GENERATE: 5,
   COMMENT_RESPOND_DOCUMENT: 5,
+};
+
+/**
+ * Maps the internal action kind onto the persisted `AiFeature` enum, reused
+ * from AI telemetry so the ledger and `AiGeneration` speak the same vocabulary.
+ */
+const ACTION_FEATURE: Record<AiActionKind, AiFeature> = {
+  DOCUMENT_FOLLOWUPS: "DOCUMENT_FOLLOWUPS",
+  DOCUMENT_GENERATE: "DOCUMENT_GENERATE",
+  COMMENT_RESPOND_DOCUMENT: "COMMENT_RESPOND",
 };
 
 const PREMIUM_MODEL_MULTIPLIER = 2;
@@ -117,6 +132,12 @@ async function planForUser(userId: string) {
   return { plan, ...user };
 }
 
+export type AiAllowanceBreakdownEntry = {
+  action: AiFeature;
+  credits: number;
+  count: number;
+};
+
 export async function getAiAllowanceStatus(userId: string) {
   const now = new Date();
   const periodStart = currentAllowancePeriodStart(now);
@@ -128,30 +149,112 @@ export async function getAiAllowanceStatus(userId: string) {
     aiCreditsPeriodStart,
     periodStart,
   );
+
+  const grouped = await prisma.aiCreditCharge.groupBy({
+    by: ["action"],
+    where: { userId, periodStart, refundedAt: null },
+    _sum: { credits: true },
+    _count: { _all: true },
+  });
+  const breakdown: AiAllowanceBreakdownEntry[] = grouped
+    .map((row) => ({
+      action: row.action,
+      credits: row._sum.credits ?? 0,
+      count: row._count._all,
+    }))
+    .sort((a, b) => b.credits - a.credits);
+
   return {
     plan,
     limit,
     used,
     remaining: Math.max(0, limit - used),
     resetsAt: nextAllowanceReset(now),
+    breakdown,
+  };
+}
+
+export type AiCreditHistoryEntry = {
+  id: string;
+  action: AiFeature;
+  model: string;
+  credits: number;
+  refunded: boolean;
+  periodStart: Date;
+  createdAt: Date;
+  documentId: string | null;
+  documentTitle: string | null;
+};
+
+/**
+ * Paginated, newest-first list of a user's AI credit charges for the usage
+ * audit. Refunded charges are included and flagged rather than hidden.
+ */
+export async function getAiCreditHistory(
+  userId: string,
+  { limit = 50, cursor }: { limit?: number; cursor?: string } = {},
+): Promise<{ entries: AiCreditHistoryEntry[]; nextCursor: string | null }> {
+  const take = Math.min(Math.max(limit, 1), 200);
+  const rows = await prisma.aiCreditCharge.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take: take + 1,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    select: {
+      id: true,
+      action: true,
+      model: true,
+      credits: true,
+      refundedAt: true,
+      periodStart: true,
+      createdAt: true,
+      document: { select: { id: true, title: true } },
+    },
+  });
+
+  const hasMore = rows.length > take;
+  const entries: AiCreditHistoryEntry[] = rows.slice(0, take).map((row) => ({
+    id: row.id,
+    action: row.action,
+    model: row.model,
+    credits: row.credits,
+    refunded: row.refundedAt !== null,
+    periodStart: row.periodStart,
+    createdAt: row.createdAt,
+    documentId: row.document?.id ?? null,
+    documentTitle: row.document?.title ?? null,
+  }));
+
+  return {
+    entries,
+    nextCursor: hasMore ? entries[entries.length - 1]!.id : null,
   };
 }
 
 /**
  * Checks the caller's monthly AI allowance and, if there's room, consumes it
  * immediately (before the AI call, not after) so usage is predictable and a
- * failed provider call never silently double-charges the allowance. This is
- * a best-effort read-then-write, matching the pragmatic, non-distributed
- * approach `checkRateLimit` already takes for this deployment's current
- * form; a burst of truly concurrent requests from the same user could
- * slightly over-consume, but the 15-request-per-minute AI rate limit already
- * bounds that.
+ * failed provider call never silently double-charges the allowance. The
+ * consumption and its ledger row are written in one transaction. This is a
+ * best-effort read-then-write, matching the pragmatic, non-distributed
+ * approach `checkRateLimit` already takes for this deployment's current form;
+ * a burst of truly concurrent requests from the same user could slightly
+ * over-consume, but the 15-request-per-minute AI rate limit already bounds
+ * that. Failed actions should call `refundAiCreditCharge` with the returned
+ * `chargeId`.
  */
 export async function checkAndConsumeAiAllowance(
   userId: string,
   kind: AiActionKind,
   model: string,
-): Promise<{ plan: AiPlan; limit: number; used: number; remaining: number }> {
+  options: { documentId?: string } = {},
+): Promise<{
+  plan: AiPlan;
+  limit: number;
+  used: number;
+  remaining: number;
+  chargeId: string;
+}> {
   const now = new Date();
   const periodStart = currentAllowancePeriodStart(now);
   const resetsAt = nextAllowanceReset(now);
@@ -175,17 +278,98 @@ export async function checkAndConsumeAiAllowance(
     });
   }
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      aiCreditsUsed: usedSoFar + weight,
-      aiCreditsPeriodStart:
-        aiCreditsPeriodStart >= periodStart
-          ? aiCreditsPeriodStart
-          : periodStart,
+  const used = usedSoFar + weight;
+  const [, charge] = await prisma.$transaction([
+    prisma.user.update({
+      where: { id: userId },
+      data: {
+        aiCreditsUsed: used,
+        aiCreditsPeriodStart:
+          aiCreditsPeriodStart >= periodStart
+            ? aiCreditsPeriodStart
+            : periodStart,
+      },
+    }),
+    prisma.aiCreditCharge.create({
+      data: {
+        userId,
+        action: ACTION_FEATURE[kind],
+        model,
+        credits: weight,
+        plan,
+        periodStart,
+        balanceAfter: used,
+        documentId: options.documentId ?? null,
+      },
+      select: { id: true },
+    }),
+  ]);
+
+  return { plan, limit, used, remaining: limit - used, chargeId: charge.id };
+}
+
+/**
+ * Best-effort link from a credit charge to the telemetry row for the same AI
+ * call, for internal cost reconciliation. Never throws: the audit record is
+ * complete without it.
+ */
+export async function linkAiCreditChargeToGeneration(
+  chargeId: string,
+  aiGenerationId: string,
+): Promise<void> {
+  try {
+    await prisma.aiCreditCharge.update({
+      where: { id: chargeId },
+      data: { aiGenerationId },
+    });
+  } catch {
+    // Non-critical metadata; leave the charge unlinked.
+  }
+}
+
+/**
+ * Returns the credits from a failed action to the user. Stamps `refundedAt`
+ * on the ledger row and, when the charge belongs to the still-current
+ * allowance period, decrements the running `User.aiCreditsUsed` counter.
+ * Idempotent and safe to call on an unknown or already-refunded charge.
+ */
+export async function refundAiCreditCharge(chargeId: string): Promise<void> {
+  const charge = await prisma.aiCreditCharge.findUnique({
+    where: { id: chargeId },
+    select: {
+      userId: true,
+      credits: true,
+      periodStart: true,
+      refundedAt: true,
     },
   });
+  if (!charge || charge.refundedAt) return;
 
-  const used = usedSoFar + weight;
-  return { plan, limit, used, remaining: limit - used };
+  const periodStart = currentAllowancePeriodStart();
+  const belongsToCurrentPeriod =
+    charge.periodStart.getTime() === periodStart.getTime();
+
+  await prisma.$transaction(async (tx) => {
+    const fresh = await tx.aiCreditCharge.findUnique({
+      where: { id: chargeId },
+      select: { refundedAt: true },
+    });
+    if (!fresh || fresh.refundedAt) return;
+
+    await tx.aiCreditCharge.update({
+      where: { id: chargeId },
+      data: { refundedAt: new Date() },
+    });
+
+    if (!belongsToCurrentPeriod) return;
+    const user = await tx.user.findUnique({
+      where: { id: charge.userId },
+      select: { aiCreditsUsed: true, aiCreditsPeriodStart: true },
+    });
+    if (!user || user.aiCreditsPeriodStart < periodStart) return;
+    await tx.user.update({
+      where: { id: charge.userId },
+      data: { aiCreditsUsed: Math.max(0, user.aiCreditsUsed - charge.credits) },
+    });
+  });
 }

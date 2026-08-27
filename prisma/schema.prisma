@@ -69,6 +69,7 @@ model User {
   aiCreditsPeriodStart     DateTime               @default(now())
   createdAt                DateTime               @default(now())
   accounts                 Account[]
+  aiCreditCharges          AiCreditCharge[]
   sessions                 Session[]
   documents                Document[]
   spreadsheets             Spreadsheet[]
@@ -260,6 +261,7 @@ model Document {
   comments         Comment[]
   collaborators    DocumentCollaborator[]
   aiGenerations    AiGeneration[]
+  aiCreditCharges  AiCreditCharge[]
   images           DocumentImage[]
   revisions        DocumentRevision[]
   linkAccesses     DocumentLinkAccess[]
@@ -536,4 +538,30 @@ model AiGeneration {
   @@index([documentId])
   @@index([commentId])
   @@index([providerRequestId])
+}
+
+/// One row per AI credit consumption, written transactionally with the running
+/// `User.aiCreditsUsed` counter. Append-only history so a user can audit what
+/// their monthly allowance was spent on; `refundedAt` is stamped when a failed
+/// action returns the credits. `credits` and `plan` are denormalised so the
+/// record stays accurate after weights or plan limits change.
+model AiCreditCharge {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action         AiFeature
+  model          String
+  credits        Int
+  plan           String
+  periodStart    DateTime
+  balanceAfter   Int
+  documentId     String?
+  document       Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  aiGenerationId String?   @unique
+  refundedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, periodStart])
+  @@index([documentId])
 }

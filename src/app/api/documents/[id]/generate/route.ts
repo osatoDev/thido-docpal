@@ -14,6 +14,8 @@ import { markdownToTiptapJSON } from "@/lib/markdownToTiptap";
 import {
   AiAllowanceExceededError,
   checkAndConsumeAiAllowance,
+  linkAiCreditChargeToGeneration,
+  refundAiCreditCharge,
 } from "@/lib/entitlements";
 import { checkRateLimit } from "@/lib/rateLimit";
 import {
@@ -87,12 +89,14 @@ export async function POST(_request: Request, { params }: Params) {
     .join("\n\n");
 
   const model = await getUserAiModel(session.user.id);
+  let chargeId: string;
   try {
-    await checkAndConsumeAiAllowance(
+    ({ chargeId } = await checkAndConsumeAiAllowance(
       session.user.id,
       "DOCUMENT_GENERATE",
       model,
-    );
+      { documentId: id },
+    ));
   } catch (error) {
     if (error instanceof AiAllowanceExceededError) {
       return await aiAllowanceExceededResponse(error);
@@ -106,6 +110,7 @@ export async function POST(_request: Request, { params }: Params) {
     userId: session.user.id,
     documentId: id,
   });
+  await linkAiCreditChargeToGeneration(chargeId, telemetry.id);
 
   try {
     await prisma.document.update({
@@ -175,6 +180,8 @@ export async function POST(_request: Request, { params }: Params) {
         await telemetry.succeed(message);
       } catch (error) {
         await telemetry.fail(error, trackedMessage);
+        // Nothing was saved for the user, so return the credits.
+        await refundAiCreditCharge(chargeId);
         console.error("Document generation failed", error);
         await prisma.document.update({
           where: { id },
@@ -191,6 +198,7 @@ export async function POST(_request: Request, { params }: Params) {
     });
   } catch (error) {
     await telemetry.fail(error);
+    await refundAiCreditCharge(chargeId);
     await prisma.document.update({
       where: { id },
       data: { status: "DRAFTING" },

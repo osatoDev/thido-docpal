@@ -1,7 +1,11 @@
+import Link from "next/link";
+import type { AiFeature } from "@prisma/client";
+
 import {
   openBillingPortal,
   startSubscriptionCheckout,
 } from "@/app/billing-actions";
+import { aiCreditActionLabel } from "@/lib/aiCreditLabels";
 import type { BillingOffer } from "@/lib/billing";
 import { hasPaidSubscription } from "@/lib/billing";
 
@@ -31,6 +35,7 @@ export function BillingPanel({
     used: number;
     remaining: number;
     resetsAt: Date;
+    breakdown: { action: AiFeature; credits: number; count: number }[];
   };
 }) {
   const paid = hasPaidSubscription(subscriptionStatus);
@@ -39,6 +44,9 @@ export function BillingPanel({
     100,
     Math.round((aiAllowance.used / Math.max(1, aiAllowance.limit)) * 100),
   );
+  const resetLabel = new Intl.DateTimeFormat("en", {
+    dateStyle: "medium",
+  }).format(aiAllowance.resetsAt);
 
   return (
     <section className="border-t border-[var(--border-strong)] pt-7" aria-labelledby="billing-heading">
@@ -83,7 +91,26 @@ export function BillingPanel({
                 AI usage this month
               </p>
               <p className="text-[var(--muted)]">
-                {aiAllowance.used} / {aiAllowance.limit} credits
+                {aiAllowance.used} / {aiAllowance.limit}{" "}
+                <span className="group relative inline-block">
+                  <span
+                    tabIndex={0}
+                    role="note"
+                    aria-label="What credits mean"
+                    className="cursor-help underline decoration-dotted underline-offset-2 outline-none focus-visible:decoration-solid"
+                  >
+                    credits
+                  </span>
+                  <span
+                    role="tooltip"
+                    className="pointer-events-none absolute right-0 top-full z-20 mt-2 w-64 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-raised)] p-3 text-left text-xs leading-5 font-normal text-[var(--foreground)] opacity-0 shadow-[var(--shadow)] transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
+                  >
+                    Credits are weighted AI actions, not tokens or currency.
+                    Planning follow-ups cost 1; generating a document or
+                    actioning a batch of comments costs 5. The premium Opus
+                    model doubles each cost. Resets monthly.
+                  </span>
+                </span>
               </p>
             </div>
             <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-subtle)]">
@@ -93,12 +120,36 @@ export function BillingPanel({
               />
             </div>
             <p className="mt-1.5 text-xs text-[var(--muted)]">
-              Resets{" "}
-              {new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(
-                aiAllowance.resetsAt,
-              )}
+              {aiAllowance.remaining} credit
+              {aiAllowance.remaining === 1 ? "" : "s"} left · resets {resetLabel}
               {aiAllowance.plan === "free" && ". Upgrade to Pro for a higher allowance."}
             </p>
+
+            {aiAllowance.breakdown.length > 0 && (
+              <dl className="mt-3 space-y-1 border-t border-[var(--border)] pt-2 text-xs">
+                {aiAllowance.breakdown.map((row) => (
+                  <div
+                    key={row.action}
+                    className="flex items-center justify-between gap-3"
+                  >
+                    <dt className="text-[var(--muted)]">
+                      {aiCreditActionLabel(row.action)}
+                      {row.count > 1 ? ` ×${row.count}` : ""}
+                    </dt>
+                    <dd className="tabular-nums text-[var(--foreground)]">
+                      {row.credits}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+
+            <Link
+              href="/settings/usage"
+              className="mt-2 inline-block text-xs text-[var(--muted)] underline underline-offset-2 hover:text-[var(--foreground)]"
+            >
+              View usage history
+            </Link>
           </div>
 
           {paid ? (
