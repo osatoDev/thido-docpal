@@ -16,6 +16,13 @@ hidden until a recurring Stripe Price is configured.
    credentials to Production, Preview, and Development as appropriate.
 2. In Stripe sandbox mode, create the product and recurring Price that Thido
    should offer. Copy its `price_...` identifier to `STRIPE_PRO_PRICE_ID`.
+   This can be done by hand in the Dashboard, or programmatically with
+   `node --env-file=.env scripts/stripe/create-pro-plan.mjs` (needs
+   `STRIPE_SECRET_KEY` set to the sandbox key; safe to re-run — it reuses an
+   existing product/Price by fixed id and `lookup_key`). The Stripe CLI
+   (`stripe products create` / `stripe prices create`) and the REST API work
+   too. Objects created in the sandbox do not exist in live mode and must be
+   recreated there at launch.
 3. Deploy the application, then add a Stripe webhook destination at
    `https://<production-domain>/api/webhooks/stripe`.
 4. Subscribe the destination to:
