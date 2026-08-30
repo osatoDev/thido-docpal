@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactElement,
@@ -44,8 +45,10 @@ export function Tooltip({
 }) {
   const tooltipId = useId();
   const wrapperRef = useRef<HTMLSpanElement>(null);
+  const tooltipRef = useRef<HTMLSpanElement>(null);
   const timeoutRef = useRef<number | undefined>(undefined);
   const [coords, setCoords] = useState<TooltipCoords | null>(null);
+  const [centerOffset, setCenterOffset] = useState(0);
 
   const clearTimer = useCallback(() => {
     if (timeoutRef.current !== undefined) {
@@ -65,6 +68,7 @@ export function Tooltip({
       Math.max(rect.left + rect.width / 2, GUTTER),
       window.innerWidth - GUTTER,
     );
+    setCenterOffset(0);
     setCoords({
       left,
       top: useTop ? rect.top - GAP : rect.bottom + GAP,
@@ -88,6 +92,19 @@ export function Tooltip({
   }, [clearTimer]);
 
   useEffect(() => clearTimer, [clearTimer]);
+
+  useLayoutEffect(() => {
+    if (!coords || !tooltipRef.current) return;
+    const bounds = tooltipRef.current.getBoundingClientRect();
+    let next = 0;
+    if (bounds.right > window.innerWidth - GUTTER) {
+      next = window.innerWidth - GUTTER - bounds.right;
+    }
+    if (bounds.left + next < GUTTER) {
+      next += GUTTER - (bounds.left + next);
+    }
+    setCenterOffset(next);
+  }, [coords]);
 
   useEffect(() => {
     if (!coords) return;
@@ -123,6 +140,7 @@ export function Tooltip({
       {coords && typeof document !== "undefined"
         ? createPortal(
             <span
+              ref={tooltipRef}
               role="tooltip"
               id={tooltipId}
               className="pointer-events-none fixed z-[100] max-w-[16rem] rounded-md border border-[var(--border-strong)] bg-[var(--surface-raised)] px-2 py-1 text-xs leading-4 font-medium text-[var(--foreground)] shadow-[var(--shadow)]"
@@ -131,8 +149,8 @@ export function Tooltip({
                 top: coords.top,
                 transform:
                   coords.placement === "top"
-                    ? "translate(-50%, -100%)"
-                    : "translate(-50%, 0)",
+                    ? `translate(calc(-50% + ${centerOffset}px), -100%)`
+                    : `translate(calc(-50% + ${centerOffset}px), 0)`,
               }}
             >
               {label}

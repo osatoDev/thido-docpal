@@ -295,12 +295,20 @@ function insertTabOrIndentEmptyTaskItem(editor: Editor) {
 
   // A range selection indents every checklist item it touches (one or
   // several) rather than replacing the selected text with a literal tab.
+  // sinkListItem can legitimately fail (e.g. the selection includes the
+  // list's first item, which has no preceding sibling to nest under); once
+  // we've claimed Tab for a checklist selection we still report it as
+  // handled so the browser's native contenteditable Tab behavior never
+  // runs as a fallback — that fallback is what corrupts the selection or
+  // inserts a stray tab character when the sink can't be performed.
   if (!empty) {
-    return editor.commands.sinkListItem("taskItem");
+    editor.commands.sinkListItem("taskItem");
+    return true;
   }
 
   if ($from.parent.isTextblock && $from.parentOffset === 0) {
-    return editor.commands.sinkListItem("taskItem");
+    editor.commands.sinkListItem("taskItem");
+    return true;
   }
 
   return editor.commands.insertContent("\t");

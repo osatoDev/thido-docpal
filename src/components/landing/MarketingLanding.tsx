@@ -115,6 +115,15 @@ export function MarketingLanding() {
         <EditorPreview />
       </section>
 
+      <section className="border-t border-[var(--border-strong)] py-14">
+        <p className="mx-auto max-w-2xl text-center font-serif text-2xl leading-snug font-medium tracking-[-0.02em] sm:text-3xl">
+          Let&rsquo;s face it: AI almost never gets it right on the first try.
+          <span className="mt-1 block text-[var(--muted)]">
+            Thido makes it easy to fix its drafts, not just accept them.
+          </span>
+        </p>
+      </section>
+
       <section
         className="border-t border-[var(--border-strong)] py-14"
         aria-labelledby="value-heading"
