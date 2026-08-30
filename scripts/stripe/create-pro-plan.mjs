@@ -19,8 +19,8 @@
  *   THIDO_ALLOW_LIVE     set to "1" to permit a live key (refused otherwise)
  *
  * It prints the resulting price id. Put that in STRIPE_PRO_PRICE_ID for the
- * Preview / Development environments only — never Production until launch is
- * approved (see docs/paid-plan-implementation-status.md).
+ * environments where sandbox Checkout should be visible. Replace it with the
+ * live Price id when the Stripe account is activated.
  */
 import Stripe from "stripe";
 
@@ -41,6 +41,8 @@ if (/(^sk_live_|^rk_live_)/.test(secretKey) && process.env.THIDO_ALLOW_LIVE !== 
 }
 
 const PRODUCT_ID = "thido_pro";
+const PRODUCT_DESCRIPTION =
+  "A monthly subscription to Thido's document editor with 300 AI credits each month, for people who want to enhance their writing with AI.";
 const amount = Number(process.env.THIDO_PRICE_AMOUNT ?? 1200);
 const currency = (process.env.THIDO_PRICE_CURRENCY ?? "eur").toLowerCase();
 const interval = process.env.THIDO_PRICE_INTERVAL ?? "month";
@@ -62,12 +64,19 @@ async function main() {
   );
   console.log("");
   console.log(`STRIPE_PRO_PRICE_ID=${price.id}`);
-  console.log("^ set this in Preview / Development only, not Production.");
+  console.log("^ set this wherever sandbox Checkout should be visible.");
 }
 
 async function ensureProduct() {
   try {
     const existing = await stripe.products.retrieve(PRODUCT_ID);
+    if (existing.description !== PRODUCT_DESCRIPTION) {
+      const updated = await stripe.products.update(existing.id, {
+        description: PRODUCT_DESCRIPTION,
+      });
+      console.log(`Updated product ${updated.id}`);
+      return updated;
+    }
     console.log(`Reusing product ${existing.id}`);
     return existing;
   } catch (error) {
@@ -76,8 +85,7 @@ async function ensureProduct() {
   const created = await stripe.products.create({
     id: PRODUCT_ID,
     name: "Thido Pro",
-    description:
-      "Subscription access to Thido's document editor with a higher monthly AI allowance, for people who write and revise documents regularly.",
+    description: PRODUCT_DESCRIPTION,
     tax_code: taxCode,
     // Only list what is actually enforced/differentiated by plan today.
     marketing_features: [

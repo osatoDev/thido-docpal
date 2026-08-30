@@ -27,7 +27,7 @@ Everything Thido's billing code touches:
 
 | Capability | Use for Thido |
 | --- | --- |
-| Create **Products** and recurring **Prices** | The "Thido Pro" product and its €12/month Price. Copy the `price_…` id — but only into Preview/Development env, **not** Production (`STRIPE_PRO_PRICE_ID`). |
+| Create **Products** and recurring **Prices** | The "Thido Pro" product and its €12/month Price. The `price_…` id goes in `STRIPE_PRO_PRICE_ID`; the founder chose to set it in Production too, as a test-mode preview ([decision](./stripe-production-checkout-decision.md)). |
 | Hosted **Checkout** sessions | `startSubscriptionCheckout` in `src/app/billing-actions.ts`. Pay with test cards (`4242 4242 4242 4242`, decline cards, 3-D Secure / SCA test cards). |
 | **Webhooks** | Point a sandbox webhook destination at the deployed `/api/webhooks/stripe`, subscribe `checkout.session.completed` and `customer.subscription.created/updated/deleted`, put the `whsec_…` in the matching non-production env. Verify signature checking and `StripeWebhookEvent` idempotency. |
 | **Customer Portal** | `openBillingPortal`. Configure cancellation and payment-method controls, then test them. |
@@ -52,8 +52,8 @@ confirming free beta never asks for a card).
 - Carry its data to live mode. Products, Prices, webhook endpoints, and Portal
   settings created in the sandbox **must be recreated in live mode** (through
   the Dashboard or the API with a live key). The sandbox `price_…` id will not
-  work with live keys — which is exactly why `STRIPE_PRO_PRICE_ID` stays unset
-  in Production until launch.
+  work with live keys, so `STRIPE_PRO_PRICE_ID` has to be swapped for a live
+  Price id at activation — even though it is set in Production now.
 
 ## When you need a company (and what "activation" requires)
 
@@ -111,22 +111,23 @@ has to be done by hand.
   `POST /v1/prices` with the sandbox secret key as the bearer token.
 
 Give the Price a `lookup_key` so later code or scripts can fetch it without
-hard-coding the generated id. The id still goes in `STRIPE_PRO_PRICE_ID` for
-Preview/Development; Production stays unset until launch.
+hard-coding the generated id. The id goes in `STRIPE_PRO_PRICE_ID` in every
+environment ([Production included, by decision](./stripe-production-checkout-decision.md)).
 
 ## Suggested sequence
 
 1. **Now — no entity required.** Claim the sandbox to the Stripe login that
    should own Thido's payments, then in the sandbox: create the Thido Pro
    product and Price, deploy and wire the webhook, configure the Portal, and
-   run the full test matrix. Keep `STRIPE_PRO_PRICE_ID` out of Production.
+   run the full test matrix. `STRIPE_PRO_PRICE_ID` is set in all environments,
+   Production included, as a test-mode preview.
 2. **Before launch — entity work.** Decide sole trader vs. company, open the
    bank account, sort VAT/OSS registration for your target markets, and get the
    customer-facing pricing, currency, interval, and entitlements approved.
 3. **Activate** the Stripe account (identity + business verification), set the
    statement descriptor, then **recreate** the product and Price in live mode.
-4. Set `STRIPE_PRO_PRICE_ID` and the live `STRIPE_WEBHOOK_SECRET` in Production
-   and reveal Checkout.
+4. Swap `STRIPE_PRO_PRICE_ID` to the live Price id and set the live
+   `STRIPE_WEBHOOK_SECRET` in Production. Checkout stops being test-only.
 
 Related: [`billing.md`](./billing.md),
 [`paid-plan-implementation-status.md`](./paid-plan-implementation-status.md),

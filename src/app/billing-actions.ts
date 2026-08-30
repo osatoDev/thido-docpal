@@ -11,7 +11,7 @@ import { getAppUrl, getStripe } from "@/lib/stripe";
 async function authenticatedBillingUser() {
   const session = await auth();
   if (!session?.user?.id) {
-    redirect("/login?notice=sign-in-required&callbackUrl=/settings");
+    redirect("/login?notice=sign-in-required&callbackUrl=/billing");
   }
 
   const user = await prisma.user.findUnique({
@@ -61,13 +61,13 @@ async function stripeCustomerId() {
 
 export async function startSubscriptionCheckout() {
   const priceId = process.env.STRIPE_PRO_PRICE_ID?.trim();
-  if (!priceId) redirect("/settings?billing=unavailable");
+  if (!priceId) redirect("/billing?billing=unavailable");
 
   const billingUser = await stripeCustomerId();
-  if (!billingUser) redirect("/settings?billing=unavailable");
+  if (!billingUser) redirect("/billing?billing=unavailable");
   const { user, customerId } = billingUser;
   if (hasPaidSubscription(user.stripeSubscriptionStatus)) {
-    redirect("/settings?billing=already-subscribed");
+    redirect("/billing?billing=already-subscribed");
   }
 
   const appUrl = getAppUrl();
@@ -83,8 +83,8 @@ export async function startSubscriptionCheckout() {
       subscription_data: {
         metadata: { thidoUserId: user.id },
       },
-      success_url: `${appUrl}/settings?billing=success`,
-      cancel_url: `${appUrl}/settings?billing=cancelled`,
+      success_url: `${appUrl}/billing?billing=success`,
+      cancel_url: `${appUrl}/billing?billing=cancelled`,
     });
   } catch (error) {
     console.error("Unable to create Stripe Checkout session", {
@@ -94,22 +94,22 @@ export async function startSubscriptionCheckout() {
       source: "stripe-billing",
       operation: "create-checkout",
     });
-    redirect("/settings?billing=unavailable");
+    redirect("/billing?billing=unavailable");
   }
 
-  if (!checkout.url) redirect("/settings?billing=unavailable");
+  if (!checkout.url) redirect("/billing?billing=unavailable");
   redirect(checkout.url);
 }
 
 export async function openBillingPortal() {
   const billingUser = await stripeCustomerId();
-  if (!billingUser) redirect("/settings?billing=unavailable");
+  if (!billingUser) redirect("/billing?billing=unavailable");
 
   let portal;
   try {
     portal = await getStripe().billingPortal.sessions.create({
       customer: billingUser.customerId,
-      return_url: `${getAppUrl()}/settings`,
+      return_url: `${getAppUrl()}/billing`,
     });
   } catch (error) {
     console.error("Unable to create Stripe billing portal session", {
@@ -119,7 +119,7 @@ export async function openBillingPortal() {
       source: "stripe-billing",
       operation: "create-portal",
     });
-    redirect("/settings?billing=unavailable");
+    redirect("/billing?billing=unavailable");
   }
   redirect(portal.url);
 }

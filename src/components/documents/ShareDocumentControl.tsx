@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { Tooltip } from "@/components/Tooltip";
+
 export type CollaboratorPermission = "VIEW" | "COMMENT" | "EDIT" | "FULL";
 
 export type CollaboratorSummary = {
@@ -259,22 +261,24 @@ export function ShareDocumentControl({
 
   return (
     <div ref={rootRef} className="relative">
-      <button
-        ref={triggerRef}
-        type="button"
-        aria-expanded={open}
-        aria-controls="document-share-panel"
-        onClick={() => {
-          setOpen((current) => !current);
-          setError(null);
-          setMessage(null);
-          setCopied(false);
-          setConfirmingStop(false);
-        }}
-        className="primary-button rounded-sm px-3 py-1.5 text-xs font-medium"
-      >
-        Share
-      </button>
+      <Tooltip label="Invite people or create a share link" placement="bottom">
+        <button
+          ref={triggerRef}
+          type="button"
+          aria-expanded={open}
+          aria-controls="document-share-panel"
+          onClick={() => {
+            setOpen((current) => !current);
+            setError(null);
+            setMessage(null);
+            setCopied(false);
+            setConfirmingStop(false);
+          }}
+          className="primary-button rounded-sm px-3 py-1.5 text-xs font-medium"
+        >
+          Share
+        </button>
+      </Tooltip>
 
       {open && (
         <div

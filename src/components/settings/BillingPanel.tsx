@@ -23,6 +23,7 @@ export function BillingPanel({
   offer,
   notice,
   aiAllowance,
+  layout = "settings",
 }: {
   subscriptionStatus: string | null;
   currentPeriodEnd: Date | null;
@@ -37,7 +38,14 @@ export function BillingPanel({
     resetsAt: Date;
     breakdown: { action: AiFeature; credits: number; count: number }[];
   };
+  /**
+   * "settings" stacks it under the other Settings sections (top border, own
+   * heading). "standalone" drops both because the page already provides an
+   * <h1>.
+   */
+  layout?: "settings" | "standalone";
 }) {
+  const standalone = layout === "standalone";
   const paid = hasPaidSubscription(subscriptionStatus);
   const noticeMessage = notice ? BILLING_MESSAGES[notice] : null;
   const usagePercent = Math.min(
@@ -49,10 +57,16 @@ export function BillingPanel({
   }).format(aiAllowance.resetsAt);
 
   return (
-    <section className="border-t border-[var(--border-strong)] pt-7" aria-labelledby="billing-heading">
+    <section
+      className={standalone ? "" : "border-t border-[var(--border-strong)] pt-7"}
+      aria-labelledby="billing-heading"
+    >
       <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-start sm:gap-10">
         <div>
-          <h2 id="billing-heading" className="font-semibold">
+          <h2
+            id="billing-heading"
+            className={standalone ? "sr-only" : "font-semibold"}
+          >
             Plan and billing
           </h2>
           {noticeMessage && (
@@ -145,7 +159,7 @@ export function BillingPanel({
             )}
 
             <Link
-              href="/settings/usage"
+              href="/billing/usage"
               className="mt-2 inline-block text-xs text-[var(--muted)] underline underline-offset-2 hover:text-[var(--foreground)]"
             >
               View usage history

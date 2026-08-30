@@ -6,7 +6,7 @@ Status checked: 13 August 2026
 
 The **Stripe billing foundation is implemented** and a **Free-versus-Pro AI usage entitlement is now enforced**, but the **paid pricing plan is still not launch-ready or active**.
 
-In practical terms, Thido can create a hosted subscription Checkout session, receive signed Stripe subscription events, persist subscription state, show that state in Settings, and open the Stripe Customer Portal. Checkout remains deliberately hidden because no recurring Price is configured. As of 13 August 2026, a paid subscription does change the product experience in one respect: Free-beta and Pro accounts now get different monthly AI action allowances, enforced server-side before every AI call (document generation, follow-up questions, and comment AI responses) and shown as a usage meter in Settings. Other entitlements (document limits, model access) are still undifferentiated by plan.
+In practical terms, Thido can create a hosted subscription Checkout session, receive signed Stripe subscription events, persist subscription state, show that state in Settings, and open the Stripe Customer Portal. A sandbox Thido Pro Price now exists (`price_1U9AWIIAJg9i73B6WtwPczxq`, €12/month), and on 27 August 2026 the founder chose to configure it in Production as a **test-mode preview** — checkout is visible to beta users but real cards cannot complete it on the sandbox key ([decision record](./stripe-production-checkout-decision.md)). As of 13 August 2026, a paid subscription does change the product experience in one respect: Free-beta and Pro accounts get different monthly AI action allowances, enforced server-side before every AI call (document generation, follow-up questions, and comment AI responses) and shown as a usage meter in Settings. Other entitlements (document limits, model access) are still undifferentiated by plan.
 
 ## What is implemented
 
@@ -25,7 +25,7 @@ In practical terms, Thido can create a hosted subscription Checkout session, rec
 ## What is not implemented or activated
 
 - No approved production price, currency, billing interval, entitlement set, or launch date.
-- No `STRIPE_PRO_PRICE_ID` in the local effective environment; the production checklist also records it as intentionally unset.
+- `STRIPE_PRO_PRICE_ID` is the **sandbox** Price. It is set locally and (by founder decision) to be set in Vercel Production; it must be swapped for a live Price id at activation. No live Price exists.
 - No `STRIPE_WEBHOOK_SECRET` in the local effective environment; the production checklist records the production webhook destination and signing secret as unfinished.
 - The Stripe account is still recorded as sandbox-only and not activated for live payments.
 - No verified end-to-end sandbox run covering checkout, renewal, failed payment, cancellation, portal management, or duplicate webhook delivery.
@@ -39,7 +39,7 @@ In practical terms, Thido can create a hosted subscription Checkout session, rec
 
 When no valid billing offer is configured, Settings shows **Free beta** and the message that paid plans are being prepared. No checkout button is rendered. Existing beta access remains free and does not require a card.
 
-If a valid recurring Price is configured, Settings can render a Checkout button using the Price's product name, amount, currency, and interval. That configuration alone should not be enabled in production until webhook processing, entitlements, customer-facing terms, and the sandbox test matrix are complete.
+With the sandbox Price configured, Settings renders a "Choose Thido Pro: €12.00/month" button. Clicking it opens Stripe Checkout in test mode: test cards complete it, real cards are declined. A completed test checkout updates subscription status and grants the Pro AI allowance only once the Production webhook secret is set. See [the checkout decision](./stripe-production-checkout-decision.md) for the accepted risks.
 
 ## Minimum path to launch
 

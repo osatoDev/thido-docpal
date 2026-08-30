@@ -171,15 +171,26 @@ function updatePreferences(
   };
 }
 
+/**
+ * Mirrors the document-preferences node onto the editor's contentEditable
+ * element so CSS (side margins, appearance) and the browser (spellcheck,
+ * language, direction) can react. Safe to call repeatedly.
+ */
+export function applyDocumentPreferencesToDom(
+  dom: HTMLElement,
+  doc: ProseMirrorNode,
+) {
+  const preferences = getDocumentPreferences(doc);
+  dom.lang = preferences.language;
+  dom.dir = preferences.direction;
+  dom.spellcheck = preferences.spellcheck;
+  dom.setAttribute("data-document-language", preferences.language);
+  dom.setAttribute("data-document-appearance", preferences.appearance);
+  dom.setAttribute("data-document-side-margin", preferences.sideMargin);
+}
+
 function applyPreferencesToEditor(view: EditorView) {
-  const preferences = getDocumentPreferences(view.state.doc);
-  const editor = view.dom;
-  editor.lang = preferences.language;
-  editor.dir = preferences.direction;
-  editor.spellcheck = preferences.spellcheck;
-  editor.setAttribute("data-document-language", preferences.language);
-  editor.setAttribute("data-document-appearance", preferences.appearance);
-  editor.setAttribute("data-document-side-margin", preferences.sideMargin);
+  applyDocumentPreferencesToDom(view.dom as HTMLElement, view.state.doc);
 }
 
 export const DocumentPreferencesNode = Node.create({

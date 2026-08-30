@@ -11,6 +11,7 @@ import { EditorContent, useEditor, type JSONContent } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { Toolbar } from "./Toolbar";
+import { applyDocumentPreferencesToDom } from "./extensions/DocumentPreferences";
 import { DocumentOutline } from "./DocumentOutline";
 import { DocumentTabs } from "./DocumentTabs";
 import { TableContextMenu } from "./TableContextMenu";
@@ -30,6 +31,7 @@ import {
 } from "@/components/documents/ShareDocumentControl";
 import { type RestoredDocument } from "@/components/documents/VersionHistoryControl";
 import { Brand } from "@/components/Brand";
+import { Tooltip } from "@/components/Tooltip";
 import type {
   CommentWithReplies,
   SuggestionWithStatus,
@@ -310,6 +312,23 @@ export function TiptapEditor({
   });
   const editorRef = useRef(editor);
   useEditorHashNavigation(editor);
+
+  // Mirror the document-preferences node onto the ProseMirror DOM node. The
+  // DocumentPreferences extension already does this from a plugin view, but a
+  // React-side effect keyed on the editor guarantees the side-margin and
+  // appearance data attributes are (re)applied after remounts and content
+  // resets, which is where the View menu's side-margin control was silently
+  // losing effect.
+  useEffect(() => {
+    if (!editor) return;
+    const apply = () =>
+      applyDocumentPreferencesToDom(editor.view.dom as HTMLElement, editor.state.doc);
+    apply();
+    editor.on("transaction", apply);
+    return () => {
+      editor.off("transaction", apply);
+    };
+  }, [editor]);
 
   const insertPendingTablePaste = useCallback((convertToTable: boolean) => {
     const pending = pendingTablePasteRef.current;
@@ -956,30 +975,34 @@ export function TiptapEditor({
             </div>
           </div>
           <div className="flex shrink-0 items-center justify-end gap-2">
-            <button
-              type="button"
-              aria-controls="document-comments-sidebar"
-              aria-expanded={commentsSidebarOpen}
-              aria-keyshortcuts="Control+Alt+Shift+A Meta+Alt+Shift+A"
-              aria-label={`${commentsSidebarOpen ? "Hide" : "Show"} comments`}
-              title={`${commentsSidebarOpen ? "Hide" : "Show"} comments (Ctrl/⌘ + Alt + Shift + A)`}
-              onClick={() => setCommentsSidebarOpen((open) => !open)}
-              className={`secondary-button inline-flex size-10 items-center justify-center rounded-full ${
-                commentsSidebarOpen ? "bg-[var(--surface-subtle)]" : ""
-              }`}
+            <Tooltip
+              label={`${commentsSidebarOpen ? "Hide" : "Show"} comments (Ctrl/⌘ + Alt + Shift + A)`}
+              placement="bottom"
             >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.75"
-                className="h-5 w-5"
+              <button
+                type="button"
+                aria-controls="document-comments-sidebar"
+                aria-expanded={commentsSidebarOpen}
+                aria-keyshortcuts="Control+Alt+Shift+A Meta+Alt+Shift+A"
+                aria-label={`${commentsSidebarOpen ? "Hide" : "Show"} comments`}
+                onClick={() => setCommentsSidebarOpen((open) => !open)}
+                className={`secondary-button inline-flex size-10 items-center justify-center rounded-full ${
+                  commentsSidebarOpen ? "bg-[var(--surface-subtle)]" : ""
+                }`}
               >
-                <rect x="3.5" y="4" width="17" height="16" rx="1.5" />
-                <path d="M15.5 4v16M7 8h5M7 12h5" />
-              </svg>
-            </button>
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  className="h-5 w-5"
+                >
+                  <rect x="3.5" y="4" width="17" height="16" rx="1.5" />
+                  <path d="M15.5 4v16M7 8h5M7 12h5" />
+                </svg>
+              </button>
+            </Tooltip>
             {canManage && (
               <ShareDocumentControl
                 documentId={documentId}
@@ -1125,6 +1148,7 @@ export function TiptapEditor({
               <div className="print-hidden app-panel flex items-center gap-1 rounded-sm p-1">
                 <button
                   type="button"
+                  data-testid="bubble-add-comment"
                   onClick={startComment}
                   className="rounded-sm px-2 py-1 text-xs font-medium hover:bg-[var(--surface-subtle)]"
                 >

@@ -22,7 +22,7 @@ To reproduce or recreate (idempotent):
 | --- | --- |
 | Product id | `thido_pro` |
 | Name | **Thido Pro** |
-| Description | Subscription access to Thido's document editor with a higher monthly AI allowance, for people who write and revise documents regularly. |
+| Description | A monthly subscription to Thido's document editor with 300 AI credits each month, for people who want to enhance their writing with AI. |
 | Tax code | `txcd_10000000` — General · Electronically Supplied Services (the preset the Dashboard shows for this product) |
 | Marketing features (shown on Checkout, optional) | "10× the monthly AI allowance of the free plan" · "Unlimited documents" · "Word & PDF export" · "Priority AI queue" |
 
@@ -88,9 +88,11 @@ node --env-file=.env scripts/stripe/create-pro-plan.mjs
 THIDO_PRICE_CURRENCY=usd node --env-file=.env scripts/stripe/create-pro-plan.mjs
 ```
 
-It prints `STRIPE_PRO_PRICE_ID=price_…`. That goes into **Preview / Development**
-env only. Production `STRIPE_PRO_PRICE_ID` stays unset until the full launch
-checklist passes.
+It prints `STRIPE_PRO_PRICE_ID=price_…`. This goes into local `.env` and the
+Vercel Preview, Development, **and Production** environments — the founder chose
+to show the test-mode checkout in Production on the sandbox key
+([decision record](./stripe-production-checkout-decision.md)). The id must be
+swapped for a live Price at activation.
 
 ## Decisions made (2026-08-27, "go with recommendations")
 
@@ -103,9 +105,9 @@ checklist passes.
 
 ## Next steps (sandbox testing)
 
-- Set `STRIPE_PRO_PRICE_ID=price_1U9AWIIAJg9i73B6WtwPczxq` in the Preview and
-  Development environments (and local `.env`) to make Checkout render. Leave
-  Production unset.
+- Set `STRIPE_PRO_PRICE_ID=price_1U9AWIIAJg9i73B6WtwPczxq` in local `.env` (done)
+  and in the Vercel Preview, Development, and Production environments, then
+  redeploy, to make Checkout render.
 - Deploy `/api/webhooks/stripe`, add a sandbox webhook destination for it,
   subscribe the four subscription lifecycle events, and set
   `STRIPE_WEBHOOK_SECRET`.

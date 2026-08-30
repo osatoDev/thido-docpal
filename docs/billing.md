@@ -44,13 +44,17 @@ request body and signing secret before subscription data is written.
 
 Use a non-production account and Stripe test payment methods to verify:
 
-- successful checkout returns to Settings and updates subscription status;
+- successful checkout returns to the Plan and billing page (`/billing`) and updates subscription status;
 - duplicate webhook delivery is accepted without applying the event twice;
 - renewal and failed-payment events update the stored status;
 - cancelling through the portal records the end date and eventual deletion;
 - a checkout cancellation leaves free beta access unchanged; and
 - no card is requested during registration or ordinary beta use.
 
-Do not set `STRIPE_PRO_PRICE_ID` in Production until pricing, currency,
-entitlements, taxes, refund handling, support ownership, and launch timing are
-approved. Claim and activate the Stripe account before accepting live payments.
+On 27 August 2026 the founder chose to set `STRIPE_PRO_PRICE_ID` in Production
+to the sandbox Price, exposing a **test-mode** checkout as a preview — see
+[the decision record](./stripe-production-checkout-decision.md). That does not
+change what is required before accepting **real** payments: business approval of
+pricing, currency, entitlements, taxes, refund handling, and support ownership,
+plus claiming and activating the Stripe account and swapping in a live Price.
+Real customer cards cannot complete checkout until then.

@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Dev only: the e2e run drives the app on the 127.0.0.1 loopback, which Next
+  // treats as a different origin from "localhost" and would otherwise block its
+  // dev/HMR resources from, breaking client hydration (the editor never mounts).
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
   // PDFKit reads its built-in AFM font metrics from files beside the package.
   // Keep it external so server bundling does not rewrite those paths.
   serverExternalPackages: ["officeparser", "pdfkit", "word-extractor"],

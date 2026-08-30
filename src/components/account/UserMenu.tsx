@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { logout } from "@/app/account-actions";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Tooltip } from "@/components/Tooltip";
 import {
   FounderFeedbackPanel,
   type FounderFeedbackPanelHandle,
@@ -60,29 +61,31 @@ export function UserMenu({ user }: { user: UserMenuProfile }) {
       className="relative flex shrink-0 items-center gap-2"
     >
       <ThemeToggle />
-      <button
-        ref={buttonRef}
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-[var(--border-strong)] bg-[var(--surface)] text-xs font-semibold text-[var(--accent-strong)] shadow-sm transition-colors hover:border-[var(--accent-strong)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-strong)]"
-        aria-label={`Open account menu for ${displayName}`}
-        aria-haspopup="true"
-        aria-expanded={open}
-        aria-controls={open ? menuId : undefined}
-      >
-        {showImage ? (
-          <Image
-            src={user.image!}
-            alt=""
-            width={36}
-            height={36}
-            className="h-full w-full object-cover"
-            onError={() => setImageFailed(true)}
-          />
-        ) : (
-          <span aria-hidden="true">{initials}</span>
-        )}
-      </button>
+      <Tooltip label="Account menu" placement="bottom">
+        <button
+          ref={buttonRef}
+          type="button"
+          onClick={() => setOpen((current) => !current)}
+          className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-[var(--border-strong)] bg-[var(--surface)] text-xs font-semibold text-[var(--accent-strong)] shadow-sm transition-colors hover:border-[var(--accent-strong)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-strong)]"
+          aria-label={`Open account menu for ${displayName}`}
+          aria-haspopup="true"
+          aria-expanded={open}
+          aria-controls={open ? menuId : undefined}
+        >
+          {showImage ? (
+            <Image
+              src={user.image!}
+              alt=""
+              width={36}
+              height={36}
+              className="h-full w-full object-cover"
+              onError={() => setImageFailed(true)}
+            />
+          ) : (
+            <span aria-hidden="true">{initials}</span>
+          )}
+        </button>
+      </Tooltip>
 
       {open ? (
         <div
@@ -115,6 +118,24 @@ export function UserMenu({ user }: { user: UserMenuProfile }) {
                 <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6l-.04.08h-4l-.04-.08a1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1l-.08-.04v-4L4 9.92a1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6l.04-.08h4l.04.08a1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.07.4.28.75.6 1l.08.04v4L20 14.08c-.32.25-.53.6-.6.92Z" />
               </svg>
               Settings
+            </Link>
+            <Link
+              href="/billing"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-[var(--foreground)] hover:bg-[var(--surface-subtle)]"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                className="h-4 w-4 text-[var(--muted)]"
+              >
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="M3 10h18" />
+              </svg>
+              Plan &amp; billing
             </Link>
             {pathname !== "/feedback" ? (
               <button

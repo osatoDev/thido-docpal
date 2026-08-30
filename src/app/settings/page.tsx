@@ -6,9 +6,6 @@ import { isAiModelId, DEFAULT_AI_MODEL } from "@/lib/ai/models";
 import { Brand } from "@/components/Brand";
 import { UserMenu } from "@/components/account/UserMenu";
 import { SettingsForm } from "@/components/settings/SettingsForm";
-import { BillingPanel } from "@/components/settings/BillingPanel";
-import { getBillingOffer } from "@/lib/billing";
-import { getAiAllowanceStatus } from "@/lib/entitlements";
 import { ConnectedAccounts } from "@/components/settings/ConnectedAccounts";
 import { SecurityPanel } from "@/components/settings/SecurityPanel";
 import { AccountDataPanel } from "@/components/settings/AccountDataPanel";
@@ -21,7 +18,6 @@ export default async function SettingsPage({
   searchParams,
 }: {
   searchParams: Promise<{
-    billing?: string | string[];
     accounts?: string | string[];
   }>;
 }) {
@@ -30,7 +26,7 @@ export default async function SettingsPage({
     redirect("/login?notice=sign-in-required&callbackUrl=/settings");
   }
 
-  const [settings, user, billingOffer, aiAllowance, query] = await Promise.all([
+  const [settings, user, query] = await Promise.all([
     prisma.userSettings.upsert({
       where: { userId: session.user.id },
       update: {},
@@ -43,21 +39,13 @@ export default async function SettingsPage({
         betaSeat: true,
         passwordHash: true,
         accounts: { select: { provider: true } },
-        stripeSubscriptionStatus: true,
-        stripeCurrentPeriodEnd: true,
-        stripeCancelAtPeriodEnd: true,
       },
     }),
-    getBillingOffer(),
-    getAiAllowanceStatus(session.user.id),
     searchParams,
   ]);
   if (!user?.betaSeat) {
     redirect("/login?notice=session-expired");
   }
-  const billingNotice = Array.isArray(query.billing)
-    ? query.billing[0]
-    : query.billing;
   const accountsNotice = Array.isArray(query.accounts)
     ? query.accounts[0]
     : query.accounts;
@@ -100,14 +88,6 @@ export default async function SettingsPage({
         hasGoogle={user.accounts.some((account) => account.provider === "google")}
         hasPassword={Boolean(user.passwordHash)}
         notice={accountsNotice}
-      />
-      <BillingPanel
-        subscriptionStatus={user.stripeSubscriptionStatus}
-        currentPeriodEnd={user.stripeCurrentPeriodEnd}
-        cancelAtPeriodEnd={user.stripeCancelAtPeriodEnd}
-        offer={billingOffer}
-        notice={billingNotice}
-        aiAllowance={aiAllowance}
       />
       <SecurityPanel />
       <AccountDataPanel />

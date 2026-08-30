@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { NewDocumentLanding } from "@/components/landing/NewDocumentLanding";
+import { MarketingLanding } from "@/components/landing/MarketingLanding";
 import { getOrCreateBlankDocument } from "@/lib/blankDocument";
 import { getCurrentSession } from "@/lib/currentSession";
 import { documentAccessWhere } from "@/lib/documentAuth";
@@ -10,7 +10,7 @@ import { prisma } from "@/lib/prisma";
 export default async function Home() {
   const session = await getCurrentSession();
   if (!session?.user?.id) {
-    return <NewDocumentLanding user={null} resumeGuestDraft={false} />;
+    return <MarketingLanding />;
   }
 
   const settings = await prisma.userSettings.upsert({

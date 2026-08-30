@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
+import { EditorMenu, type MenuItem } from "@/components/editor/EditorMenu";
 import {
   type RestoredDocument,
   VersionHistoryDialog,
 } from "@/components/documents/VersionHistoryControl";
 import {
   DOCUMENT_IMPORT_ACCEPT,
-  DOCUMENT_IMPORT_EXTENSION_LABEL,
   DOCUMENT_IMPORT_NOTES_NOTICE_MS,
   DOCUMENT_IMPORT_SUCCESS_NOTICE_MS,
   SUPPORTED_DOCUMENT_FILE_LABEL,
@@ -50,17 +50,11 @@ export function DocumentFileMenu({
   onLanguageChange: (language: string) => void;
 }) {
   const documentInputRef = useRef<HTMLInputElement>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const menuId = useId();
   const languageTitleId = useId();
   const languageDescriptionId = useId();
   const openTitleId = useId();
-  const [open, setOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
-  const [downloadOpen, setDownloadOpen] = useState(false);
   const [openDocumentDialog, setOpenDocumentDialog] = useState(false);
   const [openDocuments, setOpenDocuments] = useState<
     Array<{
@@ -89,37 +83,10 @@ export function DocumentFileMenu({
   }, [openDocumentSearch, openDocuments]);
 
   useEffect(() => {
-    if (!open) return;
-
-    menuRef.current
-      ?.querySelector<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])')
-      ?.focus();
-
-    function handlePointerDown(event: PointerEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      setOpen(false);
-      triggerRef.current?.focus();
-    }
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open]);
-
-  useEffect(() => {
     if (!languageOpen) return;
 
     function closeOnEscape(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      setLanguageOpen(false);
-      triggerRef.current?.focus();
+      if (event.key === "Escape") setLanguageOpen(false);
     }
 
     document.addEventListener("keydown", closeOnEscape);
@@ -162,9 +129,7 @@ export function DocumentFileMenu({
       });
 
     function closeOnEscape(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      setOpenDocumentDialog(false);
-      window.setTimeout(() => triggerRef.current?.focus(), 0);
+      if (event.key === "Escape") setOpenDocumentDialog(false);
     }
     document.addEventListener("keydown", closeOnEscape);
     return () => {
@@ -227,7 +192,6 @@ export function DocumentFileMenu({
             ? `Imported with notes: ${warnings.join(" ")}`
             : "Document imported.",
       });
-      setOpen(false);
     } catch (reason) {
       setError(
         reason instanceof Error
@@ -240,72 +204,79 @@ export function DocumentFileMenu({
     }
   }
 
-  const closeHistory = useCallback(() => {
-    setHistoryOpen(false);
-    triggerRef.current?.focus();
-  }, []);
+  const closeHistory = useCallback(() => setHistoryOpen(false), []);
 
-  function closeLanguage() {
-    setLanguageOpen(false);
-    window.setTimeout(() => triggerRef.current?.focus(), 0);
-  }
+  const activeLanguageLabel =
+    languageOptions.find((option) => option.value === documentLanguage)?.label ??
+    documentLanguage;
 
-  function closeOpenDocumentDialog() {
-    setOpenDocumentDialog(false);
-    window.setTimeout(() => triggerRef.current?.focus(), 0);
-  }
-
-  function handleMenuKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
-    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
-      return;
-    }
-
-    const items = Array.from(
-      menuRef.current?.querySelectorAll<HTMLElement>(
-        '[role="menuitem"]:not([aria-disabled="true"])',
-      ) ?? [],
-    );
-    if (items.length === 0) return;
-
-    event.preventDefault();
-    const currentIndex = items.indexOf(document.activeElement as HTMLElement);
-    let nextIndex = currentIndex;
-    if (event.key === "Home") nextIndex = 0;
-    if (event.key === "End") nextIndex = items.length - 1;
-    if (event.key === "ArrowDown") {
-      nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
-    }
-    if (event.key === "ArrowUp") {
-      nextIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
-    }
-    items[nextIndex]?.focus();
-  }
+  const fileMenuGroups: MenuItem[][] = [
+    [
+      {
+        label: "Open…",
+        onSelect: () => {
+          setOpenDocumentSearch("");
+          setOpenDocumentsLoading(true);
+          setOpenDocumentsError(null);
+          setOpenDocumentDialog(true);
+        },
+      },
+      ...(canImport
+        ? [
+            {
+              label: importing ? "Importing document…" : "Import document…",
+              disabled: importing,
+              onSelect: () => documentInputRef.current?.click(),
+            },
+          ]
+        : []),
+      ...(canViewHistory
+        ? [{ label: "Version history", onSelect: () => setHistoryOpen(true) }]
+        : []),
+    ],
+    ...(canChangeLanguage
+      ? [
+          [
+            {
+              label: `Language: ${activeLanguageLabel}`,
+              onSelect: () => {
+                setLanguageDraft(documentLanguage);
+                setLanguageOpen(true);
+              },
+            },
+          ],
+        ]
+      : []),
+    [
+      {
+        label: "Download",
+        children: [
+          {
+            label: "Microsoft Word (.docx)",
+            onSelect: () => {
+              window.location.href = `/api/documents/${documentId}/export/docx`;
+            },
+          },
+          {
+            label: "PDF document (.pdf)",
+            onSelect: () => {
+              window.location.href = `/api/documents/${documentId}/export/pdf`;
+            },
+          },
+        ],
+      },
+    ],
+    [{ label: "Print", onSelect: () => window.print() }],
+  ];
 
   return (
     <>
-      <div ref={rootRef} className="relative">
-        <button
-          ref={triggerRef}
-          type="button"
-          onClick={() => {
-            setOpen((current) => !current);
-            setError(null);
-            setMessage(null);
-          }}
-          aria-expanded={open}
-          aria-controls={menuId}
-          aria-haspopup="menu"
-          role="menuitem"
-          onKeyDown={(event) => {
-            if (event.key === "ArrowDown") {
-              event.preventDefault();
-              setOpen(true);
-            }
-          }}
-          className="inline-flex items-center rounded-sm px-2 py-1 text-sm hover:bg-[var(--surface-subtle)]"
-        >
-          File
-        </button>
+      <div className="relative">
+        <EditorMenu
+          label="File"
+          tooltip="Open, import, download, print, and more"
+          groups={fileMenuGroups}
+        />
 
         <input
           ref={documentInputRef}
@@ -318,174 +289,6 @@ export function DocumentFileMenu({
             if (file) void importDocumentFile(file, event.currentTarget);
           }}
         />
-
-        {open ? (
-          <div
-            ref={menuRef}
-            id={menuId}
-            role="menu"
-            aria-label="File"
-            onKeyDown={handleMenuKeyDown}
-            className="app-panel absolute top-full left-0 z-40 mt-1 w-64 rounded-md p-1.5 text-sm shadow-lg"
-          >
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                setOpenDocumentSearch("");
-                setOpenDocumentsLoading(true);
-                setOpenDocumentsError(null);
-                setOpenDocumentDialog(true);
-              }}
-              className="block w-full rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)]"
-            >
-              Open…
-            </button>
-            {canImport ? (
-              <button
-                type="button"
-                role="menuitem"
-                disabled={importing}
-                aria-disabled={importing}
-                onClick={() => documentInputRef.current?.click()}
-                className="block w-full rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)] disabled:cursor-wait disabled:opacity-60"
-              >
-                <span className="flex items-center gap-2">
-                  {importing ? (
-                    <span
-                      aria-hidden="true"
-                      className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent-strong)] motion-reduce:animate-none"
-                    />
-                  ) : null}
-                  {importing ? "Importing document…" : "Import document…"}
-                </span>
-                {!importing ? (
-                  <span className="mt-0.5 block text-xs text-[var(--muted)]">
-                    {DOCUMENT_IMPORT_EXTENSION_LABEL}
-                  </span>
-                ) : null}
-              </button>
-            ) : null}
-            {canViewHistory ? (
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setOpen(false);
-                  setHistoryOpen(true);
-                }}
-                className="block w-full rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)]"
-              >
-                Version history
-              </button>
-            ) : null}
-            {canChangeLanguage ? (
-              <>
-                <div
-                  role="separator"
-                  className="my-1 border-t border-[var(--border)]"
-                />
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setLanguageDraft(documentLanguage);
-                    setOpen(false);
-                    setLanguageOpen(true);
-                  }}
-                  className="flex w-full items-center justify-between gap-4 rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)]"
-                >
-                  <span>Language</span>
-                  <span className="truncate text-xs text-[var(--muted)]">
-                    {languageOptions.find(
-                      (option) => option.value === documentLanguage,
-                    )?.label ?? documentLanguage}
-                  </span>
-                </button>
-              </>
-            ) : null}
-            <div role="separator" className="my-1 border-t border-[var(--border)]" />
-            <button
-              type="button"
-              role="menuitem"
-              aria-haspopup="menu"
-              aria-expanded={downloadOpen}
-              onClick={() => setDownloadOpen((current) => !current)}
-              onKeyDown={(event) => {
-                if (event.key !== "ArrowRight") return;
-                event.preventDefault();
-                setDownloadOpen(true);
-                window.requestAnimationFrame(() => {
-                  menuRef.current
-                    ?.querySelector<HTMLElement>(
-                      '[aria-label="Download"] [role="menuitem"]',
-                    )
-                    ?.focus();
-                });
-              }}
-              className="flex w-full items-center justify-between gap-4 rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)]"
-            >
-              <span>Download</span>
-              <svg
-                viewBox="0 0 16 16"
-                aria-hidden="true"
-                className={`size-3.5 fill-none stroke-current transition-transform ${downloadOpen ? "rotate-90" : ""}`}
-                strokeWidth="1.8"
-              >
-                <path d="m6 3 5 5-5 5" />
-              </svg>
-            </button>
-            {downloadOpen ? (
-              <div
-                role="menu"
-                aria-label="Download"
-                className="mx-1 mb-1 border-s border-[var(--border)] ps-1"
-                onKeyDown={(event) => {
-                  if (event.key !== "ArrowLeft") return;
-                  event.preventDefault();
-                  setDownloadOpen(false);
-                  window.setTimeout(() => {
-                    menuRef.current
-                      ?.querySelector<HTMLButtonElement>(
-                        '[aria-haspopup="menu"][aria-expanded="false"]',
-                      )
-                      ?.focus();
-                  }, 0);
-                }}
-              >
-                <a
-                  role="menuitem"
-                  href={`/api/documents/${documentId}/export/docx`}
-                  className="block rounded-sm px-5 py-2 hover:bg-[var(--surface-subtle)]"
-                  onClick={() => setOpen(false)}
-                >
-                  Microsoft Word (.docx)
-                </a>
-                <a
-                  role="menuitem"
-                  href={`/api/documents/${documentId}/export/pdf`}
-                  className="block rounded-sm px-5 py-2 hover:bg-[var(--surface-subtle)]"
-                  onClick={() => setOpen(false)}
-                >
-                  PDF document (.pdf)
-                </a>
-              </div>
-            ) : null}
-            <div role="separator" className="my-1 border-t border-[var(--border)]" />
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                window.print();
-              }}
-              className="block w-full rounded-sm px-3 py-2 text-left hover:bg-[var(--surface-subtle)]"
-            >
-              Print
-            </button>
-          </div>
-        ) : null}
 
         {message ? (
           <p
@@ -518,7 +321,7 @@ export function DocumentFileMenu({
         <div
           className="fixed inset-0 z-[80] flex items-start justify-center bg-black/45 p-4 pt-[12vh]"
           onPointerDown={(event) => {
-            if (event.target === event.currentTarget) closeLanguage();
+            if (event.target === event.currentTarget) setLanguageOpen(false);
           }}
         >
           <form
@@ -530,7 +333,7 @@ export function DocumentFileMenu({
             onSubmit={(event) => {
               event.preventDefault();
               onLanguageChange(languageDraft);
-              closeLanguage();
+              setLanguageOpen(false);
             }}
           >
             <div className="flex items-center justify-between gap-3">
@@ -540,8 +343,7 @@ export function DocumentFileMenu({
               <button
                 type="button"
                 aria-label="Close document language"
-                title="Close"
-                onClick={closeLanguage}
+                onClick={() => setLanguageOpen(false)}
                 className="app-button-secondary inline-flex size-8 items-center justify-center p-0 text-lg"
               >
                 ×
@@ -576,7 +378,7 @@ export function DocumentFileMenu({
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
-                onClick={closeLanguage}
+                onClick={() => setLanguageOpen(false)}
                 className="secondary-button rounded-sm px-3 py-2 text-sm font-medium"
               >
                 Cancel
@@ -596,7 +398,7 @@ export function DocumentFileMenu({
           className="fixed inset-0 z-[80] flex items-start justify-center bg-black/45 p-4 pt-[8vh]"
           onPointerDown={(event) => {
             if (event.target === event.currentTarget) {
-              closeOpenDocumentDialog();
+              setOpenDocumentDialog(false);
             }
           }}
         >
@@ -613,8 +415,7 @@ export function DocumentFileMenu({
               <button
                 type="button"
                 aria-label="Close open document dialog"
-                title="Close"
-                onClick={closeOpenDocumentDialog}
+                onClick={() => setOpenDocumentDialog(false)}
                 className="app-button-secondary inline-flex size-8 items-center justify-center p-0 text-lg"
               >
                 ×
