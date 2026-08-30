@@ -77,7 +77,7 @@ export function LinkControl({
           onClick={openPanel}
           className={`inline-flex size-8 shrink-0 items-center justify-center rounded-sm hover:bg-[var(--surface-subtle)] ${
             linkState.active
-              ? "bg-[var(--foreground)] text-[var(--surface)]"
+              ? "bg-[color-mix(in_srgb,var(--accent-strong)_18%,transparent)] text-[var(--accent-strong)]"
               : ""
           }`}
         >

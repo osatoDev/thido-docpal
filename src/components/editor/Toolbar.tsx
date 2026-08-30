@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
 
 import { DocumentFileMenu } from "@/components/documents/DocumentMoreActions";
@@ -85,7 +85,9 @@ function ToolbarButton({
         aria-label={label}
         onClick={onClick}
         className={`inline-flex size-8 shrink-0 items-center justify-center rounded-sm text-sm hover:bg-[var(--surface-subtle)] ${
-          isActive ? "bg-[var(--foreground)] text-[var(--surface)]" : ""
+          isActive
+            ? "bg-[color-mix(in_srgb,var(--accent-strong)_18%,transparent)] text-[var(--accent-strong)]"
+            : ""
         }`}
       >
         {children}
@@ -96,6 +98,286 @@ function ToolbarButton({
 
 function ToolbarSeparator() {
   return <span className="mx-1 h-5 w-px shrink-0 bg-[var(--border)]" />;
+}
+
+function useCloseOnOutsideOrEscape(
+  open: boolean,
+  onClose: () => void,
+  containerRef: React.RefObject<HTMLDivElement | null>,
+) {
+  useEffect(() => {
+    if (!open) return;
+    function handlePointerDown(event: PointerEvent) {
+      if (!containerRef.current?.contains(event.target as Node)) onClose();
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open, onClose, containerRef]);
+}
+
+type ToolbarMenuOption = {
+  label: string;
+  isActive?: boolean;
+  onSelect: () => void;
+};
+
+function ToolbarOptionList({
+  options,
+  onClose,
+}: {
+  options: readonly ToolbarMenuOption[];
+  onClose: () => void;
+}) {
+  return (
+    <div className="grid gap-0.5">
+      {options.map((option) => (
+        <button
+          key={option.label}
+          type="button"
+          role="menuitemradio"
+          aria-checked={option.isActive}
+          onClick={() => {
+            option.onSelect();
+            onClose();
+          }}
+          className={`flex w-full items-center justify-between gap-4 rounded-sm px-2.5 py-1.5 text-left hover:bg-[var(--surface-subtle)] ${
+            option.isActive ? "font-semibold" : ""
+          }`}
+        >
+          {option.label}
+          {option.isActive ? <span aria-hidden="true">✓</span> : null}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function DropdownChevron() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      className="size-3 shrink-0 fill-none stroke-current"
+      strokeWidth="1.8"
+    >
+      <path d="m4 6 4 4 4-4" />
+    </svg>
+  );
+}
+
+/** A single button whose whole hit area opens a dropdown of mutually exclusive options (no separate default action). */
+function ToolbarMenuButton({
+  label,
+  icon,
+  options,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  options: readonly ToolbarMenuOption[];
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const close = () => setOpen(false);
+  useCloseOnOutsideOrEscape(open, close, containerRef);
+
+  return (
+    <div ref={containerRef} className="relative inline-flex shrink-0">
+      <Tooltip label={label} className="inline-flex shrink-0">
+        <button
+          type="button"
+          aria-label={label}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen((current) => !current)}
+          className="inline-flex h-8 shrink-0 items-center gap-0.5 rounded-sm px-1.5 text-sm hover:bg-[var(--surface-subtle)]"
+        >
+          {icon}
+          <DropdownChevron />
+        </button>
+      </Tooltip>
+      {open ? (
+        <div
+          role="menu"
+          aria-label={label}
+          className="app-panel absolute left-0 top-full z-40 mt-1 min-w-44 rounded-md p-1 text-sm shadow-lg"
+        >
+          <ToolbarOptionList options={options} onClose={close} />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** An icon button that performs a default action on click, plus a chevron that opens style variants. */
+function ToolbarSplitButton({
+  label,
+  icon,
+  isActive,
+  onClick,
+  options,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  isActive?: boolean;
+  onClick: () => void;
+  options: readonly ToolbarMenuOption[];
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const close = () => setOpen(false);
+  useCloseOnOutsideOrEscape(open, close, containerRef);
+
+  return (
+    <div ref={containerRef} className="relative inline-flex shrink-0">
+      <div
+        className={`inline-flex items-stretch overflow-hidden rounded-sm ${
+          isActive
+            ? "bg-[color-mix(in_srgb,var(--accent-strong)_18%,transparent)] text-[var(--accent-strong)]"
+            : ""
+        }`}
+      >
+        <Tooltip label={label} className="inline-flex shrink-0">
+          <button
+            type="button"
+            aria-label={label}
+            aria-pressed={isActive}
+            onClick={onClick}
+            className={`inline-flex size-8 shrink-0 items-center justify-center text-sm ${
+              isActive ? "" : "hover:bg-[var(--surface-subtle)]"
+            }`}
+          >
+            {icon}
+          </button>
+        </Tooltip>
+        <button
+          type="button"
+          aria-label={`${label} options`}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen((current) => !current)}
+          className={`inline-flex w-4 shrink-0 items-center justify-center ${
+            isActive ? "" : "hover:bg-[var(--surface-subtle)]"
+          }`}
+        >
+          <DropdownChevron />
+        </button>
+      </div>
+      {open ? (
+        <div
+          role="menu"
+          aria-label={`${label} options`}
+          className="app-panel absolute left-0 top-full z-40 mt-1 min-w-44 rounded-md p-1 text-sm shadow-lg"
+        >
+          <ToolbarOptionList options={options} onClose={close} />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** An "A"/pen-style button showing a color swatch, opening a palette of color choices. */
+function ToolbarColorButton({
+  label,
+  icon,
+  swatchColor,
+  options,
+  activeValue,
+  onSelect,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  swatchColor: string;
+  options: readonly { label: string; value: string }[];
+  activeValue: string;
+  onSelect: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const close = () => setOpen(false);
+  useCloseOnOutsideOrEscape(open, close, containerRef);
+
+  return (
+    <div ref={containerRef} className="relative inline-flex shrink-0">
+      <Tooltip label={label} className="inline-flex shrink-0">
+        <button
+          type="button"
+          aria-label={label}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen((current) => !current)}
+          className="inline-flex size-8 shrink-0 flex-col items-center justify-center gap-0.5 rounded-sm pb-1 hover:bg-[var(--surface-subtle)]"
+        >
+          {icon}
+          <span
+            aria-hidden="true"
+            className="h-1 w-4 rounded-full border border-[var(--border)]"
+            style={{ background: swatchColor }}
+          />
+        </button>
+      </Tooltip>
+      {open ? (
+        <div
+          role="menu"
+          aria-label={label}
+          className="app-panel absolute left-0 top-full z-40 mt-1 w-40 rounded-md p-2 shadow-lg"
+        >
+          <div className="grid grid-cols-5 gap-1.5">
+            {options.map((option) => (
+              <button
+                key={option.label}
+                type="button"
+                role="menuitemradio"
+                aria-checked={activeValue === option.value}
+                aria-label={option.label}
+                title={option.label}
+                onClick={() => {
+                  onSelect(option.value);
+                  close();
+                }}
+                className={`size-6 shrink-0 rounded-full border ${
+                  activeValue === option.value
+                    ? "border-[var(--accent-strong)] ring-2 ring-[var(--accent-strong)]"
+                    : "border-[var(--border)]"
+                }`}
+                style={{ background: option.value || "transparent" }}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function AlignmentIcon({
+  align,
+}: {
+  align: "left" | "center" | "right" | "justify";
+}) {
+  const widths = align === "justify" ? [16, 16, 16, 16] : [16, 11, 16, 8];
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="size-4 stroke-current"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    >
+      {widths.map((width, index) => {
+        const y = 6 + index * 4;
+        const x =
+          align === "right" ? 20 - width : align === "center" ? 12 - width / 2 : 4;
+        return <line key={y} x1={x} y1={y} x2={x + width} y2={y} />;
+      })}
+    </svg>
+  );
 }
 
 export function Toolbar({
@@ -158,6 +440,14 @@ export function Toolbar({
   const documentPreferences = editor
     ? getDocumentPreferences(editor.state.doc)
     : null;
+  const activeAlignment =
+    (["left", "center", "right", "justify"] as const).find((align) =>
+      editor?.isActive({ textAlign: align }),
+    ) ?? "left";
+  const displayFontSize =
+    typeof activeTextStyle.fontSize === "number" ? activeTextStyle.fontSize : 11;
+  const [fontSizeDraft, setFontSizeDraft] = useState<string | null>(null);
+  const fontSizeInputValue = fontSizeDraft ?? String(displayFontSize);
 
   useEffect(() => {
     if (!editor) return;
@@ -262,6 +552,26 @@ export function Toolbar({
     const chain = editor.chain().focus();
     if (!editor.isActive("taskList")) chain.toggleTaskList();
     chain.updateAttributes("taskList", { taskStyle }).run();
+  }
+
+  function applyFontSize(size: number) {
+    if (!editor) return;
+    const clamped = Math.min(96, Math.max(6, Math.round(size)));
+    editor.chain().focus().setFontSize(clamped).run();
+    setFontSizeDraft(null);
+  }
+
+  function stepFontSize(direction: 1 | -1) {
+    applyFontSize(displayFontSize + direction);
+  }
+
+  function commitFontSizeInput() {
+    const parsed = Number(fontSizeDraft);
+    if (fontSizeDraft != null && Number.isFinite(parsed) && parsed > 0) {
+      applyFontSize(parsed);
+    } else {
+      setFontSizeDraft(null);
+    }
   }
 
   function setBlockStyle(value: string) {
@@ -927,7 +1237,7 @@ export function Toolbar({
         <div
           role="toolbar"
           aria-label="Formatting toolbar"
-          className="flex items-center gap-0.5 overflow-x-auto px-2 py-1.5"
+          className="flex flex-wrap items-center gap-0.5 px-2 py-1.5"
         >
           <Tooltip
             label="Queue a comment on the selected text for Thido"
@@ -968,6 +1278,41 @@ export function Toolbar({
               <path d="m15 7 4.5 4-4.5 4M19 11h-8a6 6 0 0 0-6 6" />
             </svg>
           </ToolbarButton>
+          <ToolbarButton label="Print" onClick={() => window.print()}>
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M7 8V4h10v4" />
+              <rect x="4" y="8" width="16" height="8" rx="1.5" />
+              <path d="M7 16v4h10v-4" />
+            </svg>
+          </ToolbarButton>
+          {documentPreferences ? (
+            <ToolbarButton
+              label={`${documentPreferences.spellcheck ? "Disable" : "Enable"} spelling suggestions`}
+              isActive={documentPreferences.spellcheck}
+              onClick={() =>
+                editor.commands.setDocumentSpellcheck(!documentPreferences.spellcheck)
+              }
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 15 7 6l3 9M5 12h4" />
+                <path d="m14 13 3 3 5-6" />
+              </svg>
+            </ToolbarButton>
+          ) : null}
+          <Tooltip label="Zoom" className="inline-flex shrink-0">
+            <select
+              value={zoom}
+              onChange={(event) => onZoomChange(Number(event.target.value))}
+              aria-label="Zoom"
+              className="app-input h-8 w-20 shrink-0 rounded-sm px-1.5 text-sm outline-none"
+            >
+              {DOCUMENT_ZOOM_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}%
+                </option>
+              ))}
+            </select>
+          </Tooltip>
           <ToolbarSeparator />
           <Tooltip label="Paragraph style" className="inline-flex shrink-0">
             <select
@@ -984,6 +1329,60 @@ export function Toolbar({
               ))}
             </select>
           </Tooltip>
+          <Tooltip label="Font family" className="inline-flex shrink-0">
+            <select
+              value={String(activeTextStyle.fontFamily ?? "")}
+              onChange={(event) =>
+                editor.chain().focus().setFontFamily(event.target.value || null).run()
+              }
+              aria-label="Font family"
+              className="app-input h-8 w-32 shrink-0 rounded-sm px-2 text-sm outline-none"
+            >
+              {FONT_FAMILY_OPTIONS.map((option) => (
+                <option key={option.label} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </Tooltip>
+          <ToolbarSeparator />
+          <div className="inline-flex shrink-0 items-center gap-0.5">
+            <Tooltip label="Decrease font size" className="inline-flex shrink-0">
+              <button
+                type="button"
+                aria-label="Decrease font size"
+                onClick={() => stepFontSize(-1)}
+                className="inline-flex size-8 shrink-0 items-center justify-center rounded-sm text-sm hover:bg-[var(--surface-subtle)]"
+              >
+                −
+              </button>
+            </Tooltip>
+            <input
+              type="text"
+              inputMode="numeric"
+              aria-label="Font size"
+              value={fontSizeInputValue}
+              onChange={(event) => setFontSizeDraft(event.target.value)}
+              onBlur={commitFontSizeInput}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  commitFontSizeInput();
+                }
+              }}
+              className="app-input h-8 w-11 shrink-0 rounded-sm px-1 text-center text-sm outline-none"
+            />
+            <Tooltip label="Increase font size" className="inline-flex shrink-0">
+              <button
+                type="button"
+                aria-label="Increase font size"
+                onClick={() => stepFontSize(1)}
+                className="inline-flex size-8 shrink-0 items-center justify-center rounded-sm text-sm hover:bg-[var(--surface-subtle)]"
+              >
+                +
+              </button>
+            </Tooltip>
+          </div>
           <ToolbarSeparator />
           <ToolbarButton
             label="Bold"
@@ -1006,18 +1405,107 @@ export function Toolbar({
           >
             <span className="underline underline-offset-2">U</span>
           </ToolbarButton>
+          <ToolbarColorButton
+            label="Text color"
+            icon={<span className="text-sm leading-none font-semibold">A</span>}
+            swatchColor={String(activeTextStyle.color || "var(--foreground)")}
+            options={TEXT_COLOR_OPTIONS}
+            activeValue={String(activeTextStyle.color ?? "")}
+            onSelect={(value) =>
+              editor.chain().focus().setTextColor(value || null).run()
+            }
+          />
+          <ToolbarColorButton
+            label="Highlight color"
+            icon={
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4 fill-none stroke-current" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m10.5 13.5 6-6 3 3-6 6-4 1 1-4Z" />
+                <path d="M5 21h6l-1.5-3H6.5L5 21Z" />
+              </svg>
+            }
+            swatchColor={String(activeHighlight.color || "transparent")}
+            options={HIGHLIGHT_COLOR_OPTIONS}
+            activeValue={String(activeHighlight.color ?? "")}
+            onSelect={(value) => {
+              const chain = editor.chain().focus();
+              if (value) chain.setHighlight({ color: value }).run();
+              else chain.unsetHighlight().run();
+            }}
+          />
           <ToolbarSeparator />
           <LinkControl editor={editor} triggerId={linkControlId} />
+          <ToolbarButton label={uploadingImage ? "Inserting image…" : "Insert image"} onClick={chooseImage}>
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4 fill-none stroke-current" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="4" y="5" width="16" height="14" rx="1.5" />
+              <circle cx="9" cy="10" r="1.4" />
+              <path d="m5.5 17 4.5-4.5 3 3 3.5-3.5 4 4" />
+            </svg>
+          </ToolbarButton>
           <ToolbarSeparator />
-          <ToolbarButton
+          <ToolbarMenuButton
+            label="Alignment"
+            icon={<AlignmentIcon align={activeAlignment} />}
+            options={(
+              [
+                { label: "Align left", value: "left" },
+                { label: "Align center", value: "center" },
+                { label: "Align right", value: "right" },
+                { label: "Justify", value: "justify" },
+              ] as const
+            ).map((option) => ({
+              label: option.label,
+              isActive: activeAlignment === option.value,
+              onSelect: () => editor.chain().focus().setTextAlign(option.value).run(),
+            }))}
+          />
+          <ToolbarMenuButton
+            label="Line spacing"
+            icon={
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4 fill-none stroke-current" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M7 4v16M7 4 4 7M7 4l3 3M7 20l-3-3M7 20l3-3" />
+                <path d="M12 6h8M12 12h8M12 18h8" />
+              </svg>
+            }
+            options={LINE_HEIGHT_OPTIONS.map((lineHeight) => ({
+              label: `${lineHeight === 1 ? "Single" : lineHeight} line spacing`,
+              isActive: activeBlockAttributes?.lineHeight === lineHeight,
+              onSelect: () =>
+                editor.chain().focus().setParagraphLineHeight(lineHeight).run(),
+            }))}
+          />
+          <ToolbarSplitButton
+            label="Checklist"
+            isActive={editor.isActive("taskList")}
+            onClick={() => editor.chain().focus().toggleTaskList().run()}
+            options={TASK_STYLES.map((style) => ({
+              label: taskStyleLabels[style],
+              isActive: editor.isActive("taskList", { taskStyle: style }),
+              onSelect: () => setTaskStyle(style),
+            }))}
+            icon={
+              <span aria-hidden="true" className="flex items-center gap-1 font-mono text-xs">
+                <span>☑</span><span>☰</span>
+              </span>
+            }
+          />
+          <ToolbarSplitButton
             label="Bulleted list"
             isActive={editor.isActive("bulletList")}
             onClick={() => editor.chain().focus().toggleBulletList().run()}
-          >
-            <span aria-hidden="true" className="flex items-center gap-1 font-mono">
-              <span>•</span><span>☰</span>
-            </span>
-          </ToolbarButton>
+            options={[
+              ...BULLET_STYLES.filter((style) => style !== "custom").map((style) => ({
+                label: bulletStyleLabels[style],
+                isActive: editor.isActive("bulletList", { bulletStyle: style }),
+                onSelect: () => setBulletStyle(style),
+              })),
+              { label: "Custom…", onSelect: () => setCustomBulletOpen(true) },
+            ]}
+            icon={
+              <span aria-hidden="true" className="flex items-center gap-1 font-mono">
+                <span>•</span><span>☰</span>
+              </span>
+            }
+          />
           <ToolbarButton
             label="Numbered list"
             isActive={editor.isActive("orderedList")}
@@ -1027,14 +1515,33 @@ export function Toolbar({
               <span>1.</span><span>☰</span>
             </span>
           </ToolbarButton>
+          <ToolbarSeparator />
           <ToolbarButton
-            label="Checklist"
-            isActive={editor.isActive("taskList")}
-            onClick={() => editor.chain().focus().toggleTaskList().run()}
+            label="Decrease indent"
+            onClick={() => editor.chain().focus().decreaseTextIndent().run()}
           >
-            <span aria-hidden="true" className="flex items-center gap-1 font-mono text-xs">
-              <span>☑</span><span>☰</span>
-            </span>
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 6h16M10 12h10M10 18h10" />
+              <path d="m7 9-3 3 3 3" />
+            </svg>
+          </ToolbarButton>
+          <ToolbarButton
+            label="Increase indent"
+            onClick={() => editor.chain().focus().increaseTextIndent().run()}
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4 fill-none stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 6h16M10 12h10M10 18h10" />
+              <path d="m4 9 3 3-3 3" />
+            </svg>
+          </ToolbarButton>
+          <ToolbarButton
+            label="Clear formatting"
+            onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4 fill-none stroke-current" strokeWidth="1.6" strokeLinecap="round">
+              <path d="M5 5h9M9.5 5v13" />
+              <path d="m14 19 6-9M14 10l6 9" />
+            </svg>
           </ToolbarButton>
           {imageError ? (
             <p role="alert" className="ml-2 shrink-0 text-xs text-[var(--danger)]">
