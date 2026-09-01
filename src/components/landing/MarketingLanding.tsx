@@ -12,7 +12,7 @@ const VALUE_PROPS = [
   },
   {
     title: "Edit like a normal document",
-    body: "Headings, links, tables, checklists, footnotes, and export to Word or PDF. Nothing to learn.",
+    body: "Headings, links, tables, checklists, footnotes, and export to Word or PDF.",
   },
   {
     title: "Think it through with Thido",
@@ -119,7 +119,8 @@ export function MarketingLanding() {
         <p className="mx-auto max-w-2xl text-center font-serif text-2xl leading-snug font-medium tracking-[-0.02em] sm:text-3xl">
           Let&rsquo;s face it: AI almost never gets it right on the first try.
           <span className="mt-1 block text-[var(--muted)]">
-            Thido makes it easy to fix its drafts, not just accept them.
+            Thido makes it easier than any tool out there to fix what&rsquo;s
+            wrong, keep what&rsquo;s right, and get to a polished draft faster.
           </span>
         </p>
       </section>
@@ -221,7 +222,10 @@ export function MarketingLanding() {
 
       <footer className="flex flex-col gap-4 border-t border-[var(--border)] py-8 text-xs text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between">
         <p>From rough notes to a working draft.</p>
-        <nav aria-label="Legal and account links" className="flex items-center gap-5">
+        <nav
+          aria-label="Legal and account links"
+          className="flex items-center gap-5"
+        >
           <Link href="/privacy" className="text-link">
             Privacy
           </Link>
