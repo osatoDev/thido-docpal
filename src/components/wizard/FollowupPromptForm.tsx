@@ -81,14 +81,18 @@ export function FollowupPromptForm({
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--accent-strong)]" />
         <p className="text-sm text-[var(--muted)]">
-          Writing your document{charsGenerated > 0 ? ` (${charsGenerated} characters so far)…` : "…"}
+          Writing your document
+          {charsGenerated > 0 ? ` (${charsGenerated} characters so far)…` : "…"}
         </p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-8 border-t border-[var(--border-strong)] pt-8">
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-col gap-8 border-t border-[var(--border-strong)] pt-8"
+    >
       <div className="border-l-2 border-[var(--accent-strong)] pl-4">
         <p className="text-sm font-medium">Answer only what you want.</p>
         <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
@@ -96,11 +100,16 @@ export function FollowupPromptForm({
         </p>
       </div>
       {followups.map((f) => (
-        <label key={f.id} className="grid gap-3 border-b border-[var(--border)] pb-8 sm:grid-cols-[12rem_minmax(0,1fr)] sm:gap-8">
+        <label
+          key={f.id}
+          className="grid gap-3 border-b border-[var(--border)] pb-8 sm:grid-cols-[12rem_minmax(0,1fr)] sm:gap-8"
+        >
           <span>
-            <span className="block text-sm font-medium leading-5">{f.question}</span>
+            <span className="block text-sm font-medium leading-5">
+              {f.question}
+            </span>
             <span className="mt-1 block text-xs leading-5 text-[var(--muted)]">
-              Optional. Leave blank for Thido
+              Optional. Thido will make a reasonable assumption if left blank.
             </span>
           </span>
           <textarea

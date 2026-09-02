@@ -299,7 +299,7 @@ function insertTabOrIndentEmptyTaskItem(editor: Editor) {
   // list's first item, which has no preceding sibling to nest under); once
   // we've claimed Tab for a checklist selection we still report it as
   // handled so the browser's native contenteditable Tab behavior never
-  // runs as a fallback — that fallback is what corrupts the selection or
+  // runs as a fallback; that fallback is what corrupts the selection or
   // inserts a stray tab character when the sink can't be performed.
   if (!empty) {
     editor.commands.sinkListItem("taskItem");

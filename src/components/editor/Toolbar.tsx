@@ -1240,7 +1240,7 @@ export function Toolbar({
           className="flex flex-wrap items-center gap-0.5 px-2 py-1.5"
         >
           <Tooltip
-            label="Queue a comment on the selected text for Thido"
+            label="Queue a comment for Thido on the selected text, or the whole document when nothing is selected"
             className="mr-1 inline-flex shrink-0"
           >
             <button

@@ -872,6 +872,7 @@ select {
   .print-hidden,
   .theme-toggle {
     display: none !important;
+    position: static !important;
   }
 
   .print-document-layout {
@@ -939,6 +940,10 @@ select {
     margin: 0;
     border: 0;
     break-after: page;
+  }
+
+  .ProseMirror > .page-break:first-child {
+    break-after: auto;
   }
 
   .ProseMirror .page-break::after {

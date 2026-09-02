@@ -90,7 +90,10 @@ type SelectionComposer = {
   from: number;
   to: number;
 };
-type ActiveComposer = SelectionComposer;
+type DocumentComposer = {
+  scope: "DOCUMENT";
+};
+type ActiveComposer = SelectionComposer | DocumentComposer;
 type PendingTablePaste = {
   from: number;
   originalText: string;
@@ -641,10 +644,27 @@ export function TiptapEditor({
     if (!editor || documentAiLockedRef.current) return;
     const { from, to } = editor.state.selection;
     if (from === to) {
-      setCommentError("Select text to add a comment.");
+      startDocumentComment();
       return;
     }
     startComment();
+  }
+
+  function startDocumentComment() {
+    if (!editor || documentAiLockedRef.current) return;
+    if (activeComposer?.scope === "SELECTION") {
+      editor
+        .chain()
+        .setTextSelection({
+          from: activeComposer.from,
+          to: activeComposer.to,
+        })
+        .unsetComment()
+        .run();
+    }
+    setCommentError(null);
+    setCommentsSidebarOpen(true);
+    setActiveComposer({ scope: "DOCUMENT" });
   }
 
   function cancelComment() {
@@ -660,7 +680,10 @@ export function TiptapEditor({
 
   function submitComment(body: string) {
     if (!activeComposer || documentAiLockedRef.current) return;
-    const composer = expandCommentScope(activeComposer, body);
+    const composer =
+      activeComposer.scope === "SELECTION"
+        ? expandCommentScope(activeComposer, body)
+        : activeComposer;
     setCommentError(null);
     setActiveComposer(null);
 
@@ -736,7 +759,9 @@ export function TiptapEditor({
         throw new Error(
           typeof errorBody?.error === "string"
             ? errorBody.error
-            : "Could not save the comment highlight",
+            : composer.scope === "DOCUMENT"
+              ? "Could not save the document before commenting"
+              : "Could not save the comment highlight",
         );
       }
 
@@ -745,8 +770,10 @@ export function TiptapEditor({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           scope: composer.scope,
-          anchorMarkId: composer.anchorMarkId,
-          quotedText: composer.quotedText,
+          anchorMarkId:
+            composer.scope === "SELECTION" ? composer.anchorMarkId : null,
+          quotedText:
+            composer.scope === "SELECTION" ? composer.quotedText : null,
           body,
         }),
       });
@@ -1087,8 +1114,9 @@ export function TiptapEditor({
           <div className="print-hidden mx-auto w-full max-w-none border-l-2 border-[var(--warm)] pl-4">
             <p className="text-sm font-medium">Paste your document below.</p>
             <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-              When it is saved, highlight any passage to target it, choose
-              Add comment, then action your feedback together with Thido.
+              When it is saved, highlight any passage to target it, or choose
+              Add comment with nothing selected to leave feedback on the whole
+              document, then action your feedback together with Thido.
             </p>
           </div>
         )}
@@ -1192,8 +1220,17 @@ export function TiptapEditor({
           {activeComposer && !documentAiLocked && (
             <div className="border-b border-[var(--border)] bg-[var(--surface)] p-4">
               <CommentComposer
-                key={activeComposer.anchorMarkId}
-                quotedText={activeComposer.quotedText}
+                key={
+                  activeComposer.scope === "SELECTION"
+                    ? activeComposer.anchorMarkId
+                    : "document"
+                }
+                scope={activeComposer.scope}
+                quotedText={
+                  activeComposer.scope === "SELECTION"
+                    ? activeComposer.quotedText
+                    : undefined
+                }
                 onSubmit={submitComment}
                 onCancel={cancelComment}
               />

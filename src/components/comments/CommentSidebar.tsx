@@ -98,7 +98,7 @@ export function CommentSidebar({
       {comments.length === 0 ? (
         <p className="text-xs leading-5 text-[var(--muted-soft)]">
           {canCreateComments
-            ? "Select text and choose “Add comment” to leave feedback on a passage."
+            ? "Select text and choose “Add comment” to leave feedback on a passage, or choose it with nothing selected to comment on the whole document."
             : "No comments yet."}
         </p>
       ) : openComments.length === 0 ? (
