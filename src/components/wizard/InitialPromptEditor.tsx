@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import {
-  DOCUMENT_STARTERS,
-  getDocumentStarter,
-} from "@/lib/documentStarters";
+// Document starters are hidden for now (see the commented block below), so this
+// import is disabled to keep lint clean. Restore both together.
+// import {
+//   DOCUMENT_STARTERS,
+//   getDocumentStarter,
+// } from "@/lib/documentStarters";
 import {
   GUEST_DRAFT_STORAGE_KEY,
   GUEST_DRAFT_VERSION,
@@ -182,13 +184,14 @@ export function InitialPromptEditor({
     await claimDraft(draft);
   }
 
-  function applyStarter(starterId: string) {
-    const starter = getDocumentStarter(starterId);
-    if (!starter) return;
-
-    setAnswers({ ...starter.answers });
-    setError(null);
-  }
+  // Paired with the hidden "Document starters" block below; restore together.
+  // function applyStarter(starterId: string) {
+  //   const starter = getDocumentStarter(starterId);
+  //   if (!starter) return;
+  //
+  //   setAnswers({ ...starter.answers });
+  //   setError(null);
+  // }
 
   if (submitting) {
     return (
@@ -279,7 +282,12 @@ export function InitialPromptEditor({
         </p>
       </fieldset>
 
-      {mode === "GUIDED" && (
+      {/*
+        Document starters hidden while the initial marketing targets novel
+        writers only; the current starters are all business documents. Restore
+        this block (and `applyStarter` above) once the audience broadens.
+      */}
+      {/* {mode === "GUIDED" && (
         <fieldset className="border-b border-[var(--border-strong)] py-6">
           <legend className="sr-only">Document starters</legend>
           <div className="grid gap-4 sm:grid-cols-[16rem_minmax(0,24rem)] sm:items-center sm:gap-10">
@@ -308,7 +316,7 @@ export function InitialPromptEditor({
             </label>
           </div>
         </fieldset>
-      )}
+      )} */}
 
       {mode === "GUIDED" && (
         <div className="border-b border-[var(--border-strong)] py-6">

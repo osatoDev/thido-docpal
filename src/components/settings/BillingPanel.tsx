@@ -8,6 +8,7 @@ import {
 import { aiCreditActionLabel } from "@/lib/aiCreditLabels";
 import type { BillingOffer } from "@/lib/billing";
 import { hasPaidSubscription } from "@/lib/billing";
+import { MONTHLY_AI_ALLOWANCE } from "@/lib/entitlements";
 
 const BILLING_MESSAGES: Record<string, string> = {
   success: "Your checkout completed. Stripe is confirming your subscription.",
@@ -55,6 +56,19 @@ export function BillingPanel({
   const resetLabel = new Intl.DateTimeFormat("en", {
     dateStyle: "medium",
   }).format(aiAllowance.resetsAt);
+  const periodEndLabel = currentPeriodEnd
+    ? new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(
+        currentPeriodEnd,
+      )
+    : null;
+  // While a paid sub is pending cancellation it keeps Pro access (and the
+  // Pro allowance) until `currentPeriodEnd`; only after that does the plan
+  // actually fall back to Free. Saying "resets" through that boundary would
+  // wrongly imply another Pro-sized allowance is coming.
+  const usageResetLabel =
+    paid && cancelAtPeriodEnd && periodEndLabel
+      ? `Pro access ends ${periodEndLabel}, then drops to the Free plan's ${MONTHLY_AI_ALLOWANCE.free}/month`
+      : `resets ${resetLabel}`;
 
   return (
     <section
@@ -89,12 +103,9 @@ export function BillingPanel({
                 Stripe status: {subscriptionStatus.replaceAll("_", " ")}
               </p>
             )}
-            {currentPeriodEnd && (
+            {paid && periodEndLabel && (
               <p className="mt-1 text-xs text-[var(--muted)]">
-                {cancelAtPeriodEnd ? "Access ends" : "Renews"}{" "}
-                {new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(
-                  currentPeriodEnd,
-                )}
+                {cancelAtPeriodEnd ? "Access ends" : "Renews"} {periodEndLabel}
               </p>
             )}
           </div>
@@ -135,7 +146,7 @@ export function BillingPanel({
             </div>
             <p className="mt-1.5 text-xs text-[var(--muted)]">
               {aiAllowance.remaining} credit
-              {aiAllowance.remaining === 1 ? "" : "s"} left · resets {resetLabel}
+              {aiAllowance.remaining === 1 ? "" : "s"} left · {usageResetLabel}
               {aiAllowance.plan === "free" && ". Upgrade to Pro for a higher allowance."}
             </p>
 
