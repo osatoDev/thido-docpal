@@ -38,6 +38,8 @@ export type ServerErrorContext = {
   providerRequestId?: string | null;
   eventId?: string;
   eventType?: string;
+  userId?: string | null;
+  customerId?: string | null;
   documentId?: string;
   imageId?: string;
   entryId?: string;

@@ -36,7 +36,14 @@ export function subscriptionSnapshot(subscription: Stripe.Subscription) {
     currentPeriodEnd: item?.current_period_end
       ? new Date(item.current_period_end * 1000)
       : null,
-    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+    // `cancel_at_period_end` only covers the case where a cancellation was
+    // scheduled *as* "cancel at period end." Canceling from the Stripe
+    // Dashboard (and some API-driven cancellations) instead schedules it via
+    // the general-purpose `cancel_at` timestamp, leaving `cancel_at_period_end`
+    // `false` even though the subscription is genuinely scheduled to end.
+    // `cancel_at` is non-null in both cases, so it is the reliable signal.
+    cancelAtPeriodEnd:
+      subscription.cancel_at_period_end || subscription.cancel_at !== null,
   };
 }
 

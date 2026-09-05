@@ -12,24 +12,46 @@ function checkoutReference(value: string | { id: string } | null) {
   return typeof value === "string" ? value : value?.id ?? null;
 }
 
+type UnmatchedWebhookUser = {
+  eventId: string;
+  eventType: Stripe.Event["type"];
+  userId: string | null;
+  customerId: string | null;
+};
+
+/**
+ * `updateMany` never throws when its `where` matches zero rows: it just
+ * returns `{ count: 0 }`, so a stale/mismatched `thidoUserId` metadata or
+ * `stripeCustomerId` would otherwise silently no-op. Stripe sees a 200 and
+ * marks the event delivered, while the `User` row never changes. Surfacing
+ * that as a return value lets the caller report it once, outside the
+ * transaction, instead of the write disappearing without a trace.
+ */
 async function applyStripeEvent(
   transaction: Prisma.TransactionClient,
   event: Stripe.Event,
-) {
+): Promise<UnmatchedWebhookUser | null> {
   if (event.type === "checkout.session.completed") {
     const checkout = event.data.object;
     const userId =
-      checkout.client_reference_id ?? checkout.metadata?.thidoUserId;
-    if (!userId) return;
+      checkout.client_reference_id ?? checkout.metadata?.thidoUserId ?? null;
+    if (!userId) return null;
 
-    await transaction.user.updateMany({
+    const { count } = await transaction.user.updateMany({
       where: { id: userId },
       data: {
         stripeCustomerId: checkoutReference(checkout.customer),
         stripeSubscriptionId: checkoutReference(checkout.subscription),
       },
     });
-    return;
+    return count === 0
+      ? {
+          eventId: event.id,
+          eventType: event.type,
+          userId,
+          customerId: checkoutReference(checkout.customer),
+        }
+      : null;
   }
 
   if (
@@ -39,14 +61,14 @@ async function applyStripeEvent(
   ) {
     const subscription = event.data.object;
     const snapshot = subscriptionSnapshot(subscription);
-    const userId = subscription.metadata.thidoUserId;
+    const userId = subscription.metadata.thidoUserId ?? null;
     const userWhere: Prisma.UserWhereInput = userId
       ? { id: userId }
       : snapshot.customerId
         ? { stripeCustomerId: snapshot.customerId }
         : { id: "__no_matching_user__" };
 
-    await transaction.user.updateMany({
+    const { count } = await transaction.user.updateMany({
       where: userWhere,
       data: {
         stripeCustomerId: snapshot.customerId,
@@ -57,7 +79,17 @@ async function applyStripeEvent(
         stripeCancelAtPeriodEnd: snapshot.cancelAtPeriodEnd,
       },
     });
+    return count === 0
+      ? {
+          eventId: event.id,
+          eventType: event.type,
+          userId,
+          customerId: snapshot.customerId,
+        }
+      : null;
   }
+
+  return null;
 }
 
 export async function POST(request: Request) {
@@ -86,8 +118,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid Stripe signature." }, { status: 400 });
   }
 
+  let unmatched: UnmatchedWebhookUser | null;
   try {
-    await prisma.$transaction(async (transaction) => {
+    unmatched = await prisma.$transaction(async (transaction) => {
       await transaction.stripeWebhookEvent.create({
         data: {
           id: event.id,
@@ -95,7 +128,7 @@ export async function POST(request: Request) {
           processedAt: new Date(),
         },
       });
-      await applyStripeEvent(transaction, event);
+      return applyStripeEvent(transaction, event);
     });
   } catch (error) {
     if (
@@ -120,6 +153,21 @@ export async function POST(request: Request) {
       eventType: event.type,
     });
     return Response.json({ error: "Webhook processing failed." }, { status: 500 });
+  }
+
+  if (unmatched) {
+    console.error(
+      "Stripe webhook matched no user; no columns were updated",
+      unmatched,
+    );
+    await reportServerError(new Error("Stripe webhook matched no user"), {
+      source: "stripe-webhook",
+      operation: "no-matching-user",
+      eventId: unmatched.eventId,
+      eventType: unmatched.eventType,
+      userId: unmatched.userId,
+      customerId: unmatched.customerId,
+    });
   }
 
   return Response.json({ received: true });
