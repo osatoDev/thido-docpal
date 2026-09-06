@@ -50,8 +50,27 @@ export function DocumentFileMenu({
   onLanguageChange: (language: string) => void;
 }) {
   const documentInputRef = useRef<HTMLInputElement>(null);
+  const importConfirmDialogRef = useRef<HTMLDialogElement>(null);
+  // Deliberately holds only the `File`, not the `<input>` element: React
+  // treats state as immutable, so resetting `input.value` later needs to go
+  // through `documentInputRef` directly rather than a DOM node stashed here.
+  const [pendingImportFile, setPendingImportFile] = useState<File | null>(
+    null,
+  );
+  // Reading `currentRevision` at request-build time, rather than closing
+  // over the prop, matters now that the confirmation is an async `<dialog>`
+  // instead of a blocking `window.confirm`: an autosave can complete (and
+  // bump the server's revision) at any point while the dialog is open, and
+  // the request should reflect whatever revision is freshest once the user
+  // actually confirms, not whatever it was when the file was first picked.
+  const currentRevisionRef = useRef(currentRevision);
+  useEffect(() => {
+    currentRevisionRef.current = currentRevision;
+  }, [currentRevision]);
   const languageTitleId = useId();
   const languageDescriptionId = useId();
+  const importConfirmTitleId = useId();
+  const importConfirmDescriptionId = useId();
   const openTitleId = useId();
   const [historyOpen, setHistoryOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
@@ -138,23 +157,34 @@ export function DocumentFileMenu({
     };
   }, [openDocumentDialog]);
 
-  async function importDocumentFile(file: File, input: HTMLInputElement) {
-    if (
-      !window.confirm(
-        "Importing this document will replace the current title and document body. You can restore the current version from Version history. Continue?",
-      )
-    ) {
-      input.value = "";
-      return;
-    }
+  function requestDocumentImport(file: File) {
+    setPendingImportFile(file);
+    importConfirmDialogRef.current?.showModal();
+  }
 
+  function cancelPendingImport() {
+    if (documentInputRef.current) documentInputRef.current.value = "";
+    setPendingImportFile(null);
+    importConfirmDialogRef.current?.close();
+  }
+
+  async function confirmPendingImport() {
+    const file = pendingImportFile;
+    const input = documentInputRef.current;
+    if (!file || !input) return;
+    setPendingImportFile(null);
+    importConfirmDialogRef.current?.close();
+    await importDocumentFile(file, input);
+  }
+
+  async function importDocumentFile(file: File, input: HTMLInputElement) {
     setImporting(true);
     setMessage(null);
     setError(null);
     try {
       const formData = new FormData();
       formData.set("file", file);
-      formData.set("baseRevision", String(currentRevision));
+      formData.set("baseRevision", String(currentRevisionRef.current));
       const response = await fetch(`/api/documents/${documentId}/import`, {
         method: "POST",
         body: formData,
@@ -286,7 +316,7 @@ export function DocumentFileMenu({
           aria-label={`Choose a document to import. Supported formats: ${SUPPORTED_DOCUMENT_FILE_LABEL}.`}
           onChange={(event) => {
             const file = event.currentTarget.files?.[0];
-            if (file) void importDocumentFile(file, event.currentTarget);
+            if (file) requestDocumentImport(file);
           }}
         />
 
@@ -306,6 +336,49 @@ export function DocumentFileMenu({
             {error}
           </p>
         ) : null}
+
+        <dialog
+          ref={importConfirmDialogRef}
+          aria-labelledby={importConfirmTitleId}
+          aria-describedby={importConfirmDescriptionId}
+          onCancel={cancelPendingImport}
+          className="m-auto w-[min(32rem,calc(100%-2rem))] rounded-xl border border-[var(--border-strong)] bg-[var(--surface-raised)] p-0 text-[var(--foreground)] shadow-2xl backdrop:bg-black/55 backdrop:backdrop-blur-[2px]"
+        >
+          <div className="p-6 sm:p-7">
+            <p className="page-kicker mb-3">Confirm import</p>
+            <h2
+              id={importConfirmTitleId}
+              className="font-serif text-2xl font-medium tracking-[-0.025em]"
+            >
+              Replace this document?
+            </h2>
+            <p
+              id={importConfirmDescriptionId}
+              className="mt-3 text-sm leading-6 text-[var(--muted)]"
+            >
+              Importing {pendingImportFile?.name ?? "this file"} will replace
+              the current title and document body. You can restore the
+              current version from Version history.
+            </p>
+
+            <div className="mt-7 flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                onClick={cancelPendingImport}
+                className="secondary-button rounded-md px-4 py-2.5 text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmPendingImport()}
+                className="primary-button rounded-md px-4 py-2.5 text-sm font-medium"
+              >
+                Import
+              </button>
+            </div>
+          </div>
+        </dialog>
       </div>
 
       {historyOpen ? (
