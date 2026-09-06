@@ -47,6 +47,74 @@ export function subscriptionSnapshot(subscription: Stripe.Subscription) {
   };
 }
 
+export type SubscriptionLifecycleEmail =
+  | { kind: "cancel-scheduled"; accessEndsAt: Date }
+  | { kind: "ended" };
+
+/**
+ * Decides whether a subscription webhook just crossed one of the two
+ * cancellation moments worth emailing about, by comparing the `User` row's
+ * billing columns from before this write to the freshly computed snapshot.
+ * Pure and side-effect free so the transition logic (easy to get subtly
+ * wrong: an immediate cancellation should only fire "ended," not both) can
+ * be unit tested without mocking Prisma or Resend.
+ */
+export function decideSubscriptionLifecycleEmail({
+  before,
+  after,
+}: {
+  before: { cancelAtPeriodEnd: boolean; status: string | null };
+  after: {
+    cancelAtPeriodEnd: boolean;
+    status: string;
+    currentPeriodEnd: Date | null;
+  };
+}): SubscriptionLifecycleEmail | null {
+  const justEnded = before.status !== "canceled" && after.status === "canceled";
+  if (justEnded) return { kind: "ended" };
+
+  const justScheduledCancel =
+    !before.cancelAtPeriodEnd &&
+    after.cancelAtPeriodEnd &&
+    after.status !== "canceled";
+  if (justScheduledCancel && after.currentPeriodEnd) {
+    return { kind: "cancel-scheduled", accessEndsAt: after.currentPeriodEnd };
+  }
+
+  return null;
+}
+
+const DOWNGRADE_NOTICE_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+
+/**
+ * Whether the billing page should tell the user their Pro plan just ended.
+ * There's no dedicated "seen it" flag, so this is a time window rather than
+ * a true one-time notice: true for two weeks after `currentPeriodEnd` has
+ * passed on a now-canceled subscription, then quietly stops rather than
+ * lingering forever. Takes `now` as a parameter (defaulting to the real
+ * clock) instead of calling `Date.now()` itself so it stays a plain,
+ * unit-testable function; `BillingPanel` calls this rather than reading the
+ * clock directly, since React's purity rule for component render forbids
+ * calling `Date.now()`/`new Date()` inline in a component body.
+ */
+export function wasRecentlyDowngraded({
+  paid,
+  subscriptionStatus,
+  currentPeriodEnd,
+  now = new Date(),
+}: {
+  paid: boolean;
+  subscriptionStatus: string | null;
+  currentPeriodEnd: Date | null;
+  now?: Date;
+}): boolean {
+  if (paid || subscriptionStatus !== "canceled" || !currentPeriodEnd) {
+    return false;
+  }
+  const sinceEnded = now.getTime() - currentPeriodEnd.getTime();
+  return sinceEnded >= 0 && sinceEnded < DOWNGRADE_NOTICE_WINDOW_MS;
+}
+
 export async function getBillingOffer(): Promise<BillingOffer | null> {
   const priceId = process.env.STRIPE_PRO_PRICE_ID?.trim();
   if (!priceId || !isStripeConfigured()) return null;

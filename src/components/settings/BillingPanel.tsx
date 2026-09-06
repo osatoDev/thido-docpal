@@ -7,7 +7,7 @@ import {
 } from "@/app/billing-actions";
 import { aiCreditActionLabel } from "@/lib/aiCreditLabels";
 import type { BillingOffer } from "@/lib/billing";
-import { hasPaidSubscription } from "@/lib/billing";
+import { hasPaidSubscription, wasRecentlyDowngraded } from "@/lib/billing";
 import { MONTHLY_AI_ALLOWANCE } from "@/lib/entitlements";
 
 const BILLING_MESSAGES: Record<string, string> = {
@@ -69,6 +69,11 @@ export function BillingPanel({
     paid && cancelAtPeriodEnd && periodEndLabel
       ? `Pro access ends ${periodEndLabel}, then drops to the Free plan's ${MONTHLY_AI_ALLOWANCE.free}/month`
       : `resets ${resetLabel}`;
+  const recentlyDowngraded = wasRecentlyDowngraded({
+    paid,
+    subscriptionStatus,
+    currentPeriodEnd,
+  });
 
   return (
     <section
@@ -109,6 +114,13 @@ export function BillingPanel({
               </p>
             )}
           </div>
+
+          {recentlyDowngraded && periodEndLabel && (
+            <p className="rounded-md border border-[var(--border-strong)] bg-[var(--surface-subtle)] px-3 py-2 text-xs text-[var(--foreground)]">
+              Your Pro plan ended on {periodEndLabel}. You&apos;re now on the
+              Free plan.
+            </p>
+          )}
 
           <div>
             <div className="flex items-center justify-between text-xs">
@@ -178,14 +190,22 @@ export function BillingPanel({
           </div>
 
           {paid ? (
-            <form action={openBillingPortal}>
-              <button
-                type="submit"
-                className="secondary-button w-full rounded-md px-3 py-2.5 text-sm font-semibold"
-              >
-                Manage billing
-              </button>
-            </form>
+            <div className="flex flex-col gap-2">
+              {cancelAtPeriodEnd && periodEndLabel && (
+                <p className="text-xs text-[var(--muted)]">
+                  Changed your mind? You can resume your subscription anytime
+                  before {periodEndLabel}.
+                </p>
+              )}
+              <form action={openBillingPortal}>
+                <button
+                  type="submit"
+                  className="secondary-button w-full rounded-md px-3 py-2.5 text-sm font-semibold"
+                >
+                  {cancelAtPeriodEnd ? "Manage billing · Resume" : "Manage billing"}
+                </button>
+              </form>
+            </div>
           ) : offer ? (
             <form action={startSubscriptionCheckout}>
               <button

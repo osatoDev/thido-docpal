@@ -374,6 +374,64 @@ export async function sendSignInMethodAddedEmail(
   });
 }
 
+export async function sendSubscriptionCancelScheduledEmail({
+  email,
+  subscriptionId,
+  accessEndsAt,
+}: {
+  email: string;
+  subscriptionId: string;
+  accessEndsAt: Date;
+}) {
+  const url = appUrl("/billing");
+  const dateLabel = new Intl.DateTimeFormat("en", { dateStyle: "long" }).format(
+    accessEndsAt,
+  );
+  await sendEmail({
+    to: email,
+    subject: "Your Thido Pro subscription is set to cancel",
+    text:
+      `Your Thido Pro subscription is scheduled to cancel. You won't be charged ` +
+      `again, and you'll keep Pro access until ${dateLabel}. After that your ` +
+      `account moves to the Free plan.\n\nChanged your mind? You can resume ` +
+      `anytime before then: ${url}`,
+    html: emailShell(
+      "Your subscription is set to cancel",
+      `You won't be charged again. You'll keep Pro access until <strong>${escapeHtml(dateLabel)}</strong>, then your account moves to the Free plan. Changed your mind? You can resume anytime before then.`,
+      "Manage billing",
+      url,
+    ),
+    previewUrl: url,
+    idempotencyKey: `subscription-cancel-scheduled-${subscriptionId}`,
+  });
+}
+
+export async function sendSubscriptionEndedEmail({
+  email,
+  subscriptionId,
+}: {
+  email: string;
+  subscriptionId: string;
+}) {
+  const url = appUrl("/billing");
+  await sendEmail({
+    to: email,
+    subject: "Your Thido Pro plan has ended",
+    text:
+      `Your Thido Pro subscription has ended and your account is now on the ` +
+      `Free plan (30 AI credits a month instead of 300).\n\nYou can resubscribe ` +
+      `anytime: ${url}`,
+    html: emailShell(
+      "Your Pro plan has ended",
+      "Your Thido Pro subscription has ended and your account is now on the Free plan (30 AI credits a month instead of 300). You can resubscribe anytime.",
+      "View plans",
+      url,
+    ),
+    previewUrl: url,
+    idempotencyKey: `subscription-ended-${subscriptionId}`,
+  });
+}
+
 export async function sendPasswordResetEmail(email: string, token: string) {
   const url = appUrl(`/reset-password?token=${encodeURIComponent(token)}`);
   await sendEmail({

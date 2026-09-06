@@ -1,7 +1,11 @@
 import { Prisma } from "@prisma/client";
 import type Stripe from "stripe";
 
-import { subscriptionSnapshot } from "@/lib/billing";
+import { decideSubscriptionLifecycleEmail, subscriptionSnapshot } from "@/lib/billing";
+import {
+  sendSubscriptionCancelScheduledEmail,
+  sendSubscriptionEndedEmail,
+} from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { reportServerError } from "@/lib/rollbar/server";
 import { getStripe } from "@/lib/stripe";
@@ -19,6 +23,17 @@ type UnmatchedWebhookUser = {
   customerId: string | null;
 };
 
+type PendingSubscriptionEmail =
+  | { kind: "cancel-scheduled"; to: string; subscriptionId: string; accessEndsAt: Date }
+  | { kind: "ended"; to: string; subscriptionId: string };
+
+type ApplyResult = {
+  unmatched: UnmatchedWebhookUser | null;
+  pendingEmail: PendingSubscriptionEmail | null;
+};
+
+const NO_EFFECT: ApplyResult = { unmatched: null, pendingEmail: null };
+
 /**
  * `updateMany` never throws when its `where` matches zero rows: it just
  * returns `{ count: 0 }`, so a stale/mismatched `thidoUserId` metadata or
@@ -30,12 +45,12 @@ type UnmatchedWebhookUser = {
 async function applyStripeEvent(
   transaction: Prisma.TransactionClient,
   event: Stripe.Event,
-): Promise<UnmatchedWebhookUser | null> {
+): Promise<ApplyResult> {
   if (event.type === "checkout.session.completed") {
     const checkout = event.data.object;
     const userId =
       checkout.client_reference_id ?? checkout.metadata?.thidoUserId ?? null;
-    if (!userId) return null;
+    if (!userId) return NO_EFFECT;
 
     const { count } = await transaction.user.updateMany({
       where: { id: userId },
@@ -44,14 +59,18 @@ async function applyStripeEvent(
         stripeSubscriptionId: checkoutReference(checkout.subscription),
       },
     });
-    return count === 0
-      ? {
-          eventId: event.id,
-          eventType: event.type,
-          userId,
-          customerId: checkoutReference(checkout.customer),
-        }
-      : null;
+    return {
+      unmatched:
+        count === 0
+          ? {
+              eventId: event.id,
+              eventType: event.type,
+              userId,
+              customerId: checkoutReference(checkout.customer),
+            }
+          : null,
+      pendingEmail: null,
+    };
   }
 
   if (
@@ -68,8 +87,33 @@ async function applyStripeEvent(
         ? { stripeCustomerId: snapshot.customerId }
         : { id: "__no_matching_user__" };
 
-    const { count } = await transaction.user.updateMany({
+    // Read the row's prior billing state before overwriting it: deciding
+    // whether a "your subscription is set to cancel" or "your plan ended"
+    // email is due requires comparing before vs. after, not just the new
+    // Stripe payload (see `decideSubscriptionLifecycleEmail`).
+    const existing = await transaction.user.findFirst({
       where: userWhere,
+      select: {
+        id: true,
+        email: true,
+        stripeCancelAtPeriodEnd: true,
+        stripeSubscriptionStatus: true,
+      },
+    });
+    if (!existing) {
+      return {
+        unmatched: {
+          eventId: event.id,
+          eventType: event.type,
+          userId,
+          customerId: snapshot.customerId,
+        },
+        pendingEmail: null,
+      };
+    }
+
+    await transaction.user.update({
+      where: { id: existing.id },
       data: {
         stripeCustomerId: snapshot.customerId,
         stripeSubscriptionId: snapshot.subscriptionId,
@@ -79,17 +123,37 @@ async function applyStripeEvent(
         stripeCancelAtPeriodEnd: snapshot.cancelAtPeriodEnd,
       },
     });
-    return count === 0
-      ? {
-          eventId: event.id,
-          eventType: event.type,
-          userId,
-          customerId: snapshot.customerId,
-        }
+
+    const lifecycleEmail = existing.email
+      ? decideSubscriptionLifecycleEmail({
+          before: {
+            cancelAtPeriodEnd: existing.stripeCancelAtPeriodEnd,
+            status: existing.stripeSubscriptionStatus,
+          },
+          after: {
+            cancelAtPeriodEnd: snapshot.cancelAtPeriodEnd,
+            status: snapshot.status,
+            currentPeriodEnd: snapshot.currentPeriodEnd,
+          },
+        })
       : null;
+
+    const pendingEmail: PendingSubscriptionEmail | null =
+      lifecycleEmail === null || !existing.email
+        ? null
+        : lifecycleEmail.kind === "ended"
+          ? { kind: "ended", to: existing.email, subscriptionId: snapshot.subscriptionId ?? subscription.id }
+          : {
+              kind: "cancel-scheduled",
+              to: existing.email,
+              subscriptionId: snapshot.subscriptionId ?? subscription.id,
+              accessEndsAt: lifecycleEmail.accessEndsAt,
+            };
+
+    return { unmatched: null, pendingEmail };
   }
 
-  return null;
+  return NO_EFFECT;
 }
 
 export async function POST(request: Request) {
@@ -118,9 +182,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid Stripe signature." }, { status: 400 });
   }
 
-  let unmatched: UnmatchedWebhookUser | null;
+  let result: ApplyResult;
   try {
-    unmatched = await prisma.$transaction(async (transaction) => {
+    result = await prisma.$transaction(async (transaction) => {
       await transaction.stripeWebhookEvent.create({
         data: {
           id: event.id,
@@ -155,19 +219,53 @@ export async function POST(request: Request) {
     return Response.json({ error: "Webhook processing failed." }, { status: 500 });
   }
 
-  if (unmatched) {
+  if (result.unmatched) {
     console.error(
       "Stripe webhook matched no user; no columns were updated",
-      unmatched,
+      result.unmatched,
     );
     await reportServerError(new Error("Stripe webhook matched no user"), {
       source: "stripe-webhook",
       operation: "no-matching-user",
-      eventId: unmatched.eventId,
-      eventType: unmatched.eventType,
-      userId: unmatched.userId,
-      customerId: unmatched.customerId,
+      eventId: result.unmatched.eventId,
+      eventType: result.unmatched.eventType,
+      userId: result.unmatched.userId,
+      customerId: result.unmatched.customerId,
     });
+  }
+
+  if (result.pendingEmail) {
+    const pendingEmail = result.pendingEmail;
+    try {
+      if (pendingEmail.kind === "cancel-scheduled") {
+        await sendSubscriptionCancelScheduledEmail({
+          email: pendingEmail.to,
+          subscriptionId: pendingEmail.subscriptionId,
+          accessEndsAt: pendingEmail.accessEndsAt,
+        });
+      } else {
+        await sendSubscriptionEndedEmail({
+          email: pendingEmail.to,
+          subscriptionId: pendingEmail.subscriptionId,
+        });
+      }
+    } catch (error) {
+      // The database write already committed; failing the whole webhook
+      // response over an email would just make Stripe retry it, and that
+      // retry would be treated as a duplicate and skipped (see the P2002
+      // handling above) without ever reattempting the email. So this is
+      // reported, not thrown.
+      console.error("Failed to send a subscription lifecycle email", {
+        eventId: event.id,
+        kind: pendingEmail.kind,
+      });
+      await reportServerError(error, {
+        source: "stripe-webhook",
+        operation: "subscription-lifecycle-email",
+        eventId: event.id,
+        eventType: event.type,
+      });
+    }
   }
 
   return Response.json({ received: true });

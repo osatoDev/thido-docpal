@@ -1,7 +1,12 @@
 import type Stripe from "stripe";
 import { describe, expect, it } from "vitest";
 
-import { hasPaidSubscription, subscriptionSnapshot } from "@/lib/billing";
+import {
+  decideSubscriptionLifecycleEmail,
+  hasPaidSubscription,
+  subscriptionSnapshot,
+  wasRecentlyDowngraded,
+} from "@/lib/billing";
 
 function stripeSubscription(
   overrides: Partial<Stripe.Subscription>,
@@ -65,5 +70,107 @@ describe("hasPaidSubscription", () => {
   it("treats canceled and null as not paid", () => {
     expect(hasPaidSubscription("canceled")).toBe(false);
     expect(hasPaidSubscription(null)).toBe(false);
+  });
+});
+
+describe("decideSubscriptionLifecycleEmail", () => {
+  const accessEndsAt = new Date("2026-10-05T00:00:00Z");
+
+  it("fires 'cancel-scheduled' when cancelAtPeriodEnd newly turns on while still active", () => {
+    const result = decideSubscriptionLifecycleEmail({
+      before: { cancelAtPeriodEnd: false, status: "active" },
+      after: { cancelAtPeriodEnd: true, status: "active", currentPeriodEnd: accessEndsAt },
+    });
+    expect(result).toEqual({ kind: "cancel-scheduled", accessEndsAt });
+  });
+
+  it("does not re-fire 'cancel-scheduled' on a later update that changes nothing relevant", () => {
+    // e.g. the customer filling in the cancellation-feedback survey after
+    // already canceling: cancelAtPeriodEnd was already true before this event.
+    const result = decideSubscriptionLifecycleEmail({
+      before: { cancelAtPeriodEnd: true, status: "active" },
+      after: { cancelAtPeriodEnd: true, status: "active", currentPeriodEnd: accessEndsAt },
+    });
+    expect(result).toBeNull();
+  });
+
+  it("fires 'ended' when status transitions into canceled", () => {
+    const result = decideSubscriptionLifecycleEmail({
+      before: { cancelAtPeriodEnd: true, status: "active" },
+      after: { cancelAtPeriodEnd: true, status: "canceled", currentPeriodEnd: accessEndsAt },
+    });
+    expect(result).toEqual({ kind: "ended" });
+  });
+
+  it("fires only 'ended', not both, for an immediate cancellation with no prior scheduling", () => {
+    const result = decideSubscriptionLifecycleEmail({
+      before: { cancelAtPeriodEnd: false, status: "active" },
+      after: { cancelAtPeriodEnd: true, status: "canceled", currentPeriodEnd: accessEndsAt },
+    });
+    expect(result).toEqual({ kind: "ended" });
+  });
+
+  it("does not fire on a fresh subscription becoming active", () => {
+    const result = decideSubscriptionLifecycleEmail({
+      before: { cancelAtPeriodEnd: false, status: null },
+      after: { cancelAtPeriodEnd: false, status: "active", currentPeriodEnd: accessEndsAt },
+    });
+    expect(result).toBeNull();
+  });
+
+  it("does not fire on resubscribing after a prior cancellation", () => {
+    const result = decideSubscriptionLifecycleEmail({
+      before: { cancelAtPeriodEnd: true, status: "canceled" },
+      after: { cancelAtPeriodEnd: false, status: "active", currentPeriodEnd: accessEndsAt },
+    });
+    expect(result).toBeNull();
+  });
+});
+
+describe("wasRecentlyDowngraded", () => {
+  const now = new Date("2026-09-10T00:00:00Z");
+
+  it("is true shortly after a canceled subscription's period end has passed", () => {
+    expect(
+      wasRecentlyDowngraded({
+        paid: false,
+        subscriptionStatus: "canceled",
+        currentPeriodEnd: new Date("2026-09-05T00:00:00Z"),
+        now,
+      }),
+    ).toBe(true);
+  });
+
+  it("is false once the window has elapsed", () => {
+    expect(
+      wasRecentlyDowngraded({
+        paid: false,
+        subscriptionStatus: "canceled",
+        currentPeriodEnd: new Date("2026-08-01T00:00:00Z"),
+        now,
+      }),
+    ).toBe(false);
+  });
+
+  it("is false while still paid, even if cancelAtPeriodEnd-style fields would otherwise qualify", () => {
+    expect(
+      wasRecentlyDowngraded({
+        paid: true,
+        subscriptionStatus: "active",
+        currentPeriodEnd: new Date("2026-09-05T00:00:00Z"),
+        now,
+      }),
+    ).toBe(false);
+  });
+
+  it("is false for a user who never subscribed", () => {
+    expect(
+      wasRecentlyDowngraded({
+        paid: false,
+        subscriptionStatus: null,
+        currentPeriodEnd: null,
+        now,
+      }),
+    ).toBe(false);
   });
 });
