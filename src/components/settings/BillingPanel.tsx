@@ -13,8 +13,10 @@ import { MONTHLY_AI_ALLOWANCE } from "@/lib/entitlements";
 const BILLING_MESSAGES: Record<string, string> = {
   success: "Your checkout completed. Stripe is confirming your subscription.",
   cancelled: "Checkout was cancelled. Your free beta access is unchanged.",
-  unavailable: "Paid checkout is not available yet. Your free beta access is unchanged.",
-  "already-subscribed": "You already have a subscription. Use the billing portal to manage it.",
+  unavailable:
+    "Paid checkout is not available yet. Your free beta access is unchanged.",
+  "already-subscribed":
+    "You already have a subscription. Use the billing portal to manage it.",
 };
 
 export function BillingPanel({
@@ -77,7 +79,9 @@ export function BillingPanel({
 
   return (
     <section
-      className={standalone ? "" : "border-t border-[var(--border-strong)] pt-7"}
+      className={
+        standalone ? "" : "border-t border-[var(--border-strong)] pt-7"
+      }
       aria-labelledby="billing-heading"
     >
       <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-start sm:gap-10">
@@ -105,7 +109,7 @@ export function BillingPanel({
             </p>
             {subscriptionStatus && (
               <p className="mt-1 text-xs capitalize text-[var(--muted)]">
-                Stripe status: {subscriptionStatus.replaceAll("_", " ")}
+                Subscription status: {subscriptionStatus.replaceAll("_", " ")}
               </p>
             )}
             {paid && periodEndLabel && (
@@ -159,7 +163,8 @@ export function BillingPanel({
             <p className="mt-1.5 text-xs text-[var(--muted)]">
               {aiAllowance.remaining} credit
               {aiAllowance.remaining === 1 ? "" : "s"} left · {usageResetLabel}
-              {aiAllowance.plan === "free" && ". Upgrade to Pro for a higher allowance."}
+              {aiAllowance.plan === "free" &&
+                ". Upgrade to Pro for a higher allowance."}
             </p>
 
             {aiAllowance.breakdown.length > 0 && (
@@ -202,7 +207,9 @@ export function BillingPanel({
                   type="submit"
                   className="secondary-button w-full rounded-md px-3 py-2.5 text-sm font-semibold"
                 >
-                  {cancelAtPeriodEnd ? "Manage billing · Resume" : "Manage billing"}
+                  {cancelAtPeriodEnd
+                    ? "Manage billing · Resume"
+                    : "Manage billing"}
                 </button>
               </form>
             </div>
