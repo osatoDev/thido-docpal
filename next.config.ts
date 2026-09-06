@@ -22,6 +22,23 @@ const nextConfig: NextConfig = {
     "happy-dom",
     "@tiptap/html",
   ],
+  // sharp (used by the import route's Word-image conversion and by
+  // `documentFileImages.ts`) is already externalized by Next's own default
+  // list, but its actual platform binary lives in a *separate* optional
+  // dependency (`@img/sharp-linux-x64`) whose native addon then dlopens a
+  // *third* package's shared library (`@img/sharp-libvips-linux-x64`) at
+  // runtime, outside any `require()` static analysis can see. The file
+  // tracer can't follow that, so it traced sharp for the platform that
+  // happened to be installed on whichever machine ran the build (this
+  // repo's build has been run locally on macOS as well as on Vercel's own
+  // Linux build machines), and dropped the libvips `.so` file, producing
+  // `ERR_DLOPEN_FAILED: libvips-cpp.so.*: cannot open shared object file`
+  // in production. This is a known-enough failure mode that Next's own
+  // docs list `node_modules/sharp/**/*` as the example fix; `@img/**/*`
+  // covers the sibling packages sharp actually loads at runtime.
+  outputFileTracingIncludes: {
+    "/*": ["node_modules/sharp/**/*", "node_modules/@img/**/*"],
+  },
   images: {
     remotePatterns: [
       {
