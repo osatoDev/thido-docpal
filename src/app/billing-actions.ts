@@ -78,6 +78,10 @@ export async function startSubscriptionCheckout() {
       customer: customerId,
       client_reference_id: user.id,
       line_items: [{ price: priceId, quantity: 1 }],
+      // The Price carries both EUR and USD via `currency_options`; this opts
+      // into Stripe presenting the buyer's local currency rather than
+      // depending on the account's Dashboard default for Adaptive Pricing.
+      adaptive_pricing: { enabled: true },
       allow_promotion_codes: true,
       metadata: { thidoUserId: user.id },
       subscription_data: {
