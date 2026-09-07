@@ -56,6 +56,49 @@ export function runTableAction(editor: Editor, action: TableAction) {
   }
 }
 
+/**
+ * `addRowBefore`/`addRowAfter` are single-row ProseMirror commands, so
+ * inserting N rows means running the command N times. Each insertion is
+ * committed as its own transaction (rather than chaining N calls into one)
+ * so the next iteration re-resolves the selection against the
+ * already-updated table. Chaining them instead turned out to insert later
+ * columns on the wrong side of the anchor for `addColumns` below (verified
+ * in tableActions.test.ts), so both use the same, more robust approach
+ * rather than two different strategies for the same kind of operation.
+ */
+export function addRows(
+  editor: Editor,
+  direction: "before" | "after",
+  count: number,
+) {
+  let result = true;
+  for (let index = 0; index < count; index += 1) {
+    result =
+      (direction === "before"
+        ? editor.chain().focus().addRowBefore()
+        : editor.chain().focus().addRowAfter()
+      ).run() && result;
+  }
+  return result;
+}
+
+/** Column equivalent of `addRows`; see its comment for why each insertion is its own transaction. */
+export function addColumns(
+  editor: Editor,
+  direction: "before" | "after",
+  count: number,
+) {
+  let result = true;
+  for (let index = 0; index < count; index += 1) {
+    result =
+      (direction === "before"
+        ? editor.chain().focus().addColumnBefore()
+        : editor.chain().focus().addColumnAfter()
+      ).run() && result;
+  }
+  return result;
+}
+
 export function canRunTableAction(editor: Editor, action: TableAction) {
   const chain = editor.can().chain().focus();
 

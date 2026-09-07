@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -13,6 +14,8 @@ import { createPortal } from "react-dom";
 import { TextSelection } from "@tiptap/pm/state";
 import type { Editor } from "@tiptap/react";
 import {
+  addColumns,
+  addRows,
   canRunTableAction,
   runTableAction,
   TABLE_ACTION_GROUPS,
@@ -25,6 +28,16 @@ type MenuPosition = {
 };
 
 const VIEWPORT_GUTTER = 8;
+const MIN_COUNT = 1;
+const MAX_ROWS_TO_ADD = 20;
+const MAX_COLS_TO_ADD = 10;
+const ROW_ACTION_GROUP_INDEX = 0;
+const COLUMN_ACTION_GROUP_INDEX = 1;
+
+function clampCount(value: number, max: number): number {
+  if (!Number.isFinite(value)) return MIN_COUNT;
+  return Math.min(max, Math.max(MIN_COUNT, Math.round(value)));
+}
 
 export function TableContextMenu({
   editor,
@@ -34,8 +47,12 @@ export function TableContextMenu({
   children: ReactNode;
 }) {
   const [position, setPosition] = useState<MenuPosition | null>(null);
+  const [rowCount, setRowCount] = useState(1);
+  const [colCount, setColCount] = useState(1);
   const menuRef = useRef<HTMLDivElement>(null);
   const firstItemRef = useRef<HTMLButtonElement>(null);
+  const rowCountId = useId();
+  const colCountId = useId();
 
   useEffect(() => {
     if (!position) return;
@@ -101,6 +118,8 @@ export function TableContextMenu({
     editor.view.dispatch(editor.state.tr.setSelection(selection));
 
     const cellBounds = cell.getBoundingClientRect();
+    setRowCount(1);
+    setColCount(1);
     setPosition({
       x: event.clientX || cellBounds.left + 12,
       y: event.clientY || cellBounds.top + 12,
@@ -112,6 +131,16 @@ export function TableContextMenu({
     setPosition(null);
   }
 
+  function chooseAddRows(direction: "before" | "after") {
+    addRows(editor, direction, rowCount);
+    setPosition(null);
+  }
+
+  function chooseAddColumns(direction: "before" | "after") {
+    addColumns(editor, direction, colCount);
+    setPosition(null);
+  }
+
   function handleMenuKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === "Escape") {
       event.preventDefault();
@@ -119,6 +148,11 @@ export function TableContextMenu({
       editor.commands.focus();
       return;
     }
+
+    // Let the row-count field handle its own arrow keys (cursor movement,
+    // the native number spinner) and digit entry instead of the menu
+    // hijacking them for roving focus between menu items.
+    if (event.target instanceof HTMLInputElement) return;
 
     if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
       return;
@@ -173,25 +207,108 @@ export function TableContextMenu({
                     className="my-1 border-t border-[var(--border)]"
                   />
                 )}
-                {group.map((item, itemIndex) => (
-                  <button
-                    key={item.action}
-                    ref={
-                      groupIndex === 0 && itemIndex === 0 ? firstItemRef : null
-                    }
-                    type="button"
-                    role="menuitem"
-                    disabled={!canRunTableAction(editor, item.action)}
-                    onClick={() => chooseAction(item.action)}
-                    className={`block w-full rounded-sm px-2 py-1.5 text-left text-sm disabled:cursor-not-allowed disabled:opacity-45 ${
-                      item.destructive
-                        ? "text-[var(--danger)] hover:bg-[color-mix(in_srgb,var(--danger)_10%,transparent)]"
-                        : "text-[var(--foreground)] hover:bg-[var(--surface-subtle)]"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+                {groupIndex === ROW_ACTION_GROUP_INDEX && (
+                  <div className="flex items-center gap-2 px-2 py-1.5">
+                    <label
+                      htmlFor={rowCountId}
+                      className="text-xs text-[var(--muted)]"
+                    >
+                      Rows to add
+                    </label>
+                    <input
+                      id={rowCountId}
+                      type="number"
+                      inputMode="numeric"
+                      min={MIN_COUNT}
+                      max={MAX_ROWS_TO_ADD}
+                      step={1}
+                      value={rowCount}
+                      onChange={(event) =>
+                        setRowCount(
+                          clampCount(Number(event.target.value), MAX_ROWS_TO_ADD),
+                        )
+                      }
+                      className="app-input w-14 rounded-sm px-1.5 py-0.5 text-sm outline-none"
+                    />
+                  </div>
+                )}
+                {groupIndex === COLUMN_ACTION_GROUP_INDEX && (
+                  <div className="flex items-center gap-2 px-2 py-1.5">
+                    <label
+                      htmlFor={colCountId}
+                      className="text-xs text-[var(--muted)]"
+                    >
+                      Columns to add
+                    </label>
+                    <input
+                      id={colCountId}
+                      type="number"
+                      inputMode="numeric"
+                      min={MIN_COUNT}
+                      max={MAX_COLS_TO_ADD}
+                      step={1}
+                      value={colCount}
+                      onChange={(event) =>
+                        setColCount(
+                          clampCount(Number(event.target.value), MAX_COLS_TO_ADD),
+                        )
+                      }
+                      className="app-input w-14 rounded-sm px-1.5 py-0.5 text-sm outline-none"
+                    />
+                  </div>
+                )}
+                {group.map((item, itemIndex) => {
+                  const isAddRow =
+                    item.action === "addRowBefore" ||
+                    item.action === "addRowAfter";
+                  const isAddColumn =
+                    item.action === "addColumnBefore" ||
+                    item.action === "addColumnAfter";
+                  const label = isAddRow
+                    ? rowCount === 1
+                      ? item.label
+                      : item.label.replace("row", `${rowCount} rows`)
+                    : isAddColumn
+                      ? colCount === 1
+                        ? item.label
+                        : item.label.replace("column", `${colCount} columns`)
+                      : item.label;
+                  return (
+                    <button
+                      key={item.action}
+                      ref={
+                        groupIndex === 0 && itemIndex === 0
+                          ? firstItemRef
+                          : null
+                      }
+                      type="button"
+                      role="menuitem"
+                      disabled={!canRunTableAction(editor, item.action)}
+                      onClick={() =>
+                        isAddRow
+                          ? chooseAddRows(
+                              item.action === "addRowBefore"
+                                ? "before"
+                                : "after",
+                            )
+                          : isAddColumn
+                            ? chooseAddColumns(
+                                item.action === "addColumnBefore"
+                                  ? "before"
+                                  : "after",
+                              )
+                            : chooseAction(item.action)
+                      }
+                      className={`block w-full rounded-sm px-2 py-1.5 text-left text-sm disabled:cursor-not-allowed disabled:opacity-45 ${
+                        item.destructive
+                          ? "text-[var(--danger)] hover:bg-[color-mix(in_srgb,var(--danger)_10%,transparent)]"
+                          : "text-[var(--foreground)] hover:bg-[var(--surface-subtle)]"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
             ))}
           </div>,

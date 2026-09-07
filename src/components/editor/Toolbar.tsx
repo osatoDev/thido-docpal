@@ -12,6 +12,7 @@ import { CustomBulletDialog } from "./CustomBulletDialog";
 import { FindReplaceDialog } from "./FindReplaceDialog";
 import { FootnoteDialog } from "./FootnoteDialog";
 import { LinkControl } from "./LinkControl";
+import { TableSizeDialog } from "./TableSizeDialog";
 import { WordCountDialog } from "./WordCountDialog";
 import {
   DOCUMENT_LANGUAGE_OPTIONS,
@@ -420,6 +421,7 @@ export function Toolbar({
   const [customBulletOpen, setCustomBulletOpen] = useState(false);
   const [footnoteOpen, setFootnoteOpen] = useState(false);
   const [wordCountOpen, setWordCountOpen] = useState(false);
+  const [tableSizeOpen, setTableSizeOpen] = useState(false);
   const [, setEditorVersion] = useState(0);
   const activeBulletGlyph = editor
     ? normalizeCustomBulletGlyph(
@@ -747,13 +749,8 @@ export function Toolbar({
           insert: [
             [
               {
-                label: "Table (3 × 3)",
-                onSelect: () =>
-                  editor
-                    .chain()
-                    .focus()
-                    .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-                    .run(),
+                label: "Table…",
+                onSelect: () => setTableSizeOpen(true),
               },
               {
                 label: "Links and references",
@@ -1581,6 +1578,18 @@ export function Toolbar({
           initialGlyph={activeBulletGlyph ?? ""}
           onSubmit={(glyph) => setBulletStyle("custom", glyph)}
           onClose={() => setCustomBulletOpen(false)}
+        />
+      ) : null}
+      {tableSizeOpen && editor ? (
+        <TableSizeDialog
+          onSubmit={(rows, cols) =>
+            editor
+              .chain()
+              .focus()
+              .insertTable({ rows, cols, withHeaderRow: true })
+              .run()
+          }
+          onClose={() => setTableSizeOpen(false)}
         />
       ) : null}
     </>

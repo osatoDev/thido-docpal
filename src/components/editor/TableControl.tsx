@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useEditorState, type Editor } from "@tiptap/react";
+import { TableSizeDialog } from "./TableSizeDialog";
 import {
   runTableAction,
   TABLE_ACTION_ITEMS,
@@ -8,6 +10,7 @@ import {
 } from "./tableActions";
 
 export function TableControl({ editor }: { editor: Editor }) {
+  const [sizeDialogOpen, setSizeDialogOpen] = useState(false);
   const inTable = useEditorState({
     editor,
     selector: ({ editor: currentEditor }) => currentEditor.isActive("table"),
@@ -15,21 +18,29 @@ export function TableControl({ editor }: { editor: Editor }) {
 
   if (!inTable) {
     return (
-      <button
-        type="button"
-        aria-label="Insert a 3 by 3 table"
-        title="Insert table"
-        onClick={() =>
-          editor
-            .chain()
-            .focus()
-            .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-            .run()
-        }
-        className="rounded-sm px-2 py-1 text-sm font-medium hover:bg-[var(--surface-subtle)]"
-      >
-        Table
-      </button>
+      <>
+        <button
+          type="button"
+          aria-label="Insert a table"
+          title="Insert table"
+          onClick={() => setSizeDialogOpen(true)}
+          className="rounded-sm px-2 py-1 text-sm font-medium hover:bg-[var(--surface-subtle)]"
+        >
+          Table
+        </button>
+        {sizeDialogOpen ? (
+          <TableSizeDialog
+            onSubmit={(rows, cols) =>
+              editor
+                .chain()
+                .focus()
+                .insertTable({ rows, cols, withHeaderRow: true })
+                .run()
+            }
+            onClose={() => setSizeDialogOpen(false)}
+          />
+        ) : null}
+      </>
     );
   }
 
