@@ -31,7 +31,7 @@ function EditorPreview() {
         <span className="size-2.5 rounded-full bg-[var(--border-strong)]" />
         <span className="size-2.5 rounded-full bg-[var(--border-strong)]" />
         <span className="ml-3 text-xs text-[var(--muted-soft)]">
-          Investor update, March
+          Team update, March
         </span>
       </div>
       <div className="grid gap-6 p-6 sm:grid-cols-[1fr_14rem] sm:p-8">
