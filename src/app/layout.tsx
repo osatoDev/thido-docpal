@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Suspense } from "react";
 import { ApplicationStyleSync } from "@/components/ApplicationStyleSync";
+import { GoogleAdsTag } from "@/components/GoogleAdsTag";
 import { RedditPixel } from "@/components/RedditPixel";
 import { SignedInPageActions } from "@/components/SignedInPageActions";
 import {
@@ -89,6 +90,7 @@ export default async function RootLayout({
         </Suspense>
         {children}
         <Analytics />
+        <GoogleAdsTag />
         <Suspense fallback={null}>
           <SessionRedditPixel />
         </Suspense>
