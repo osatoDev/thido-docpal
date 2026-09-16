@@ -1,6 +1,8 @@
 import { Prisma } from "@prisma/client";
 
+import { sendAdminNewSignupNotification } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
+import { reportServerError } from "@/lib/rollbar/server";
 
 export const BETA_USER_LIMIT = 100;
 const BETA_SEAT_LOCK_ID = 8_114_202_601;
@@ -32,7 +34,7 @@ export function nextApprovedBetaSeat(claimedSeats: number[]) {
 }
 
 export async function createBetaUser(data: Prisma.UserCreateInput) {
-  return prisma.$transaction(async (transaction) => {
+  const user = await prisma.$transaction(async (transaction) => {
     await transaction.$queryRaw<Array<{ lockResult: string }>>(
       betaSeatLockStatement(),
     );
@@ -55,6 +57,24 @@ export async function createBetaUser(data: Prisma.UserCreateInput) {
       },
     });
   });
+
+  if (user.email) {
+    try {
+      await sendAdminNewSignupNotification({
+        name: user.name,
+        email: user.email,
+        betaSeat: user.betaSeat,
+      });
+    } catch (error) {
+      console.error("Unable to send new signup notification", error);
+      await reportServerError(error, {
+        source: "betaAccess",
+        operation: "notify-new-signup",
+      });
+    }
+  }
+
+  return user;
 }
 
 export async function remainingBetaSeats() {

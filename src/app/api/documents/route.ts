@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { unauthorizedResponse } from "@/lib/apiResponses";
 import { documentAccessWhere } from "@/lib/documentAuth";
 import { initialRevisionData } from "@/lib/documentRevisions";
+import { sendAdminNewDocumentNotification } from "@/lib/email";
+import { reportServerError } from "@/lib/rollbar/server";
 
 export async function GET() {
   const session = await auth();
@@ -50,6 +52,23 @@ export async function POST(request: Request) {
     },
     select: { id: true },
   });
+
+  if (session.user.email) {
+    try {
+      await sendAdminNewDocumentNotification({
+        documentId: document.id,
+        title,
+        ownerName: session.user.name ?? null,
+        ownerEmail: session.user.email,
+      });
+    } catch (error) {
+      console.error("Unable to send new document notification", error);
+      await reportServerError(error, {
+        source: "documents",
+        operation: "notify-new-document",
+      });
+    }
+  }
 
   return NextResponse.json({ documentId: document.id }, { status: 201 });
 }

@@ -9,6 +9,7 @@ import {
   nextApprovedBetaSeat,
 } from "@/lib/betaAccess";
 import {
+  sendAdminNewSignupNotification,
   sendWaitlistApprovedEmail,
   sendWaitlistRejectedEmail,
 } from "@/lib/email";
@@ -97,8 +98,11 @@ export async function approveWaitlistEntry(entryId: string) {
 
     return {
       email: entry.email,
+      name: user.name,
       userId: user.id,
+      betaSeat: user.betaSeat,
       signupMethod: entry.signupMethod,
+      isNewUser: !existingUser,
     };
   });
 
@@ -119,6 +123,23 @@ export async function approveWaitlistEntry(entryId: string) {
         operation: "send-approval",
         entryId,
       });
+    }
+
+    if (approved.isNewUser) {
+      try {
+        await sendAdminNewSignupNotification({
+          name: approved.name,
+          email: approved.email,
+          betaSeat: approved.betaSeat,
+        });
+      } catch (error) {
+        console.error("Unable to send new signup notification", error);
+        await reportServerError(error, {
+          source: "waitlist-admin",
+          operation: "notify-new-signup",
+          entryId,
+        });
+      }
     }
   }
 

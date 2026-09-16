@@ -14,6 +14,7 @@ import {
   lockDocumentForCommentAi,
 } from "@/lib/documentAiJobs";
 import { reportServerError } from "@/lib/rollbar/server";
+import { sendAdminNewDocumentNotification } from "@/lib/email";
 import { recordDocumentRevision } from "@/lib/documentRevisions";
 import { DocumentRevisionSource } from "@prisma/client";
 import { reconcileOrphanedComments } from "@/lib/documentComments";
@@ -253,6 +254,26 @@ export async function PATCH(request: Request, { params }: Params) {
     );
   }
   const document = updateResult.document;
+
+  if (editableDocument?.isPlaceholder && data.isPlaceholder === false) {
+    if (session.user.email) {
+      try {
+        await sendAdminNewDocumentNotification({
+          documentId: document.id,
+          title: document.title,
+          ownerName: session.user.name ?? null,
+          ownerEmail: session.user.email,
+        });
+      } catch (error) {
+        console.error("Unable to send new document notification", error);
+        await reportServerError(error, {
+          source: "document",
+          operation: "notify-new-document",
+          documentId: id,
+        });
+      }
+    }
+  }
 
   if (body.content !== undefined) {
     await reconcileOrphanedComments(prisma, id, body.content as JSONContent);

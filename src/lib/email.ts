@@ -2,7 +2,9 @@ import "server-only";
 
 import { Resend } from "resend";
 
+import { adminDetailHref } from "@/lib/adminDetails";
 import { documentEditPath } from "@/lib/documentUrls";
+import { founderFeedbackRecipients } from "@/lib/feedback";
 
 let resendClient: Resend | null = null;
 
@@ -208,6 +210,71 @@ export async function sendFounderReplyEmail({
     ),
     previewUrl: url,
     idempotencyKey: `founder-reply-${messageId}`,
+  });
+}
+
+export async function sendAdminNewSignupNotification({
+  name,
+  email,
+  betaSeat,
+}: {
+  name: string | null;
+  email: string;
+  betaSeat: number | null;
+}) {
+  const recipients = founderFeedbackRecipients();
+  if (recipients.length === 0) return;
+
+  const label = name?.trim() || email;
+  const seatLabel = betaSeat ? ` (seat #${betaSeat})` : "";
+  const url = appUrl(adminDetailHref("users"));
+
+  await sendEmail({
+    to: recipients,
+    subject: `New Thido signup: ${label}`,
+    text: `${label} (${email}) just signed up for Thido${seatLabel}.\n\nView users: ${url}`,
+    html: emailShell(
+      "New signup",
+      `<strong>${escapeHtml(label)}</strong> (${escapeHtml(email)}) just signed up for Thido${escapeHtml(seatLabel)}.`,
+      "View users",
+      url,
+    ),
+    previewUrl: url,
+    idempotencyKey: `admin-new-signup-${email.toLowerCase()}`,
+  });
+}
+
+export async function sendAdminNewDocumentNotification({
+  documentId,
+  title,
+  ownerName,
+  ownerEmail,
+}: {
+  documentId: string;
+  title: string;
+  ownerName: string | null;
+  ownerEmail: string;
+}) {
+  const recipients = founderFeedbackRecipients();
+  if (recipients.length === 0) return;
+
+  const label = ownerName?.trim() || ownerEmail;
+  const url = appUrl(adminDetailHref("documents"));
+  const safeLabel = escapeHtml(label);
+  const safeTitle = escapeHtml(title);
+
+  await sendEmail({
+    to: recipients,
+    subject: `${label} created a document`,
+    text: `${label} (${ownerEmail}) created a document: "${title}".\n\nView documents: ${url}`,
+    html: emailShell(
+      "New document",
+      `<strong>${safeLabel}</strong> (${escapeHtml(ownerEmail)}) created a document: <strong>${safeTitle}</strong>.`,
+      "View documents",
+      url,
+    ),
+    previewUrl: url,
+    idempotencyKey: `admin-new-document-${documentId}`,
   });
 }
 
