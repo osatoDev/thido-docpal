@@ -514,3 +514,63 @@ export async function sendPasswordResetEmail(email: string, token: string) {
     previewUrl: url,
   });
 }
+
+export async function sendActivationNudgeEmail({
+  email,
+  name,
+}: {
+  email: string;
+  name: string | null;
+}) {
+  const url = appUrl("/documents/new");
+  const greeting = name?.trim() ? `Hi ${name.trim()},` : "Hi,";
+  await sendEmail({
+    to: email,
+    subject: "Haven't had a chance to try Thido yet?",
+    text:
+      `${greeting}\n\nYou signed up for Thido but haven't opened it yet. ` +
+      `The easiest way in is to answer a few questions or paste a prompt and ` +
+      `let Thido draft the first version for you, instead of starting from a ` +
+      `blank page.\n\nTry it: ${url}`,
+    html: emailShell(
+      "Haven't had a chance to try Thido yet?",
+      `${escapeHtml(greeting)} You signed up for Thido but haven't opened it yet. The easiest way in is to answer a few questions or paste a prompt and let Thido draft the first version for you, instead of starting from a blank page.`,
+      "Draft with AI",
+      url,
+    ),
+    previewUrl: url,
+    idempotencyKey: `activation-nudge-${email.toLowerCase()}`,
+  });
+}
+
+export async function sendReactivationNudgeEmail({
+  email,
+  name,
+  documentId,
+  title,
+}: {
+  email: string;
+  name: string | null;
+  documentId: string;
+  title: string;
+}) {
+  const url = appUrl(documentEditPath(documentId, title));
+  const greeting = name?.trim() ? `Hi ${name.trim()},` : "Hi,";
+  const safeTitle = escapeHtml(title);
+  await sendEmail({
+    to: email,
+    subject: `Your document "${title}" is still here`,
+    text:
+      `${greeting}\n\nYou started "${title}" in Thido and it's saved exactly ` +
+      `as you left it. Pick up where you left off whenever you're ready.\n\n` +
+      `Continue: ${url}`,
+    html: emailShell(
+      "Your document is still here",
+      `${escapeHtml(greeting)} You started <strong>${safeTitle}</strong> in Thido and it's saved exactly as you left it. Pick up where you left off whenever you're ready.`,
+      "Continue document",
+      url,
+    ),
+    previewUrl: url,
+    idempotencyKey: `reactivation-nudge-${documentId}`,
+  });
+}

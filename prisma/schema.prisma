@@ -68,6 +68,8 @@ model User {
   aiCreditsUsed            Int                    @default(0)
   aiCreditsPeriodStart     DateTime               @default(now())
   createdAt                DateTime               @default(now())
+  activationNudgeSentAt    DateTime?
+  reactivationNudgeSentAt  DateTime?
   accounts                 Account[]
   aiCreditCharges          AiCreditCharge[]
   sessions                 Session[]
