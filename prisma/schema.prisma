@@ -266,6 +266,7 @@ model Document {
   aiCreditCharges  AiCreditCharge[]
   images           DocumentImage[]
   revisions        DocumentRevision[]
+  historyRetention DocumentHistoryRetention?
   linkAccesses     DocumentLinkAccess[]
 
   @@index([ownerId])
@@ -317,6 +318,22 @@ model DocumentLinkAccess {
   @@unique([documentId, userId])
   @@index([userId])
   @@index([documentId, lastAccessedAt])
+}
+
+model DocumentHistoryRetention {
+  documentId       String   @id
+  document         Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  keepAll          Boolean  @default(false)
+  noticeId         String?
+  noticeClaimedAt  DateTime?
+  noticeSentAt     DateTime?
+  noticeEmailId    String?
+  deliveryConfirmedAt DateTime?
+  deleteAfter      DateTime?
+  cutoffRevision   Int?
+  updatedAt        DateTime @updatedAt
+
+  @@index([keepAll, deleteAfter])
 }
 
 model DocumentRevision {

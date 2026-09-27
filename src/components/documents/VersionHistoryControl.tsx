@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { JSONContent } from "@tiptap/react";
 
+import { HistoryRetentionControl, type HistoryRetention } from "./HistoryRetentionControl";
+
 import { PublicDocumentViewer } from "@/components/documents/PublicDocumentViewer";
 
 type RevisionSource = "INITIAL" | "USER" | "AI" | "RESTORE" | "IMPORT";
@@ -10,7 +12,6 @@ type RevisionSource = "INITIAL" | "USER" | "AI" | "RESTORE" | "IMPORT";
 type RevisionSummary = {
   revision: number;
   title: string;
-  content: JSONContent | null;
   source: RevisionSource;
   restoredFromRevision: number | null;
   createdAt: string;
@@ -50,6 +51,12 @@ export function VersionHistoryDialog({
   const [selectedRevision, setSelectedRevision] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [restoring, setRestoring] = useState(false);
+  const [nextCursor, setNextCursor] = useState<number | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [retention, setRetention] = useState<HistoryRetention | null>(null);
+  const [preview, setPreview] = useState<{ revision: number; content: JSONContent | null } | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewAttempt, setPreviewAttempt] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const selected =
     revisions.find((revision) => revision.revision === selectedRevision) ??
@@ -71,6 +78,8 @@ export function VersionHistoryDialog({
         if (cancelled) return;
         const nextRevisions = (body?.revisions ?? []) as RevisionSummary[];
         setRevisions(nextRevisions);
+        setNextCursor(body.nextCursor ?? null);
+        setRetention(body.retention ?? null);
         setSelectedRevision(nextRevisions[0]?.revision ?? null);
       } catch (reason) {
         if (cancelled) return;
@@ -95,6 +104,45 @@ export function VersionHistoryDialog({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [documentId, onClose]);
+
+  useEffect(() => {
+    if (selectedRevision === null) return;
+    const controller = new AbortController();
+    async function loadPreview() {
+      try {
+        const response = await fetch(`/api/documents/${documentId}/revisions?revision=${selectedRevision}`, {
+          cache: "no-store", signal: controller.signal,
+        });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error || "Could not load this version.");
+        if (!controller.signal.aborted) setPreview(body.revision);
+      } catch (reason) {
+        if (!controller.signal.aborted) setPreviewError(reason instanceof Error ? reason.message : "Could not load this version.");
+      }
+    }
+    void loadPreview();
+    return () => controller.abort();
+  }, [documentId, selectedRevision, previewAttempt]);
+
+  async function showMore() {
+    if (nextCursor === null || loadingMore) return;
+    setLoadingMore(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/documents/${documentId}/revisions?before=${nextCursor}`, { cache: "no-store" });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Could not load more versions.");
+      setRevisions(current => {
+        const seen = new Set(current.map(item => item.revision));
+        return [...current, ...(body.revisions as RevisionSummary[]).filter(item => !seen.has(item.revision))];
+      });
+      setNextCursor(body.nextCursor ?? null);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not load more versions.");
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   async function restoreSelected() {
     if (!selected || selected.revision === currentRevision) return;
@@ -149,7 +197,7 @@ export function VersionHistoryDialog({
               Version history
             </h2>
             <p className="mt-1 text-xs text-[var(--muted)]">
-              Restoring creates a new version and keeps the later history.
+              Showing the newest 10 versions first. Restoring creates a new version.
             </p>
           </div>
           <button
@@ -162,6 +210,8 @@ export function VersionHistoryDialog({
           </button>
         </header>
 
+        {retention ? <div className="border-b border-[var(--border)] px-5 py-3"><HistoryRetentionControl documentId={documentId} initial={retention} /></div> : null}
+
         {loading ? (
           <p className="p-6 text-sm text-[var(--muted)]" role="status">
             Loading version history…
@@ -173,7 +223,9 @@ export function VersionHistoryDialog({
                 <button
                   key={revision.revision}
                   type="button"
-                  onClick={() => setSelectedRevision(revision.revision)}
+                  onClick={() => { setPreviewError(null); setSelectedRevision(revision.revision); setPreviewAttempt(attempt => attempt + 1); }}
+                  aria-label={`Preview version ${revision.revision}`}
+                  aria-pressed={selected?.revision === revision.revision}
                   className={`mb-1 w-full rounded-md px-3 py-2 text-left text-xs ${
                     selected?.revision === revision.revision
                       ? "bg-[var(--surface-subtle)] text-[var(--foreground)]"
@@ -194,6 +246,12 @@ export function VersionHistoryDialog({
                   </span>
                 </button>
               ))}
+              {nextCursor !== null ? (
+                <button type="button" onClick={() => void showMore()} disabled={loadingMore} className="secondary-button mt-3 w-full rounded-md px-3 py-2 text-xs disabled:opacity-50">
+                  {loadingMore ? "Loading more…" : "Show more"}
+                </button>
+              ) : null}
+              <p className="mt-3 text-xs text-[var(--muted)]" role="status">{revisions.length} versions shown</p>
             </div>
 
             <div className="min-h-0 overflow-y-auto p-6 sm:p-8">
@@ -203,10 +261,17 @@ export function VersionHistoryDialog({
                     {selected.title}
                   </h3>
                   <div className="mt-6">
-                    {selected.content ? (
+                    {previewError ? (
+                      <div>
+                        <p role="alert" className="text-sm text-[var(--danger)]">{previewError}</p>
+                        <button type="button" onClick={() => { setPreviewError(null); setPreviewAttempt(attempt => attempt + 1); }} className="secondary-button mt-3 rounded-md px-3 py-2 text-xs">Retry preview</button>
+                      </div>
+                    ) : preview?.revision !== selected.revision ? (
+                      <p role="status" className="text-sm text-[var(--muted)]">Loading version preview…</p>
+                    ) : preview.content ? (
                       <PublicDocumentViewer
                         key={selected.revision}
-                        content={selected.content}
+                        content={preview.content}
                         ariaLabel={`Preview of version ${selected.revision}`}
                       />
                     ) : (
@@ -232,7 +297,7 @@ export function VersionHistoryDialog({
           <button
             type="button"
             disabled={
-              restoring || !selected || selected.revision === currentRevision
+              restoring || !selected || selected.revision === currentRevision || preview?.revision !== selected.revision || !!previewError
             }
             onClick={() => void restoreSelected()}
             className="primary-button ml-auto rounded-md px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"

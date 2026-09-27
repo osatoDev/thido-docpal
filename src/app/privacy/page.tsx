@@ -12,7 +12,7 @@ export default function PrivacyPage() {
     <LegalDocument
       title="Privacy Policy"
       description="This Policy explains what information Thido handles, why we use it, which service providers help us operate the product, and the choices available to you."
-      effectiveDate="31 July 2026"
+      effectiveDate="28 September 2026"
     >
       <section>
         <h2>1. Who is responsible for your data</h2>
@@ -305,6 +305,15 @@ export default function PrivacyPage() {
           period will be published before broader production use.
           We may retain limited records longer where reasonably necessary for
           security, dispute resolution, backup integrity, or legal compliance.
+        </p>
+        <p>
+          For documents with more than 100 saved versions, we may remove older
+          versions after emailing the document owner and allowing at least 14
+          days after delivery is confirmed to choose to keep them. The current
+          document and at least the newest 100 versions are retained. Owners can
+          choose Keep all versions in version history or from the email link to
+          stop automatic history cleanup for that document, including future
+          versions. Removed versions cannot be restored through version history.
         </p>
         <p>
           You may request deletion by contacting{" "}

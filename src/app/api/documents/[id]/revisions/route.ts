@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { unauthorizedResponse } from "@/lib/apiResponses";
 import { reconcileOrphanedComments } from "@/lib/documentComments";
-import { getDocumentForUser } from "@/lib/documentAuth";
+import { documentAccessWhere, getDocumentForUser } from "@/lib/documentAuth";
 import {
   expireStaleCommentAiJobs,
   hasActiveCommentAiJob,
@@ -18,43 +18,64 @@ import { reportServerError } from "@/lib/rollbar/server";
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function GET(_request: Request, { params }: Params) {
+export async function GET(request: Request, { params }: Params) {
   const session = await auth();
   if (!session?.user?.id) return await unauthorizedResponse();
 
+  const query = new URL(request.url).searchParams;
+  const before = query.get("before");
+  const preview = query.get("revision");
+  const isRevision = (value: string | null) =>
+    value === null || (/^\d+$/.test(value) && Number.isSafeInteger(Number(value)) && Number(value) <= 2147483647);
+  if (!isRevision(before) || !isRevision(preview) || (before !== null && preview !== null)) {
+    return NextResponse.json({ error: "Provide a valid revision or before cursor." }, { status: 400 });
+  }
   const { id } = await params;
-  const document = await getDocumentForUser(
-    id,
-    session.user.id,
-    session.user.email,
-    "EDIT",
-  );
-  if (!document) {
-    await reportServerError(new Error("Document not found"), {
-      source: "document-revisions",
-      operation: "get-not-found",
-      status: 404,
-      documentId: id,
+  const document = await prisma.document.findFirst({
+    where: { id, AND: documentAccessWhere(session.user.id, session.user.email, "EDIT") },
+    select: {
+      revision: true,
+      ownerId: true,
+      historyRetention: { select: { keepAll: true, deleteAfter: true } },
+    },
+  });
+  if (!document) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // A preview is an explicit request; list pages never fetch snapshot bodies.
+  if (preview !== null) {
+    const revision = await prisma.documentRevision.findUnique({
+      where: { documentId_revision: { documentId: id, revision: Number(preview) } },
+      select: { revision: true, title: true, content: true },
     });
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return revision
+      ? NextResponse.json({ revision })
+      : NextResponse.json({ error: "This version is no longer available." }, { status: 404 });
   }
 
-  const revisions = await prisma.documentRevision.findMany({
-    where: { documentId: id },
+  const page = await prisma.documentRevision.findMany({
+    where: { documentId: id, ...(before === null ? {} : { revision: { lt: Number(before) } }) },
     orderBy: { revision: "desc" },
-    take: 100,
+    take: 11,
     select: {
       revision: true,
       title: true,
-      content: true,
       source: true,
       restoredFromRevision: true,
       createdAt: true,
       actor: { select: { name: true } },
     },
   });
-
-  return NextResponse.json({ revisions, currentRevision: document.revision });
+  const revisions = page.slice(0, 10);
+  return NextResponse.json({
+    revisions,
+    nextCursor: page.length > 10 ? revisions[revisions.length - 1].revision : null,
+    currentRevision: document.revision,
+    retention: {
+      canManage: document.ownerId === session.user.id,
+      keepAll: document.historyRetention?.keepAll ?? false,
+      deleteAfter: document.historyRetention?.deleteAfter ?? null,
+    },
+  });
 }
 
 export async function POST(request: Request, { params }: Params) {

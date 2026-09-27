@@ -5,6 +5,7 @@ import { Resend } from "resend";
 import { adminDetailHref } from "@/lib/adminDetails";
 import { documentEditPath } from "@/lib/documentUrls";
 import { founderFeedbackRecipients } from "@/lib/feedback";
+import type { HistoryNotice } from "@/lib/documentHistoryRetention";
 
 let resendClient: Resend | null = null;
 
@@ -67,7 +68,7 @@ async function sendEmail({
     return;
   }
 
-  const { error } = await resend.emails.send(
+  const { data, error } = await resend.emails.send(
     {
       from: process.env.AUTH_EMAIL_FROM ?? "Thido <auth@thido.ai>",
       to,
@@ -79,6 +80,40 @@ async function sendEmail({
   );
 
   if (error) throw new Error(`Email delivery failed: ${error.message}`);
+  return data?.id;
+}
+
+export async function wasHistoryNoticeDelivered(emailId: string) {
+  const resend = getResend();
+  if (!resend) return false;
+  const { data, error } = await resend.emails.get(emailId);
+  if (error) throw new Error(`Could not verify history notice delivery: ${error.message}`);
+  return !!data && ["delivered", "opened", "clicked"].includes(data.last_event);
+}
+
+export async function sendHistoryRetentionEmail(notice: HistoryNotice) {
+  // Retention must never treat a development preview as a sent warning.
+  if (!process.env.RESEND_API_KEY) throw new Error("History retention requires a configured email sender.");
+  const url = appUrl(`/documents/${encodeURIComponent(notice.documentId)}/history`);
+  const date = notice.deleteAfter.toLocaleDateString("en", { dateStyle: "long", timeZone: "UTC" });
+  const greeting = notice.name ? `Hi ${notice.name},` : "Hello,";
+  const paragraphs = [
+    greeting,
+    `Your document “${notice.documentTitle}” now has more than 100 saved versions. Those drafts can be valuable, so we want to give you a choice before removing any of them.`,
+    `To keep document storage manageable, we plan to remove older versions on or after ${date} (UTC), after a full 14-day notice period. Your current document and at least the newest 100 versions will stay safe. This notice only covers versions that were already older than those 100 when we sent it.`,
+    `If you would like to keep your full history, open the link below, sign in as the document owner, and choose “Keep all versions”. This stops automatic history cleanup for this document, including future versions. There is no need to reply to this email.`,
+    `If you do nothing, the older versions covered by this notice will be permanently removed after the notice period. You can review your history and make your choice here:`,
+  ];
+  const emailId = await sendEmail({
+    to: notice.email,
+    subject: "A choice about your document’s version history",
+    text: `${paragraphs.join("\n\n")}\n\n${url}\n\nThank you for writing with Thido.`,
+    html: emailShell("Keep the drafts that matter to you", paragraphs.map(escapeHtml).join("<br /><br />"), "Review and keep my history", url),
+    previewUrl: url,
+    idempotencyKey: `history-retention-${notice.noticeId}`,
+  });
+  if (!emailId) throw new Error("History notification was not accepted by the email provider.");
+  return emailId;
 }
 
 export async function sendWaitlistConfirmationEmail(email: string) {
