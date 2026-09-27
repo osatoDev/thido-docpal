@@ -70,12 +70,13 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   const { id } = await params;
-  const editableDocument = await getDocumentForUser(
-    id,
-    session.user.id,
-    session.user.email,
-    "EDIT",
-  );
+  const editableDocument = await prisma.document.findFirst({
+    where: {
+      id,
+      AND: documentAccessWhere(session.user.id, session.user.email, "EDIT"),
+    },
+    select: { id: true, isPlaceholder: true },
+  });
   const commentableDocument =
     editableDocument ??
     (await getDocumentForUser(
@@ -130,6 +131,7 @@ export async function PATCH(request: Request, { params }: Params) {
   if (body.content !== undefined) {
     if (!editableDocument) {
       const currentContent =
+        "content" in commentableDocument &&
         commentableDocument.content &&
         typeof commentableDocument.content === "object"
           ? (commentableDocument.content as JSONContent)
@@ -180,7 +182,6 @@ export async function PATCH(request: Request, { params }: Params) {
         id: true,
         title: true,
         titleManuallySet: true,
-        content: true,
         revision: true,
       },
     });
@@ -279,7 +280,9 @@ export async function PATCH(request: Request, { params }: Params) {
     await reconcileOrphanedComments(prisma, id, body.content as JSONContent);
   }
 
-  return NextResponse.json({ document });
+  return NextResponse.json({
+    document: { id: document.id, revision: document.revision, title: document.title },
+  });
 }
 
 export async function DELETE(_request: Request, { params }: Params) {

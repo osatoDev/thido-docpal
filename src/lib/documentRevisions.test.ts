@@ -52,6 +52,7 @@ describe("document revision recording", () => {
     });
 
     expect(create).toHaveBeenCalledWith({
+      select: { id: true },
       data: expect.objectContaining({
         revision: 4,
         source: DocumentRevisionSource.AI,

@@ -49,6 +49,7 @@ export async function recordDocumentRevision(
     if (mayCoalesce) {
       return transaction.documentRevision.update({
         where: { id: latest.id },
+        select: { id: true },
         data: {
           revision: document.revision,
           title: document.title,
@@ -59,6 +60,7 @@ export async function recordDocumentRevision(
   }
 
   return transaction.documentRevision.create({
+    select: { id: true },
     data: {
       documentId: document.id,
       revision: document.revision,

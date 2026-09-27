@@ -11,6 +11,7 @@ import { EditorContent, useEditor, type JSONContent } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { Toolbar } from "./Toolbar";
+import { AUTOSAVE_DELAY_MS, AutosaveStatus, type SaveState } from "./AutosaveStatus";
 import { applyDocumentPreferencesToDom } from "./extensions/DocumentPreferences";
 import { DocumentOutline } from "./DocumentOutline";
 import { DocumentTabs } from "./DocumentTabs";
@@ -82,7 +83,11 @@ type Props = {
   checklistMoveControls?: boolean;
 };
 
-type SaveState = "idle" | "saving" | "saved" | "error";
+type DocumentSave = {
+  title?: string;
+  titleUpdateSource?: "AUTO" | "USER";
+  content?: JSONContent;
+};
 type SelectionComposer = {
   scope: "SELECTION";
   anchorMarkId: string;
@@ -141,6 +146,7 @@ export function TiptapEditor({
       : title;
   const [revision, setRevision] = useState(initialRevision);
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [saveDeadline, setSaveDeadline] = useState<number | null>(null);
   const [documentConflict, setDocumentConflict] = useState<string | null>(null);
   const [comments, setComments] = useState<CommentWithReplies[]>(initialComments);
   const [activeComposer, setActiveComposer] = useState<ActiveComposer | null>(null);
@@ -167,11 +173,10 @@ export function TiptapEditor({
     documentImportMessage?.dismissAfterMs;
   const documentImportMessageText = documentImportMessage?.text;
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingSaveRef = useRef<{
-    title?: string;
-    titleUpdateSource?: "AUTO" | "USER";
-    content?: JSONContent;
-  } | null>(null);
+  const pendingSaveRef = useRef<DocumentSave | null>(null);
+  const failedSaveRef = useRef<DocumentSave | null>(null);
+  const saveVersionRef = useRef(0);
+  const unsavedChangesRef = useRef(false);
   const saveChainRef = useRef<Promise<void>>(Promise.resolve());
   const revisionRef = useRef(initialRevision);
   const conflictRef = useRef(false);
@@ -372,6 +377,35 @@ export function TiptapEditor({
   }, []);
 
   useEffect(() => {
+    function warnBeforeUnload(event: BeforeUnloadEvent) {
+      if (!unsavedChangesRef.current) return;
+      event.preventDefault();
+      event.returnValue = "";
+    }
+    function guardLinkNavigation(event: MouseEvent) {
+      if (!unsavedChangesRef.current || event.defaultPrevented || event.button !== 0 ||
+        event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (!(link instanceof HTMLAnchorElement) || link.hasAttribute("download") ||
+        (link.target && link.target !== "_self")) return;
+      const target = new URL(link.href, window.location.href);
+      if (!/^https?:$/.test(target.protocol)) return;
+      if (target.origin === window.location.origin && target.pathname === window.location.pathname &&
+        target.search === window.location.search) return;
+      if (!window.confirm("Leave this page? Your latest changes are not saved. Choose Cancel to stay and save.")) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    document.addEventListener("click", guardLinkNavigation, true);
+    return () => {
+      window.removeEventListener("beforeunload", warnBeforeUnload);
+      document.removeEventListener("click", guardLinkNavigation, true);
+    };
+  }, []);
+
+  useEffect(() => {
     editorRef.current = editor;
   }, [editor]);
 
@@ -400,38 +434,51 @@ export function TiptapEditor({
     return () => document.removeEventListener("keydown", toggleCommentsSidebar);
   }, []);
 
-  function scheduleSave(next: {
-    title?: string;
-    titleUpdateSource?: "AUTO" | "USER";
-    content?: JSONContent;
-  }) {
+  function scheduleSave(next: DocumentSave) {
     if (documentAiLockedRef.current || conflictRef.current) return;
+    unsavedChangesRef.current = true;
+    saveVersionRef.current += 1;
     pendingSaveRef.current = { ...pendingSaveRef.current, ...next };
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    setSaveState("saving");
+    // Tiptap invokes this from editor events, never during React rendering.
+    // eslint-disable-next-line react-hooks/purity
+    setSaveDeadline(Date.now() + AUTOSAVE_DELAY_MS);
+    setSaveState("waiting");
     debounceRef.current = setTimeout(() => {
       debounceRef.current = null;
       const pending = pendingSaveRef.current;
       pendingSaveRef.current = null;
       if (pending) void saveDocumentUpdate(pending);
-    }, 600);
+    }, AUTOSAVE_DELAY_MS);
   }
 
-  function saveDocumentUpdate(next: {
-    title?: string;
-    titleUpdateSource?: "AUTO" | "USER";
-    content?: JSONContent;
-  }) {
+  function saveNow() {
+    if (documentAiLockedRef.current || conflictRef.current) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = null;
+    const pending = { ...failedSaveRef.current, ...pendingSaveRef.current };
+    pendingSaveRef.current = null;
+    void saveDocumentUpdate(pending);
+  }
+
+  function saveDocumentUpdate(next: DocumentSave) {
+    const saveVersion = ++saveVersionRef.current;
+    unsavedChangesRef.current = true;
+    setSaveDeadline(null);
+    setSaveState("saving");
     const operation = saveChainRef.current.then(async () => {
       if (conflictRef.current) {
         return { ok: false, body: { documentConflict: true } };
       }
+      // Carry a failed title/content update into the next attempt. Newer fields win.
+      const payload = { ...failedSaveRef.current, ...next };
+      failedSaveRef.current = null;
       try {
         const response = await fetch(`/api/documents/${documentId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            ...next,
+            ...payload,
             baseRevision: revisionRef.current,
           }),
         });
@@ -450,13 +497,18 @@ export function TiptapEditor({
           if (typeof savedDocument?.title === "string") {
             replaceDocumentUrl(savedDocument.title);
           }
-          setSaveState("saved");
+          if (saveVersion === saveVersionRef.current && !pendingSaveRef.current) {
+            unsavedChangesRef.current = false;
+            setSaveState("saved");
+          }
           return { ok: true, body };
         }
 
-        setSaveState("error");
+        failedSaveRef.current = payload;
+        if (saveVersion === saveVersionRef.current) setSaveState("error");
         if (body?.documentConflict === true) {
           conflictRef.current = true;
+          setSaveState("error");
           setDocumentConflict(
             typeof body.error === "string"
               ? body.error
@@ -473,7 +525,8 @@ export function TiptapEditor({
         }
         return { ok: false, body };
       } catch {
-        setSaveState("error");
+        failedSaveRef.current = payload;
+        if (saveVersion === saveVersionRef.current) setSaveState("error");
         return { ok: false, body: null };
       }
     });
@@ -483,6 +536,16 @@ export function TiptapEditor({
       () => undefined,
     );
     return operation;
+  }
+
+  function resetPendingSaves() {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = null;
+    pendingSaveRef.current = null;
+    failedSaveRef.current = null;
+    saveVersionRef.current += 1;
+    unsavedChangesRef.current = false;
+    setSaveDeadline(null);
   }
 
   async function reloadLatestDocument() {
@@ -507,7 +570,7 @@ export function TiptapEditor({
       editorRef.current?.commands.setContent(latest.content ?? "", {
         emitUpdate: false,
       });
-      pendingSaveRef.current = null;
+      resetPendingSaves();
       conflictRef.current = false;
       setDocumentConflict(null);
       updateRevision(latest.revision);
@@ -531,7 +594,7 @@ export function TiptapEditor({
     editorRef.current?.commands.setContent(document.content ?? "", {
       emitUpdate: false,
     });
-    pendingSaveRef.current = null;
+    resetPendingSaves();
     conflictRef.current = false;
     setDocumentConflict(null);
     updateRevision(document.revision);
@@ -982,17 +1045,13 @@ export function TiptapEditor({
                 }`}
               />
               <div className="flex min-h-5 items-center gap-2 px-1">
-                <span className="text-[11px] text-[var(--muted-soft)]">
-                  {documentAiLocked
-                    ? "Thido is actioning comments…"
-                    : saveState === "saving"
-                      ? "Saving…"
-                      : saveState === "saved"
-                        ? "Saved"
-                        : saveState === "error"
-                          ? "Save failed"
-                          : "All changes save automatically"}
-                </span>
+                <AutosaveStatus
+                  state={saveState}
+                  deadline={saveDeadline}
+                  locked={documentAiLocked}
+                  conflicted={documentConflict !== null}
+                  onSaveNow={saveNow}
+                />
                 {!canEdit ? (
                   <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] text-[var(--muted)]">
                     {canComment ? "Comment access" : "View only"}
