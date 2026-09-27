@@ -1,6 +1,6 @@
 # Autosave: responses, debounce, permission reads, and full-content uploads
 
-Updated after the five-second autosave UI change. These changes are local and have not been deployed.
+Updated after the 120-second autosave UI change. These changes are local and have not been deployed.
 
 ## 1. Why return the full content after each save?
 
@@ -18,9 +18,9 @@ return NextResponse.json({
 
 Full content is still returned when explicitly loading a document. The save response change reduces Vercel-to-browser traffic. Reducing Neon-to-Vercel traffic requires changing database queries too, which this change also does below.
 
-## 2. Five-second debounce and visible progress
+## 2. 120-second debounce and visible progress
 
-The debounce is now **5,000 ms**. Each edit resets the countdown. The header shows “Autosaving in 5s” down to the request, with a progress bar measuring the pause before saving. During the request it shows “Saving…” with an indeterminate indicator; it does not invent a network-completion percentage. Only acknowledgement of the latest pending edits produces “Saved.”
+The debounce is now **120,000 ms**. Each edit resets the countdown. The header shows “Autosaving in 120s” down to the request, with a progress bar measuring the pause before saving. During the request it shows “Saving…” with an indeterminate indicator; it does not invent a network-completion percentage. Only acknowledgement of the latest pending edits produces “Saved.”
 
 “Save now” skips the countdown. A failed payload remains in memory and “Retry save” retries it; a later edit also carries failed fields forward, with newer values taking precedence. Comment creation and batch AI actions still explicitly save before proceeding.
 
@@ -78,10 +78,10 @@ That design can make small edits produce small uploads. It also requires retaini
 
 Smaller uploads alone do **not** automatically eliminate Neon egress: if the server fetches the whole stored document to apply every operation batch, that is still a full-content database result. History snapshots can also continue to consume writes and storage. Upload size, database query results, and history storage need to be measured separately.
 
-The user has explicitly prioritized efficiency over real-time collaborative merging. The next persistence design should use revision-checked incremental batches and explicit conflict/recovery behavior, preserving the current reject-stale-edits policy. Real-time merging is outside the current priority. Full-content uploads still remain; the five-second debounce and query reductions are the improvements implemented so far.
+The user has explicitly prioritized efficiency over real-time collaborative merging. The next persistence design should use revision-checked incremental batches and explicit conflict/recovery behavior, preserving the current reject-stale-edits policy. Real-time merging is outside the current priority. Full-content uploads still remain; the 120-second debounce and query reductions are the improvements implemented so far.
 
 ## Implementation status
 
-Implemented locally: five-second debounce with countdown, honest save progress, manual flush/retry, unsaved-navigation warnings, and acknowledgement-aware status; metadata-only PATCH response, metadata-only edit authorization lookup, removal of the unused transaction content read, and ID-only revision-write results. No deployment or database migration was performed. Incremental uploads and the remaining durability improvements described above are outstanding.
+Implemented locally: 120-second debounce with countdown, honest save progress, manual flush/retry, unsaved-navigation warnings, and acknowledgement-aware status; metadata-only PATCH response, metadata-only edit authorization lookup, removal of the unused transaction content read, and ID-only revision-write results. No deployment or database migration was performed. Incremental uploads and the remaining durability improvements described above are outstanding.
 
 Validation: TypeScript typecheck and targeted ESLint passed; all 242 unit tests passed. Ten Playwright setup/workflow tests passed against the isolated local database, covering the new autosave flow, the existing editing workflow, and AI-comment pre-saving. A targeted follow-up also passed for cancelling the browser reload warning and then retrying the unsaved payload. Agent-browser desktop and 390 px mobile checks showed the countdown and Save now control without horizontal overflow or browser errors.

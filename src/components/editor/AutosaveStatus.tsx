@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export const AUTOSAVE_DELAY_MS = 5000;
+export const AUTOSAVE_DELAY_MS = 120_000;
 export type SaveState = "idle" | "waiting" | "saving" | "saved" | "error";
 
 type Props = {

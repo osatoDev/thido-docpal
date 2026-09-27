@@ -5,8 +5,10 @@ import { openSeedDocument } from "./helpers";
 
 const savePath = `/api/documents/${SEED.documentId}`;
 
-test("waits five seconds after the last edit and shows acknowledged save status", async ({ page }) => {
+test("waits 120 seconds after the last edit and shows acknowledged save status", async ({ page }) => {
   await openSeedDocument(page);
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
   let saves = 0;
   page.on("request", request => {
     if (new URL(request.url()).pathname === savePath && request.method() === "PATCH") saves += 1;
@@ -15,15 +17,16 @@ test("waits five seconds after the last edit and shows acknowledged save status"
   await page.locator(".ProseMirror p").first().click();
   await page.keyboard.press("End");
   await page.keyboard.type(" Autosave countdown");
-  await expect(status).toContainText("Autosaving in 5s");
+  await expect(status).toContainText("Autosaving in 120s");
   await expect(page.getByRole("progressbar", { name: "Time until autosave" })).toBeVisible();
-  await page.waitForTimeout(2600);
+  await page.clock.fastForward(60_000);
   expect(saves).toBe(0);
   await page.keyboard.type(" reset.");
-  await expect(status).toContainText("Autosaving in 5s");
-  await page.waitForTimeout(2600);
+  await expect(status).toContainText("Autosaving in 120s");
+  await page.clock.fastForward(119_000);
   expect(saves).toBe(0);
   const response = page.waitForResponse(r => new URL(r.url()).pathname === savePath && r.request().method() === "PATCH");
+  await page.clock.fastForward(1000);
   await expect(status.getByText("Saved", { exact: true })).toBeVisible({ timeout: 10_000 });
   expect(saves).toBe(1);
   expect(Object.keys((await (await response).json()).document).sort()).toEqual(["id", "revision", "title"]);

@@ -6,6 +6,8 @@ import { openSeedDocument } from "./helpers";
 test.describe("document editing", () => {
   test("typing autosaves and survives a reload", async ({ page }) => {
     await openSeedDocument(page);
+    await page.clock.install();
+    await page.clock.pauseAt(new Date(Date.now() + 1000));
 
     const editor = page.locator(".ProseMirror");
     const marker = ` Checked by e2e ${Date.now()}.`;
@@ -13,6 +15,7 @@ test.describe("document editing", () => {
     await editor.locator("p").first().click();
     await page.keyboard.press("End");
     await page.keyboard.type(marker);
+    await page.clock.fastForward(120_000);
 
     await expect(page.getByText("Saved", { exact: true })).toBeVisible({
       timeout: 15_000,
@@ -77,7 +80,9 @@ test.describe("document editing", () => {
       .poll(paddingLeft, { timeout: 5_000 })
       .toBeGreaterThan(standardPadding + 10);
 
-    // The choice autosaves into the document's preferences node.
+    await page.getByRole("button", { name: "Save now" }).click();
+
+    // The choice saves into the document's preferences node.
     const savedSideMargin = () =>
       page.evaluate(async (id) => {
         const res = await fetch(`/api/documents/${id}`);

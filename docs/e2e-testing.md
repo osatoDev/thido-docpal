@@ -15,7 +15,7 @@ npx playwright show-report                # last HTML report
 | --- | --- |
 | `e2e/auth.setup.ts` | Signs in the seed user via the local test-login form and saves the session (a dependency of the other specs). |
 | `e2e/history.spec.ts` | Ten-entry history pages, Show more beyond 100 versions, single-snapshot preview/retry, restore, owner retention choice, and signed-out/non-owner access restrictions. |
-| `e2e/autosave.spec.ts` | Five-second debounce/reset, countdown and save progress, metadata-only save responses, newer edits during an in-flight save, failure/retry, unsaved navigation warnings, and stale conflicts. |
+| `e2e/autosave.spec.ts` | 120-second debounce/reset, countdown and save progress, metadata-only save responses, newer edits during an in-flight save, failure/retry, unsaved navigation warnings, and stale conflicts. |
 | `e2e/editing.spec.ts` | Open a document, type and autosave, reload and confirm persistence, bold/heading formatting, and **View > Side margins** changing and persisting. |
 | `e2e/comments-ai.spec.ts` | Select a passage, queue a comment, action it with Thido, see the working lock, and the applied revision. |
 | `e2e/landing.spec.ts` | The signed-out marketing page renders (hero, "what Thido does", story cards) and its CTAs reach `/try` and `/register`. |

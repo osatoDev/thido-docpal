@@ -1,6 +1,6 @@
 # Neon 5 GB usage investigation
 
-> Historical baseline before the local autosave changes: debounce is now 5 seconds with visible countdown/save progress, and redundant content results have been reduced. See [current changes and remaining full-content uploads](./autosave-payload-decisions.md). These changes have not been deployed.
+> Historical baseline before the local autosave changes: debounce is now 120 seconds with visible countdown/save progress, and redundant content results have been reduced. See [current changes and remaining full-content uploads](./autosave-payload-decisions.md). These changes have not been deployed.
 
 Investigated 27 September 2026 using the Neon alert email, authenticated Vercel APIs, read-only SQL against the locally configured Neon database, and application source.
 

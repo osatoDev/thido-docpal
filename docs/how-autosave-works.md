@@ -1,6 +1,6 @@
 # How document autosave works
 
-> Historical baseline before the local autosave changes: debounce is now 5 seconds with visible countdown/save progress, and redundant content results have been reduced. See [current changes and remaining full-content uploads](./autosave-payload-decisions.md). These changes have not been deployed.
+> Historical baseline before the local autosave changes: debounce is now 120 seconds with visible countdown/save progress, and redundant content results have been reduced. See [current changes and remaining full-content uploads](./autosave-payload-decisions.md). These changes have not been deployed.
 
 Verified against the current code on 27 September 2026.
 

@@ -1,6 +1,6 @@
 # Why autosave reads document content twice before saving
 
-> Historical baseline before the local autosave changes: debounce is now 5 seconds with visible countdown/save progress, and redundant content results have been reduced. See [current changes and remaining full-content uploads](./autosave-payload-decisions.md). These changes have not been deployed.
+> Historical baseline before the local autosave changes: debounce is now 120 seconds with visible countdown/save progress, and redundant content results have been reduced. See [current changes and remaining full-content uploads](./autosave-payload-decisions.md). These changes have not been deployed.
 
 The quoted statement describes **two separate database requests during one save**. Both bring the existing document content from Neon into the application server running on Vercel. The 600 ms timer controls how often the browser starts this save process.
 
