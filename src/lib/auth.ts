@@ -154,6 +154,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: AUTH_SESSION_OPTIONS,
   pages: {
     signIn: "/login",
+    newUser: "/api/auth/new-user",
   },
   callbacks: {
     async signIn({ user, account, profile }) {

@@ -7,6 +7,7 @@ import { ApplicationStyleSync } from "@/components/ApplicationStyleSync";
 import { GoogleAdsTag } from "@/components/GoogleAdsTag";
 import { RedditPixel } from "@/components/RedditPixel";
 import { SignedInPageActions } from "@/components/SignedInPageActions";
+import { SignupConversions } from "@/components/SignupConversions";
 import {
   APPLICATION_STYLE_COOKIE_NAME,
   DEFAULT_APPLICATION_STYLE,
@@ -93,6 +94,9 @@ export default async function RootLayout({
         <GoogleAdsTag />
         <Suspense fallback={null}>
           <SessionRedditPixel />
+        </Suspense>
+        <Suspense fallback={null}>
+          <SignupConversions />
         </Suspense>
       </body>
     </html>

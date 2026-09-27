@@ -5,7 +5,7 @@ import Script from "next/script";
 // external gtag.js loader, then the inline dataLayer/config call) rather
 // than one script block, since next/script's children-as-code form is for
 // inline scripts only; an external `src` needs its own <Script>.
-const GOOGLE_ADS_TAG_ID = "AW-18057220436";
+export const GOOGLE_ADS_TAG_ID = "AW-18057220436";
 
 export function GoogleAdsTag() {
   if (process.env.NODE_ENV !== "production") return null;
