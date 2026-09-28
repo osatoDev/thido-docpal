@@ -89,11 +89,11 @@ Open [http://localhost:3000](http://localhost:3000).
 4. Add your production callback URL
    (`https://<your-domain>/api/auth/callback/google`) to the Google OAuth
    client's authorized redirect URIs.
-5. In the GitHub repository, create a `production` environment and add
-   `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct) as environment
-   secrets. The `Production database migrations` workflow applies committed
-   Prisma migrations whenever migration-related files reach `main`. It can also
-   be run manually from the repository's Actions tab.
+5. Run production migrations from the command line with
+   `npm run db:migrate:prod`, using verified production `DATABASE_URL` (pooled)
+   and `DATABASE_URL_UNPOOLED` (direct) credentials for the same database.
+   Apply required schema changes before deploying application code that depends
+   on them, and keep migration files committed in `prisma/migrations/`.
 
 ### Admin console
 

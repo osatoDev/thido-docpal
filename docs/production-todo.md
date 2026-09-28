@@ -1,6 +1,6 @@
 # Thido production checklist
 
-Last reviewed: 28 September 2026 (documentation cleanup; external configuration not reverified)
+Last reviewed: 28 September 2026 (command-line migration process confirmed; production database not rechecked)
 
 This is the running source of truth for production-readiness work. Completed boxes indicate repository evidence or a verified check. External configuration remains unchecked until it is explicitly verified.
 
@@ -78,10 +78,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [x] Use PostgreSQL through Prisma.
 - [x] Keep committed, ordered Prisma migration files.
 - [x] Provide a production migration command: `npm run db:migrate:prod`.
-- [x] Add a GitHub Actions workflow for production migrations.
-- [ ] Create the GitHub `production` environment and add `DATABASE_URL` and `DATABASE_URL_UNPOOLED` secrets.
-- [ ] Run the migration workflow manually once and verify it succeeds against production.
-- [ ] Decide whether migration deployment remains automatic on changes to `main` or requires environment approval.
+- [x] Use command-line production migrations as the owner’s chosen process. Removed the redundant GitHub Actions migration workflow on 28 September 2026; retained `npm run db:migrate:prod` and committed Prisma migration files. Workflow removal takes effect on GitHub once pushed.
 - [ ] Enable and verify Neon backups or point-in-time recovery.
 - [ ] Document and test a database restore procedure.
 - [ ] Set alerts for connection exhaustion, storage growth, and database errors.
@@ -479,7 +476,7 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Ensure Preview deployments never use the production database by default.
 - [ ] Decide whether Neon database branches should be created for Preview deployments.
 - [ ] Verify production and preview environment-variable scopes separately.
-- [ ] Verify the migration workflow and Vercel deployment ordering cannot deploy code that requires an unapplied schema.
+- [ ] Verify the release process applies required production migrations from the command line before Vercel deploys code that depends on the new schema.
 
 ## Product, privacy, and support
 
