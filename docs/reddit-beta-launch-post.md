@@ -1,6 +1,6 @@
 # Reddit beta launch post (draft)
 
-Draft invite post for recruiting beta testers, plus target subreddits. Companion to [reddit-beta-launch-readiness.md](./reddit-beta-launch-readiness.md), which tracks whether the app itself is actually ready for this traffic.
+Draft invite post for recruiting beta testers, plus target subreddits. Companion to [launch verification checklist](./production-todo.md#final-launch-verification), which tracks whether the app itself is actually ready for this traffic.
 
 ## Post
 

@@ -144,3 +144,12 @@ charge.
   `AiGeneration.estimatedCostMicroUsd` stays admin-only.
 - **Stale `aiCreditsUsed` column** (see §1). Could be recomputed from the
   ledger on read.
+
+## Credit units
+
+Credits measure weighted AI actions, not tokens, documents, or currency.
+The defaults in `src/lib/entitlements.ts` are 30 credits for Free and 300 for
+Pro per UTC calendar month. Planning follow-up questions cost 1 credit; document
+generation and a batch of comment revisions cost 5 credits each. Premium Opus
+doubles these weights. A comment batch has one weight regardless of thread
+count. Published entitlements remain subject to the billing launch checklist.

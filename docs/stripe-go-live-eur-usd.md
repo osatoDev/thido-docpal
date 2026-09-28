@@ -105,10 +105,9 @@ signal (geolocation vs. explicit user choice) before starting.
 market conventionally rounds to a clean number rather than mirroring the FX
 rate exactly (e.g. $12 flat, or $15 to price above the EUR equivalent and
 absorb Stripe's cross-border/FX handling costs). This is a pricing decision,
-not a technical one — [pricing-policy.md](./pricing-policy.md) and
-[paid-plan-pricing.md](./paid-plan-pricing.md) are the existing references
-for how the €12 figure itself was reasoned about; apply the same reasoning to
-the USD number rather than treating it as a pure currency conversion.
+not a technical one. [Paid-plan pricing](./paid-plan-pricing.md) records the
+rationale for €12; the approved €12 EUR / $12 USD amounts are recorded in the
+[production checklist](./production-todo.md#beta-access-and-billing).
 
 ## Part 3 — Recreate the product/Price in live mode
 

@@ -123,7 +123,7 @@ signing in. Verification links expire after 24 hours, password-reset links
 expire after one hour, and both are single-use. Run the committed Prisma
 migrations and configure Resend before using these flows in production.
 
-Authentication documentation is in `docs/authjs.md`, `docs/sign-out.md`,
+Authentication documentation is in `docs/authjs.md`,
 `docs/rate-limiting.md`, and `docs/account-linking.md`.
 
 ### Beta access and billing

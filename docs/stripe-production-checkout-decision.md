@@ -2,8 +2,8 @@
 
 **Date:** 2026-08-27 · **Decided by:** founder (osato_dev) · **Reverses:** the
 "keep `STRIPE_PRO_PRICE_ID` unset in Production until launch is approved"
-guardrail in [`billing.md`](./billing.md) and
-[`paid-plan-implementation-status.md`](./paid-plan-implementation-status.md).
+guardrail previously recorded in the billing documentation. Current launch
+requirements are in the [billing launch checklist](./production-todo.md#beta-access-and-billing).
 
 ## What was decided
 

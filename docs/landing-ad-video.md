@@ -3,8 +3,7 @@
 A 33-second spot for the top of the marketing landing page. The job: show
 Thido's two core features to the audiences we are focusing on first, **novelists
 and proposal writers**, in the same calm, dry, editorial voice the rest of the
-site uses. No hype, no generic AI imagery, no animated gradients (per
-[landing-page-recommendations.md](./landing-page-recommendations.md)).
+site uses. No hype, no generic AI imagery, no animated gradients.
 
 **Animated reference build:** a self-playing, scrubbable version of the spot with
 a shot list is published as a Claude artifact ("The Four-Second Draft"). It is the

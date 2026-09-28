@@ -2,9 +2,10 @@
 
 Status: **created in the `stripe-cobalt-harbor` sandbox on 2026-08-27** with the
 recommended options (€12/month, EUR, monthly only, no trial). Still not a
-published or live price — Production `STRIPE_PRO_PRICE_ID` stays unset until the
-launch checklist passes (see
-[paid-plan-implementation-status.md](./paid-plan-implementation-status.md)).
+published or live price. The founder subsequently approved exposing this sandbox
+Price in Production as a test-mode preview (see the
+[checkout decision](./stripe-production-checkout-decision.md)). Live-payment
+requirements remain in the [billing launch checklist](./production-todo.md#beta-access-and-billing).
 
 | Object | Sandbox id |
 | --- | --- |

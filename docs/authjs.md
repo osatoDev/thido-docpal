@@ -99,3 +99,10 @@ AUTH_EMAIL_FROM
 | `src/lib/email.ts` | Lazy Resend client and authentication emails |
 | `src/proxy.ts` | Early page navigation checks |
 | `prisma/schema.prisma` | Auth.js and application authentication models |
+
+## Sign-out
+
+Ordinary sign-out clears the current browser's Auth.js session cookie and
+redirects to `/login?notice=signed-out`; other browsers retain their sessions.
+The Settings sign-out-all-devices action and password reset increment
+`User.sessionVersion`, invalidating existing JWTs on subsequent validation.

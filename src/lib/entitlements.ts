@@ -11,7 +11,7 @@ import type { AiModelId } from "@/lib/ai/models";
  * credits-not-tokens hybrid model recommended in docs/paid-plan-pricing.md:
  * customers never see raw token counts, only a monthly action allowance.
  * These specific numbers are a functional default pending final approval of
- * paid-plan entitlements (see docs/paid-plan-implementation-status.md); the
+ * paid-plan entitlements (see docs/production-todo.md); the
  * mechanism, not the exact figures, is the part this module is responsible for.
  *
  * Every consumption also writes an `AiCreditCharge` ledger row so a user can

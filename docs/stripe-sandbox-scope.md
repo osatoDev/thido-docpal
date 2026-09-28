@@ -130,5 +130,5 @@ environment ([Production included, by decision](./stripe-production-checkout-dec
    `STRIPE_WEBHOOK_SECRET` in Production. Checkout stops being test-only.
 
 Related: [`billing.md`](./billing.md),
-[`paid-plan-implementation-status.md`](./paid-plan-implementation-status.md),
-[`pricing-policy.md`](./pricing-policy.md).
+[billing launch checklist](./production-todo.md#beta-access-and-billing),
+[approved pricing and launch requirements](./production-todo.md#beta-access-and-billing).
