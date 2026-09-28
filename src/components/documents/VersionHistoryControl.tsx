@@ -197,7 +197,8 @@ export function VersionHistoryDialog({
               Version history
             </h2>
             <p className="mt-1 text-xs text-[var(--muted)]">
-              Showing the newest 10 versions first. Restoring creates a new version.
+              Editing creates a restore point at most once every 24 hours between AI changes,
+              imports, or restores. Autosave still saves your latest work.
             </p>
           </div>
           <button

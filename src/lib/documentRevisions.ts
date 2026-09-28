@@ -4,7 +4,7 @@ import {
   type Document,
 } from "@prisma/client";
 
-const USER_REVISION_WINDOW_MS = 2 * 60_000;
+const USER_REVISION_WINDOW_MS = 24 * 60 * 60_000;
 
 type RevisionDocument = Pick<
   Document,
@@ -35,27 +35,18 @@ export async function recordDocumentRevision(
       where: { documentId: document.id },
       orderBy: { revision: "desc" },
       select: {
-        id: true,
         source: true,
-        actorId: true,
         createdAt: true,
       },
     });
-    const mayCoalesce =
+    // Autosave persists the current document independently. History only
+    // needs occasional immutable restore points, not another write per save.
+    // The first user save after an AI/import/restore also starts a new point.
+    if (
       latest?.source === DocumentRevisionSource.USER &&
-      latest.actorId === (actorId ?? null) &&
-      latest.createdAt.getTime() > Date.now() - USER_REVISION_WINDOW_MS;
-
-    if (mayCoalesce) {
-      return transaction.documentRevision.update({
-        where: { id: latest.id },
-        select: { id: true },
-        data: {
-          revision: document.revision,
-          title: document.title,
-          content: revisionContent(document.content),
-        },
-      });
+      latest.createdAt.getTime() > Date.now() - USER_REVISION_WINDOW_MS
+    ) {
+      return null;
     }
   }
 
