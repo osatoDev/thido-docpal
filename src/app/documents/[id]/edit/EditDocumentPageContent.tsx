@@ -94,7 +94,7 @@ export async function EditDocumentPageContent({
     getAccessibleEditDocument(id, session.user.id, session.user.email),
     prisma.userSettings.findUnique({
       where: { userId: session.user.id },
-      select: { checklistMoveControls: true },
+      select: { checklistMoveControls: true, autosaveDelaySeconds: true },
     }),
   ]);
 
@@ -167,6 +167,7 @@ export async function EditDocumentPageContent({
       startedFromPaste={
         (Array.isArray(start) ? start[0] : start) === "paste"
       }
+      autosaveDelaySeconds={settings?.autosaveDelaySeconds}
       checklistMoveControls={settings?.checklistMoveControls ?? true}
     />
   );

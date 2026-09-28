@@ -11,7 +11,8 @@ import { EditorContent, useEditor, type JSONContent } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { Toolbar } from "./Toolbar";
-import { AUTOSAVE_DELAY_MS, AutosaveStatus, type SaveState } from "./AutosaveStatus";
+import { DEFAULT_AUTOSAVE_DELAY_SECONDS } from "@/lib/autosave";
+import { AutosaveStatus, type SaveState } from "./AutosaveStatus";
 import { applyDocumentPreferencesToDom } from "./extensions/DocumentPreferences";
 import { DocumentOutline } from "./DocumentOutline";
 import { DocumentTabs } from "./DocumentTabs";
@@ -81,6 +82,7 @@ type Props = {
   currentUser: UserMenuProfile;
   startedFromPaste?: boolean;
   checklistMoveControls?: boolean;
+  autosaveDelaySeconds?: number;
 };
 
 type DocumentSave = {
@@ -126,7 +128,9 @@ export function TiptapEditor({
   currentUser,
   startedFromPaste = false,
   checklistMoveControls = true,
+  autosaveDelaySeconds = DEFAULT_AUTOSAVE_DELAY_SECONDS,
 }: Props) {
+  const autosaveDelayMs = autosaveDelaySeconds * 1000;
   const canComment = accessPermission !== "VIEW";
   const canEdit =
     accessPermission === "EDIT" || accessPermission === "FULL";
@@ -442,14 +446,14 @@ export function TiptapEditor({
     if (debounceRef.current) clearTimeout(debounceRef.current);
     // Tiptap invokes this from editor events, never during React rendering.
     // eslint-disable-next-line react-hooks/purity
-    setSaveDeadline(Date.now() + AUTOSAVE_DELAY_MS);
+    setSaveDeadline(Date.now() + autosaveDelayMs);
     setSaveState("waiting");
     debounceRef.current = setTimeout(() => {
       debounceRef.current = null;
       const pending = pendingSaveRef.current;
       pendingSaveRef.current = null;
       if (pending) void saveDocumentUpdate(pending);
-    }, AUTOSAVE_DELAY_MS);
+    }, autosaveDelayMs);
   }
 
   function saveNow() {
@@ -1046,6 +1050,7 @@ export function TiptapEditor({
               />
               <div className="flex min-h-5 items-center gap-2 px-1">
                 <AutosaveStatus
+                  delayMs={autosaveDelayMs}
                   state={saveState}
                   deadline={saveDeadline}
                   locked={documentAiLocked}

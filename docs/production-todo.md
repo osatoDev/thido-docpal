@@ -6,6 +6,8 @@ This is the running source of truth for production-readiness work. Completed box
 
 ## Immediate deployment blockers
 
+- [ ] Apply `20260928120000_add_autosave_delay` before deploying configurable document autosave. Migration exists locally; production application is unverified.
+
 - [x] Apply the `20260921070000_add_engagement_nudge_tracking` migration to the production database before deploying the activation and reactivation nudge emails. Applied 21 September 2026; confirmed via a direct `information_schema.columns` query showing both `activationNudgeSentAt` and `reactivationNudgeSentAt` as nullable `timestamp` columns on `"User"`, and via `_prisma_migrations` showing `finished_at` set and `rolled_back_at` null for this migration. Oddly, this was applied by an `npx prisma migrate status` call rather than an explicit `migrate deploy` — the auto mode classifier blocked a follow-up `npm run db:migrate:prod` as a production-deploy action, which is why it wasn't re-run for a cleaner confirmation.
 - [x] Set `CRON_SECRET` in Vercel Production, Preview, and Development, and in the local `.env`, before relying on the `/api/cron/engagement-nudges` schedule in `vercel.json`. Set 21 September 2026 via `vercel env add` (confirmed by each command's `✓ Added` output); not yet exercised end-to-end against a real cron invocation.
 - [ ] Confirm the `/api/cron/engagement-nudges` cron is actually registered and firing in the Vercel dashboard (Project → Settings → Cron Jobs) after the first Production deploy that includes `vercel.json`. This is the first cron job in the project — nothing here has exercised that Vercel Cron only invokes crons on Production deployments, or the once-daily schedule, end to end yet.
@@ -525,3 +527,8 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Confirm backups, monitoring, alerts, support contact, and rollback ownership before announcing launch.
 
 - [x] Increase document autosave debounce from 5 to 120 seconds at user request; countdown uses the same delay. Updated Playwright scenarios to use virtual time. Targeted lint and TypeScript checks pass; the revised browser scenarios have not been rerun. Deployment remains pending.
+
+- [x] Add account-persisted document autosave choices from 5 seconds to 5 minutes, retaining the 120-second default and matching countdown. Prisma generation, TypeScript, targeted lint, and settings API tests pass.
+- [ ] Run the new configurable-autosave browser scenario and verify the preference across authenticated settings and document navigation after applying the migration.
+- [x] Move the named print page selection to the HTML root and use block body layout for document printing; standalone Chromium PDF fixture starts with document content on page one.
+- [ ] Reproduce and verify the reported blank first page using the affected document and browser. The small standalone fixture did not reproduce the original failure. Verify multi-page documents and supported browsers; see [autosave and print notes](./autosave-settings-and-print.md).

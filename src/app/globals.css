@@ -854,9 +854,17 @@ select {
     print-color-adjust: exact;
   }
 
-  .print-document-layout:has(.ProseMirror),
-  .print-document-article:has(.ProseMirror) {
+  /* Select the named page at the root: switching page names inside the
+     body can force an empty default page before the document. */
+  html:has(.print-document-layout .ProseMirror),
+  html:has(.print-document-article .ProseMirror) {
     page: thido-document;
+  }
+
+  body:has(.print-document-layout),
+  body:has(.print-document-article) {
+    display: block !important;
+    min-height: 0 !important;
   }
 
   .print-document-layout:has(.ProseMirror[data-document-side-margin="narrow"]),

@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 
-export const AUTOSAVE_DELAY_MS = 120_000;
 export type SaveState = "idle" | "waiting" | "saving" | "saved" | "error";
 
 type Props = {
+  delayMs: number;
   state: SaveState;
   deadline: number | null;
   locked: boolean;
@@ -13,7 +13,7 @@ type Props = {
   onSaveNow: () => void;
 };
 
-export function AutosaveStatus({ state, deadline, locked, conflicted, onSaveNow }: Props) {
+export function AutosaveStatus({ delayMs, state, deadline, locked, conflicted, onSaveNow }: Props) {
   const [now, setNow] = useState(() => Date.now());
 
   // Keep countdown ticks out of the document editor's render cycle.
@@ -23,7 +23,7 @@ export function AutosaveStatus({ state, deadline, locked, conflicted, onSaveNow 
     return () => window.clearInterval(timer);
   }, [state, deadline]);
 
-  const remaining = Math.max(0, Math.min(AUTOSAVE_DELAY_MS, (deadline ?? now) - now));
+  const remaining = Math.max(0, Math.min(delayMs, (deadline ?? now) - now));
   const seconds = Math.ceil(remaining / 1000);
   const waiting = state === "waiting" && !locked && !conflicted;
   const saving = state === "saving" && !locked && !conflicted;
@@ -56,8 +56,8 @@ export function AutosaveStatus({ state, deadline, locked, conflicted, onSaveNow 
         <progress
           aria-label="Time until autosave"
           aria-valuetext={`Autosave starts after ${seconds} more seconds without editing`}
-          max={AUTOSAVE_DELAY_MS}
-          value={AUTOSAVE_DELAY_MS - remaining}
+          max={delayMs}
+          value={delayMs - remaining}
           className="mt-1 block h-1 w-40 max-w-full accent-[var(--foreground)]"
         />
       ) : saving ? (

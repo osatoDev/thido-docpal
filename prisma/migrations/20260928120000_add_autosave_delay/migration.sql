@@ -1,0 +1,1 @@
+ALTER TABLE "UserSettings" ADD COLUMN "autosaveDelaySeconds" INTEGER NOT NULL DEFAULT 120;

@@ -1,3 +1,4 @@
+import { isAutosaveDelaySeconds } from "@/lib/autosave";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -32,11 +33,24 @@ export async function PATCH(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   const data: {
+    autosaveDelaySeconds?: number;
     aiModel?: string;
     documentStartMode?: "NEW_DOCUMENT" | "MOST_RECENT";
     applicationStyle?: string;
     checklistMoveControls?: boolean;
   } = {};
+
+  if (body.autosaveDelaySeconds !== undefined) {
+    if (!isAutosaveDelaySeconds(body.autosaveDelaySeconds)) {
+      await reportServerError(new Error("Unsupported autosave delay"), {
+        source: "settings",
+        operation: "invalid-autosave-delay",
+        status: 400,
+      });
+      return NextResponse.json({ error: "Unsupported autosave delay" }, { status: 400 });
+    }
+    data.autosaveDelaySeconds = body.autosaveDelaySeconds;
+  }
 
   if (body.aiModel !== undefined) {
     if (!isAiModelId(body.aiModel)) {

@@ -215,6 +215,7 @@ model UserSettings {
   aiModel                String            @default("claude-sonnet-5")
   documentStartMode      DocumentStartMode @default(NEW_DOCUMENT)
   applicationStyle       String            @default("classic")
+  autosaveDelaySeconds   Int               @default(120)
   checklistMoveControls  Boolean           @default(true)
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt

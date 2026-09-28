@@ -118,3 +118,28 @@ test("stale saves require conflict resolution instead of claiming success", asyn
   await page.getByRole("button", { name: "Reload latest version" }).click();
   await expect(status.getByText("Saved", { exact: true })).toBeVisible();
 });
+
+test("settings persist a custom autosave countdown", async ({ page }) => {
+  try {
+    await page.goto("/settings");
+    const delay = page.getByRole("combobox", { name: "Document autosave delay" });
+    await delay.selectOption("5");
+    await expect(page.getByRole("status")).toContainText("Settings saved");
+    await page.reload();
+    await expect(delay).toHaveValue("5");
+    await openSeedDocument(page);
+    await page.clock.install();
+    await page.clock.pauseAt(new Date(Date.now() + 1000));
+    await page.getByRole("textbox", { name: "Document title" }).fill("Custom autosave delay");
+    const status = page.getByTestId("autosave-status");
+    await expect(status).toContainText("Autosaving in 5s");
+    await page.clock.fastForward(4000);
+    await expect(status).toContainText("Autosaving in 1s");
+    await page.clock.fastForward(1000);
+    await expect(status.getByText("Saved", { exact: true })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole("textbox", { name: "Document title" })).toHaveValue("Custom autosave delay");
+  } finally {
+    await page.request.patch("/api/settings", { data: { autosaveDelaySeconds: 120 } });
+  }
+});

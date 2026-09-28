@@ -8,7 +8,10 @@ import {
   type ApplicationStyle,
 } from "@/lib/applicationStyle";
 
+import { AUTOSAVE_DELAY_OPTIONS } from "@/lib/autosave";
+
 type Props = {
+  initialAutosaveDelaySeconds: number;
   initialAiModel: AiModelId;
   initialApplicationStyle: ApplicationStyle;
   initialDocumentStartMode: "NEW_DOCUMENT" | "MOST_RECENT";
@@ -16,12 +19,14 @@ type Props = {
 };
 
 export function SettingsForm({
+  initialAutosaveDelaySeconds,
   initialAiModel,
   initialApplicationStyle,
   initialDocumentStartMode,
   initialChecklistMoveControls,
 }: Props) {
   const router = useRouter();
+  const [autosaveDelaySeconds, setAutosaveDelaySeconds] = useState(initialAutosaveDelaySeconds);
   const [aiModel, setAiModel] = useState(initialAiModel);
   const [applicationStyle, setApplicationStyle] = useState(
     initialApplicationStyle,
@@ -38,7 +43,7 @@ export function SettingsForm({
     document.documentElement.dataset.appStyle = initialApplicationStyle;
   }, [initialApplicationStyle]);
 
-  async function save(update: Record<string, string | boolean>) {
+  async function save(update: Record<string, string | boolean | number>) {
     setSaveState("saving");
     try {
       const response = await fetch("/api/settings", {
@@ -47,7 +52,7 @@ export function SettingsForm({
         body: JSON.stringify(update),
       });
       setSaveState(response.ok ? "saved" : "error");
-      if (response.ok && update.applicationStyle) router.refresh();
+      if (response.ok) router.refresh();
     } catch {
       setSaveState("error");
     }
@@ -55,6 +60,37 @@ export function SettingsForm({
 
   return (
     <div className="flex flex-col border-t border-[var(--border-strong)]">
+      <section className="border-b border-[var(--border)] py-7">
+        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
+          <div>
+            <h2 className="font-semibold">Document autosave delay</h2>
+            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+              Save after this much time without editing. Each edit restarts the
+              countdown. You can always choose Save now in the editor.
+              Reopen an already open document to use the new delay.
+            </p>
+          </div>
+          <select
+            aria-label="Document autosave delay"
+            value={autosaveDelaySeconds}
+            disabled={saveState === "saving"}
+            onChange={(event) => {
+              const next = Number(event.target.value);
+              setAutosaveDelaySeconds(next);
+              void save({ autosaveDelaySeconds: next });
+            }}
+            className="app-input rounded-md px-3 py-2.5 text-sm outline-none"
+          >
+            {AUTOSAVE_DELAY_OPTIONS.map(seconds => (
+              <option key={seconds} value={seconds}>
+                {seconds < 60 ? `${seconds} seconds` : `${seconds / 60} minute${seconds === 60 ? "" : "s"}`}
+                {seconds === 120 ? " (default)" : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+      </section>
+
       <section className="border-b border-[var(--border)] py-7">
         <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
           <div>
