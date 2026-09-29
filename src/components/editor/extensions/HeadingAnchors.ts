@@ -55,7 +55,9 @@ export const HeadingAnchors = Extension.create({
   name: "headingAnchors",
 
   onCreate() {
-    this.editor.commands.ensureHeadingAnchors();
+    // Initial anchor normalization supports navigation but is not a user edit.
+    // Persist these attributes with the next actual content change.
+    this.editor.chain().setMeta("preventUpdate", true).ensureHeadingAnchors().run();
   },
 
   addCommands() {

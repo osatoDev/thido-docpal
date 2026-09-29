@@ -5,6 +5,29 @@ import { openSeedDocument } from "./helpers";
 
 const savePath = `/api/documents/${SEED.documentId}`;
 
+test("opening and focusing a document stays idle until an actual edit", async ({ page }) => {
+  let saves = 0;
+  page.on("request", request => {
+    if (new URL(request.url()).pathname === savePath && request.method() === "PATCH") saves += 1;
+  });
+  await openSeedDocument(page);
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  const status = page.getByTestId("autosave-status");
+  await expect(status).toHaveText("All changes save automatically");
+  await page.locator(".ProseMirror p").first().click();
+  await page.keyboard.press("ArrowRight");
+  await page.clock.fastForward(121_000);
+  await expect(status).toHaveText("All changes save automatically");
+  await expect(status.getByRole("button", { name: "Save now" })).toHaveCount(0);
+  expect(saves).toBe(0);
+  await page.keyboard.type(" Actual change.");
+  await expect(status).toContainText("Autosaving in 120s");
+  await status.getByRole("button", { name: "Save now" }).click();
+  await expect(status.getByText("Saved", { exact: true })).toBeVisible();
+  expect(saves).toBe(1);
+});
+
 test("waits 120 seconds after the last edit and shows acknowledged save status", async ({ page }) => {
   await openSeedDocument(page);
   await page.clock.install();
@@ -30,6 +53,7 @@ test("waits 120 seconds after the last edit and shows acknowledged save status",
   await expect(status.getByText("Saved", { exact: true })).toBeVisible({ timeout: 10_000 });
   expect(saves).toBe(1);
   expect(Object.keys((await (await response).json()).document).sort()).toEqual(["id", "revision", "title"]);
+  await page.clock.resume();
   await page.reload();
   await expect(page.locator(".ProseMirror")).toContainText("Autosave countdown reset.");
 });
@@ -137,6 +161,7 @@ test("settings persist a custom autosave countdown", async ({ page }) => {
     await expect(status).toContainText("Autosaving in 1s");
     await page.clock.fastForward(1000);
     await expect(status.getByText("Saved", { exact: true })).toBeVisible();
+    await page.clock.resume();
     await page.reload();
     await expect(page.getByRole("textbox", { name: "Document title" })).toHaveValue("Custom autosave delay");
   } finally {

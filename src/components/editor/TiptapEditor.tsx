@@ -293,16 +293,9 @@ export function TiptapEditor({
         return true;
       },
     },
-    onCreate: ({ editor }) => {
-      if (titleManuallySetRef.current) return;
-      const inferredTitle = inferDocumentTitle(editor.getJSON());
-      if (!inferredTitle || inferredTitle === titleRef.current) return;
-
-      titleRef.current = inferredTitle;
-      setTitle(inferredTitle);
-      scheduleSave({ title: inferredTitle, titleUpdateSource: "AUTO" });
-    },
-    onUpdate: ({ editor }) => {
+    onUpdate: ({ editor, transaction, appendedTransactions }) => {
+      // Editability/selection updates are not unsaved document changes.
+      if (!transaction.docChanged && !appendedTransactions.some((tr) => tr.docChanged)) return;
       if (!documentAiLockedRef.current && (canEdit || canComment)) {
         const content = editor.getJSON();
         const inferredTitle = titleManuallySetRef.current
@@ -414,7 +407,8 @@ export function TiptapEditor({
   }, [editor]);
 
   useEffect(() => {
-    editor?.setEditable(canEditNow);
+    // Tiptap emits an update by default, even when the content is unchanged.
+    editor?.setEditable(canEditNow, false);
   }, [canEditNow, editor]);
 
   useEffect(() => {
