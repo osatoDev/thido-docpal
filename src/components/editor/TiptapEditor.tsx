@@ -452,12 +452,14 @@ export function TiptapEditor({
 
   function saveNow() {
     if (documentAiLockedRef.current || conflictRef.current) return;
+    if (!pendingSaveRef.current && !failedSaveRef.current) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = null;
     const pending = { ...failedSaveRef.current, ...pendingSaveRef.current };
     pendingSaveRef.current = null;
     void saveDocumentUpdate(pending);
   }
+
 
   function saveDocumentUpdate(next: DocumentSave) {
     const saveVersion = ++saveVersionRef.current;
@@ -1014,6 +1016,18 @@ export function TiptapEditor({
       setRecentThidoChange(suggestion);
     }
   }
+
+  useEffect(() => {
+    function handleSaveShortcut(event: KeyboardEvent) {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey ||
+        event.key.toLowerCase() !== "s" || event.isComposing) return;
+      // Suppress the browser's Save Page dialog, including repeated keydowns.
+      event.preventDefault();
+      if (!event.repeat && canComment) saveNow();
+    }
+    document.addEventListener("keydown", handleSaveShortcut, true);
+    return () => document.removeEventListener("keydown", handleSaveShortcut, true);
+  });
 
   return (
     <div className="print-document-layout flex min-h-0 flex-1 flex-col lg:flex-row">

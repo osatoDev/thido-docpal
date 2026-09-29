@@ -5,6 +5,39 @@ import { openSeedDocument } from "./helpers";
 
 const savePath = `/api/documents/${SEED.documentId}`;
 
+for (const modifier of ["Meta", "Control"]) {
+  test(`${modifier}+S immediately saves edits and does nothing when already saved`, async ({ page }) => {
+    await openSeedDocument(page);
+    let saves = 0;
+    page.on("request", request => {
+      if (new URL(request.url()).pathname === savePath && request.method() === "PATCH") saves += 1;
+    });
+    await page.evaluate(() => {
+      document.addEventListener("keydown", event => {
+        if (event.key.toLowerCase() === "s" && (event.metaKey || event.ctrlKey)) {
+          document.body.dataset.savePrevented = String(event.defaultPrevented);
+        }
+      });
+    });
+    const status = page.getByTestId("autosave-status");
+    await page.keyboard.press(`${modifier}+s`);
+    await expect(page.locator("body")).toHaveAttribute("data-save-prevented", "true");
+    await expect(status).toHaveText("All changes save automatically");
+    expect(saves).toBe(0);
+    await page.locator(".ProseMirror p").first().click();
+    await page.keyboard.type(` ${modifier} save shortcut.`);
+    await expect(status).toContainText("Autosaving in");
+    await page.keyboard.press(`${modifier}+s`);
+    await expect(status.getByText("Saved", { exact: true })).toBeVisible();
+    expect(saves).toBe(1);
+    await page.keyboard.press(`${modifier}+s`);
+    await expect(status).toHaveText("Saved");
+    await page.reload();
+    await expect(page.locator(".ProseMirror")).toContainText(`${modifier} save shortcut.`);
+    expect(saves).toBe(1);
+  });
+}
+
 test("opening and focusing a document stays idle until an actual edit", async ({ page }) => {
   let saves = 0;
   page.on("request", request => {
