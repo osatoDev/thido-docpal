@@ -158,7 +158,7 @@ export function TiptapEditor({
   const [commentsSidebarOpen, setCommentsSidebarOpen] = useState(
     initialComments.length > 0,
   );
-  const [documentOutlineOpen, setDocumentOutlineOpen] = useState(false);
+  const [documentOutlineOpen, setDocumentOutlineOpen] = useState(true);
   const [editorZoom, setEditorZoom] = useState(100);
   const [documentAiLocked, setDocumentAiLocked] = useState(
     initialDocumentAiLocked,

@@ -972,3 +972,17 @@ select {
     display: none !important;
   }
 }
+
+/* Day sections are independent of the document heading hierarchy. */
+.document-day-header {
+  margin-block: 1.8em 0.8em;
+  padding-block: 0.6em;
+  border-block-end: 2px solid var(--border);
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: 1.3em;
+  color: var(--accent-strong);
+  break-after: avoid;
+}
+.document-day-header > time { display: block; font-weight: 700; }
+.document-day-header > [data-day-content] { display: block; font-size: 0.85em; }

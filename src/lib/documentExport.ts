@@ -1,3 +1,4 @@
+import { daysForExport } from "@/lib/documentDays";
 import {
   AlignmentType,
   Bookmark as WordBookmark,
@@ -407,6 +408,7 @@ export async function createWordDocument({
   title: string;
   content: JSONContent | null;
 }) {
+  content = content ? daysForExport(content) : null;
   const sideMarginMillimeters = getDocumentSideMarginMillimeters(content);
   const children = [
     ...(content?.content
@@ -861,6 +863,7 @@ export async function createPdfDocument({
   title: string;
   content: JSONContent | null;
 }) {
+  content = content ? daysForExport(content) : null;
   const sideMarginMillimeters = getDocumentSideMarginMillimeters(content);
   const sideMarginPoints = (sideMarginMillimeters / 25.4) * 72;
   const pdf = new PDFDocument({

@@ -1,3 +1,4 @@
+import { DayHeader } from "@/components/editor/extensions/DayHeader";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
@@ -85,6 +86,7 @@ export function getEditorExtensions(
       },
     }),
     FormattedParagraph,
+    DayHeader,
     FormattedHeading.configure({ levels: [1, 2, 3, 4, 5, 6] }),
     GoogleDocsPaste,
     HeadingAnchors,

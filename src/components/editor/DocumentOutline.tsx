@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
+import { DayOutline } from "./DayOutline";
 import { BookmarkDialog } from "./BookmarkDialog";
 import {
   readDocumentBookmarks,
@@ -161,6 +162,7 @@ export function DocumentOutline({
           ×
         </button>
         </div>
+        <DayOutline editor={editor} />
         {headings.length > 0 ? (
         <nav aria-label="Document headings" className="mt-2 max-h-48 overflow-y-auto lg:max-h-none">
           <ol className="space-y-0.5">

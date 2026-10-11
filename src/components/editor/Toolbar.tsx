@@ -7,6 +7,7 @@ import { DocumentFileMenu } from "@/components/documents/DocumentMoreActions";
 import type { RestoredDocument } from "@/components/documents/VersionHistoryControl";
 import { Tooltip } from "@/components/Tooltip";
 import { EditorMenu } from "./EditorMenu";
+import { DayDialog } from "./DayDialog";
 import { BookmarkDialog } from "./BookmarkDialog";
 import { CustomBulletDialog } from "./CustomBulletDialog";
 import { FindReplaceDialog } from "./FindReplaceDialog";
@@ -417,6 +418,7 @@ export function Toolbar({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const [findReplaceOpen, setFindReplaceOpen] = useState(false);
+  const [dayOpen, setDayOpen] = useState(false);
   const [bookmarkOpen, setBookmarkOpen] = useState(false);
   const [customBulletOpen, setCustomBulletOpen] = useState(false);
   const [footnoteOpen, setFootnoteOpen] = useState(false);
@@ -433,7 +435,7 @@ export function Toolbar({
   );
   const activeBlockStyle = activeHeadingLevel
     ? `heading-${activeHeadingLevel}`
-    : "paragraph";
+    : editor?.isActive("dayHeader") ? "dayHeader" : "paragraph";
   const activeBlockAttributes = editor?.getAttributes(
     activeHeadingLevel ? "heading" : "paragraph",
   );
@@ -1319,6 +1321,7 @@ export function Toolbar({
               className="app-input h-8 w-32 shrink-0 rounded-sm px-2 text-sm outline-none"
             >
               <option value="paragraph">Normal text</option>
+              {editor.isActive("dayHeader") ? <option value="dayHeader" disabled>Day</option> : null}
               {HEADING_LEVELS.map((level) => (
                 <option key={level} value={`heading-${level}`}>
                   Heading {level}
@@ -1326,6 +1329,8 @@ export function Toolbar({
               ))}
             </select>
           </Tooltip>
+          <ToolbarButton label="Format as day" isActive={editor.isActive("dayHeader")} onClick={() => setDayOpen(true)}>Day</ToolbarButton>
+          {dayOpen ? <DayDialog editor={editor} onClose={() => setDayOpen(false)} onApplied={() => { if (!outlineOpen) onToggleOutline(); }} /> : null}
           <Tooltip label="Font family" className="inline-flex shrink-0">
             <select
               value={String(activeTextStyle.fontFamily ?? "")}

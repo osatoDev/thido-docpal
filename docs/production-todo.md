@@ -501,6 +501,9 @@ This is the running source of truth for production-readiness work. Completed box
 
 ## Product, privacy, and support
 
+- [x] Add daily todo sections (11 October 2026): a **Day** button beside paragraph/heading styles opens a date picker and formats the current top-level line as a separate `dayHeader` node, preserving its text. Day headers use distinct serif italic styling, support changing the date and reverting to Normal text, and Enter at the end starts a paragraph for the existing checkbox-list controls. The left outline opens by default and groups navigable dates into collapsible years, months, and weeks (1–7, 8–14, 15–21, 22–28, 29–31), including duplicate dates. Shared schema preserves date attributes across JSON/HTML; Word/PDF exports include date labels. Evidence: 42 targeted editor/schema/export tests, TypeScript, and targeted ESLint checks pass.
+- [ ] Browser-verify daily sections on desktop and mobile: date-picker keyboard/focus behavior, collapsible outline and navigation, checkbox lists below dates, autosave/reload, read-only sharing, and printed/downloaded output. No deployment or authenticated browser verification was performed for this change.
+
 - [x] Publish Terms of Service and a Privacy Policy at `/terms` and `/privacy`.
 - [ ] Define and implement the employee and administrator access model for document content before making any claim that Thido personnel cannot read documents. Include default-deny production access, short-lived approved access, a recorded business justification, two-person approval for content reads, immutable audit logs, content redaction from logs and error reports, and a documented decision between provider-managed encryption and client-side customer-controlled encryption. Follow [the Google employee-access comparison](./how-google-limits-employee-access-to-files.md).
 - [x] State how documents, prompts, account data, analytics, and AI-provider processing are handled.
