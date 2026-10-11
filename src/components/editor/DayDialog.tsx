@@ -19,7 +19,7 @@ export function DayDialog({ editor, onClose, onApplied }: { editor: Editor; onCl
         onApplied(); onClose();
       }}>
         <h2 className="text-lg font-semibold">Format as day</h2>
-        <p className="my-3 text-sm text-[var(--muted)]">Give this line a date. Add a checkbox list underneath for your daily todos.</p>
+        <p className="my-3 text-sm text-[var(--muted)]">Choose a date for this line. Try writing “tomorrow” or “11 October” to apply a day directly next time.</p>
         <label className="grid gap-2 text-sm">Date
           <input autoFocus required type="date" value={date} onChange={event => setDate(event.target.value)} className="app-input rounded-md p-2" />
         </label>

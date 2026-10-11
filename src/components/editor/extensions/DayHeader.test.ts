@@ -2,7 +2,7 @@
 import { Editor } from "@tiptap/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { getEditorExtensions } from "@/lib/editorExtensions";
-import { daysForExport, readDays, validDay } from "@/lib/documentDays";
+import { daysForExport, hasDayHeaders, readDays, validDay } from "@/lib/documentDays";
 
 const editors: Editor[] = [];
 function make(content = "<p>Daily tasks</p>") {
@@ -13,6 +13,20 @@ function make(content = "<p>Daily tasks</p>") {
 afterEach(() => editors.splice(0).forEach(editor => editor.destroy()));
 
 describe("day sections", () => {
+  it("only enables the outline while at least one day exists, including undo and reload", () => {
+    const editor = make("<h1>A normal heading</h1><p>Text</p>");
+    expect(hasDayHeaders(editor.state.doc)).toBe(false);
+    editor.commands.setDayHeader("2026-10-11");
+    expect(hasDayHeaders(editor.state.doc)).toBe(true);
+    const restored = make(editor.getHTML());
+    expect(hasDayHeaders(restored.state.doc)).toBe(true);
+    editor.commands.undo();
+    expect(hasDayHeaders(editor.state.doc)).toBe(false);
+    editor.commands.redo();
+    expect(hasDayHeaders(editor.state.doc)).toBe(true);
+    editor.commands.setParagraph();
+    expect(hasDayHeaders(editor.state.doc)).toBe(false);
+  });
   it("formats a line independently from headings, retains text, round-trips HTML and JSON, and supports undo", () => {
     const editor = make();
     expect(editor.commands.setDayHeader("2026-10-11")).toBe(true);

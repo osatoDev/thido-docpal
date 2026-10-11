@@ -33,3 +33,72 @@ export function daysForExport(node: JSONContent): JSONContent {
   };
   return { ...node, ...(node.content ? { content: node.content.map(daysForExport) } : {}) };
 }
+
+const MONTH_NAMES = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+const WEEKDAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+/** Guess only recognizable, unambiguous dates; never rely on Date.parse's locale heuristics. */
+export function guessDay(text: string, reference = todayDay()): string | null {
+  if (!validDay(reference)) return null;
+  const input = text.toLowerCase();
+  const candidates = new Set<string>();
+  let uncertain = false;
+  const add = (year: number, month: number, day: number) => {
+    const date = `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    if (validDay(date)) candidates.add(date);
+    else uncertain = true;
+  };
+  const shift = (amount: number) => {
+    const date = new Date(`${reference}T12:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + amount);
+    candidates.add(date.toISOString().slice(0, 10));
+  };
+  for (const match of input.matchAll(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/g)) {
+    add(Number(match[1]), Number(match[2]), Number(match[3]));
+  }
+  for (const match of input.matchAll(/\b(\d{1,2})[/.](\d{1,2})(?:[/.](\d{4}))?\b/g)) {
+    const a = Number(match[1]);
+    const b = Number(match[2]);
+    const year = Number(match[3] || reference.slice(0, 4));
+    if (a === b || a > 12) add(year, b, a);
+    else if (b > 12) add(year, a, b);
+    else uncertain = true; // 03/04 could mean March 4 or April 3.
+  }
+  const months = MONTH_NAMES.map(name => `${name}|${name.slice(0, 3)}`).join("|");
+  const monthFirst = new RegExp(`\\b(${months})\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s+(\\d{4}))?\\b`, "g");
+  const dayFirst = new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(${months})\\.?(?:,?\\s+(\\d{4}))?\\b`, "g");
+  for (const pattern of [monthFirst, dayFirst]) {
+    for (const match of input.matchAll(pattern)) {
+      const month = pattern === monthFirst ? match[1] : match[2];
+      const day = pattern === monthFirst ? match[2] : match[1];
+      add(Number(match[3] || reference.slice(0, 4)), MONTH_NAMES.findIndex(name => name.startsWith(month)) + 1, Number(day));
+    }
+  }
+  const relativeOffsets: Record<string, number> = {
+    "day after tomorrow": 2, "day before yesterday": -2,
+    today: 0, tomorrow: 1, yesterday: -1,
+  };
+  for (const match of input.matchAll(/\b(day after tomorrow|day before yesterday|today|tomorrow|yesterday)\b/g)) {
+    shift(relativeOffsets[match[1]]);
+  }
+  // A weekday beside an explicit date is descriptive, not a second inferred date.
+  if (candidates.size === 0 && !uncertain) {
+    const weekdays = new RegExp(`\\b(?:(next|this|last)\\s+)?(${WEEKDAY_NAMES.join("|")})\\b`, "g");
+    const currentWeekday = new Date(`${reference}T12:00:00Z`).getUTCDay();
+    for (const match of input.matchAll(weekdays)) {
+      const target = WEEKDAY_NAMES.indexOf(match[2]);
+      const ahead = (target - currentWeekday + 7) % 7;
+      shift(match[1] === "last" ? -((currentWeekday - target + 7) % 7 || 7) : match[1] === "next" ? ahead || 7 : ahead);
+    }
+  }
+  return !uncertain && candidates.size === 1 ? [...candidates][0] : null;
+}
+
+export function hasDayHeaders(doc: Node): boolean {
+  let found = false;
+  doc.descendants(node => {
+    if (node.type.name === "dayHeader") found = true;
+    return !found;
+  });
+  return found;
+}

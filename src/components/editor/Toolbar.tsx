@@ -7,6 +7,7 @@ import { DocumentFileMenu } from "@/components/documents/DocumentMoreActions";
 import type { RestoredDocument } from "@/components/documents/VersionHistoryControl";
 import { Tooltip } from "@/components/Tooltip";
 import { EditorMenu } from "./EditorMenu";
+import { guessDay, hasDayHeaders } from "@/lib/documentDays";
 import { DayDialog } from "./DayDialog";
 import { BookmarkDialog } from "./BookmarkDialog";
 import { CustomBulletDialog } from "./CustomBulletDialog";
@@ -1067,6 +1068,7 @@ export function Toolbar({
                     label: outlineOpen
                       ? "Hide document outline"
                       : "Show document outline",
+                    disabled: !editor || !hasDayHeaders(editor.state.doc),
                     onSelect: onToggleOutline,
                   },
                   ...(canEdit && editor
@@ -1329,7 +1331,19 @@ export function Toolbar({
               ))}
             </select>
           </Tooltip>
-          <ToolbarButton label="Format as day" isActive={editor.isActive("dayHeader")} onClick={() => setDayOpen(true)}>Day</ToolbarButton>
+          <ToolbarButton label="Format as day" isActive={editor.isActive("dayHeader")} onClick={() => {
+            const guessed = guessDay(editor.state.selection.$from.parent.textContent);
+            if (guessed && editor.chain().focus().setDayHeader(guessed).run()) {
+              if (!outlineOpen) onToggleOutline();
+            } else {
+              setDayOpen(true);
+            }
+          }}>
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="size-4">
+              <rect x="3" y="5" width="18" height="16" rx="2" />
+              <path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2" />
+            </svg>
+          </ToolbarButton>
           {dayOpen ? <DayDialog editor={editor} onClose={() => setDayOpen(false)} onApplied={() => { if (!outlineOpen) onToggleOutline(); }} /> : null}
           <Tooltip label="Font family" className="inline-flex shrink-0">
             <select

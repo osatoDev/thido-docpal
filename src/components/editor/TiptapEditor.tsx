@@ -7,8 +7,9 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { EditorContent, useEditor, type JSONContent } from "@tiptap/react";
+import { EditorContent, useEditor, useEditorState, type JSONContent } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
+import { hasDayHeaders } from "@/lib/documentDays";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { ConflictRecovery } from "@/components/conflicts/ConflictRecovery";
 import { Toolbar } from "./Toolbar";
@@ -315,6 +316,10 @@ export function TiptapEditor({
         scheduleSave({ content });
       }
     },
+  });
+  const hasDays = useEditorState({
+    editor,
+    selector: ({ editor }) => editor ? hasDayHeaders(editor.state.doc) : false,
   });
   const editorRef = useRef(editor);
   useEditorHashNavigation(editor);
@@ -1116,13 +1121,13 @@ export function TiptapEditor({
             canEdit={canEditNow}
             canViewHistory={canEdit}
             commentsOpen={commentsSidebarOpen}
-            outlineOpen={documentOutlineOpen}
+            outlineOpen={Boolean(hasDays && documentOutlineOpen)}
             zoom={editorZoom}
             onToggleComments={() =>
               setCommentsSidebarOpen((open) => !open)
             }
             onToggleOutline={() =>
-              setDocumentOutlineOpen((open) => !open)
+              setDocumentOutlineOpen((open) => hasDays ? !open : true)
             }
             onEditWithAi={startAiEdit}
             onZoomChange={setEditorZoom}
@@ -1236,7 +1241,7 @@ export function TiptapEditor({
             </BubbleMenu>
           )}
           <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-            {documentOutlineOpen && editor ? (
+            {hasDays && documentOutlineOpen && editor ? (
               <DocumentOutline
                 editor={editor}
                 canEdit={canEditNow}
