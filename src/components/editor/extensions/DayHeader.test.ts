@@ -23,7 +23,8 @@ describe("day sections", () => {
     expect(requested).toBe(1);
     expect(editor.state.doc.textContent).toBe("/day tomorrow");
     editor.commands.setDayHeader("2026-10-12");
-    expect(editor.state.doc.textContent).toBe("tomorrow");
+    expect(editor.state.doc.textContent).toBe("");
+    expect(editor.state.doc.childCount).toBe(1);
     expect(editor.getHTML()).toContain("Oct 12 Mon");
     editor.commands.undo();
     expect(editor.state.doc.textContent).toBe("/day tomorrow");
@@ -47,11 +48,12 @@ describe("day sections", () => {
     editor.commands.setParagraph();
     expect(hasDayHeaders(editor.state.doc)).toBe(false);
   });
-  it("formats a line independently from headings, retains text, round-trips HTML and JSON, and supports undo", () => {
+  it("replaces the current line with a formatted date, round-trips HTML and JSON, and supports undo", () => {
     const editor = make();
     expect(editor.commands.setDayHeader("2026-10-11")).toBe(true);
     expect(editor.state.doc.firstChild?.type.name).toBe("dayHeader");
-    expect(editor.state.doc.firstChild?.textContent).toBe("Daily tasks");
+    expect(editor.state.doc.firstChild?.textContent).toBe("");
+    expect(editor.state.doc.childCount).toBe(1);
     expect(editor.getHTML()).toContain("Oct 11 Sun");
     const restored = make(editor.getHTML());
     expect(restored.getJSON()).toEqual(editor.getJSON());
@@ -59,15 +61,16 @@ describe("day sections", () => {
     expect(readDays(restored.state.doc)[0]).toMatchObject({ date: "2026-10-11", week: 2, position: 0 });
     editor.commands.undo();
     expect(editor.state.doc.firstChild?.type.name).toBe("paragraph");
+    expect(editor.state.doc.textContent).toBe("Daily tasks");
   });
-  it("changes a date without losing content and removes day formatting with Normal text", () => {
+  it("changes a date without adding lines and removes day formatting with Normal text", () => {
     const editor = make();
     editor.commands.setDayHeader("2026-10-11");
     editor.commands.setDayHeader("2027-01-01");
-    expect(readDays(editor.state.doc)[0]).toMatchObject({ date: "2027-01-01", text: "Daily tasks" });
+    expect(readDays(editor.state.doc)[0]).toMatchObject({ date: "2027-01-01", text: "" });
     editor.commands.setParagraph();
     expect(readDays(editor.state.doc)).toEqual([]);
-    expect(editor.state.doc.textContent).toBe("Daily tasks");
+    expect(editor.state.doc.textContent).toBe("");
   });
   it("rejects impossible dates and nested list lines", () => {
     expect(validDay("2026-02-29")).toBe(false);

@@ -983,5 +983,5 @@ select {
   color: var(--muted);
   break-after: avoid;
 }
-.document-day-header > time { display: block; font-weight: 500; }
-.document-day-header > [data-day-content] { display: block; font-size: 0.85em; }
+.document-day-header > time { font-weight: 500; }
+.document-day-header > [data-day-content]:not(:empty)::before { content: " — "; }

@@ -68,6 +68,7 @@ export function getEditorExtensions(
 ): Extensions {
   return [
     StarterKit.configure({
+      trailingNode: { notAfter: ["dayHeader"] },
       bulletList: false,
       heading: false,
       paragraph: false,

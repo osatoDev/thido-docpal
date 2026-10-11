@@ -27,10 +27,10 @@ export const DayHeader = Node.create({
   addCommands() {
     return { setDayHeader: date => ({ commands, state, tr }) => {
       if (!validDay(date) || state.selection.$from.depth !== 1 || state.selection.$from.parent !== state.selection.$to.parent) return false;
-      const prefix = /^\/day(?:\s+|$)/.exec(state.selection.$from.parent.textContent);
+      const contentSize = state.selection.$from.parent.content.size;
       const start = state.selection.$from.start();
       if (!commands.setNode(this.name, { date })) return false;
-      if (prefix) tr.delete(start, start + prefix[0].length);
+      if (contentSize) tr.delete(start, start + contentSize);
       return true;
     } };
   },
