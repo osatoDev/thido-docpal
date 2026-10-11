@@ -11,7 +11,12 @@ export function todayDay() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 export function formatDay(date: string) {
-  return validDay(date) ? new Intl.DateTimeFormat("en", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`)) : "Choose a date";
+  if (!validDay(date)) return "Choose a date";
+  const parts = new Intl.DateTimeFormat("en-US", {
+    weekday: "short", day: "numeric", month: "short", timeZone: "UTC",
+  }).formatToParts(new Date(`${date}T12:00:00Z`));
+  const part = (type: string) => parts.find(value => value.type === type)?.value;
+  return `${part("month")} ${part("day")} ${part("weekday")}`;
 }
 export function readDays(doc: Node) {
   const days: { date: string; position: number; text: string; year: string; month: string; week: number }[] = [];

@@ -979,7 +979,7 @@ select {
   padding-block: 0.2em;
   font-family: Georgia, "Times New Roman", serif;
   font-style: italic;
-  font-size: 1.05em;
+  font-size: 0.95em;
   color: var(--muted);
   break-after: avoid;
 }

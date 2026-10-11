@@ -420,6 +420,20 @@ export function Toolbar({
   const [imageError, setImageError] = useState<string | null>(null);
   const [findReplaceOpen, setFindReplaceOpen] = useState(false);
   const [dayOpen, setDayOpen] = useState(false);
+  useEffect(() => {
+    if (!editor || !canEdit) return;
+    const applyDay = () => {
+      const guessed = guessDay(editor.state.selection.$from.parent.textContent);
+      if (guessed && editor.chain().focus().setDayHeader(guessed).run()) {
+        if (!outlineOpen) onToggleOutline();
+      } else {
+        setDayOpen(true);
+      }
+    };
+    const dom = editor.view.dom;
+    dom.addEventListener("thido:format-day", applyDay);
+    return () => dom.removeEventListener("thido:format-day", applyDay);
+  }, [editor, canEdit, outlineOpen, onToggleOutline]);
   const [bookmarkOpen, setBookmarkOpen] = useState(false);
   const [customBulletOpen, setCustomBulletOpen] = useState(false);
   const [footnoteOpen, setFootnoteOpen] = useState(false);
@@ -1331,13 +1345,8 @@ export function Toolbar({
               ))}
             </select>
           </Tooltip>
-          <ToolbarButton label="Format as day" isActive={editor.isActive("dayHeader")} onClick={() => {
-            const guessed = guessDay(editor.state.selection.$from.parent.textContent);
-            if (guessed && editor.chain().focus().setDayHeader(guessed).run()) {
-              if (!outlineOpen) onToggleOutline();
-            } else {
-              setDayOpen(true);
-            }
+          <ToolbarButton label="Format as day (/day + Enter)" isActive={editor.isActive("dayHeader")} onClick={() => {
+            editor.view.dom.dispatchEvent(new CustomEvent("thido:format-day"));
           }}>
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="size-4">
               <rect x="3" y="5" width="18" height="16" rx="2" />

@@ -1,13 +1,9 @@
-# Day button shortcut ideas
+# Day slash command
 
-My preferred candidate is **Ctrl + Alt + Shift + D** on Windows/Linux and **⌘ + Option + Shift + D** on Mac: D is easy to remember for “day,” and the extra modifiers make it a distinctive editor action. These are proposals, not verified conflict-free bindings; test browser, operating-system, and keyboard-layout behavior before choosing one.
+Type `/day` at the start of a top-level line and press **Enter** to open the date picker. Add a recognizable date before pressing Enter to apply it immediately: `/day tomorrow`, `/day Oct 13`, or `/day 2026-10-13`.
 
-| Idea | Benefit | Tradeoff |
-| --- | --- | --- |
-| Ctrl + Alt + Shift + D / ⌘ + Option + Shift + D | A more distinctive combination | Four keys are harder to press and remember. |
-| A customizable shortcut | Lets frequent users choose a comfortable combination | Requires shortcut settings and conflict handling. |
-| Type `/day` at the start of a line | Discoverable alternative with no modifier chord | Requires a slash-command interface, which this change does not add. |
+The command uses the same date guessing as the calendar button. Ambiguous dates open the picker. Cancelling keeps the original line; applying removes the `/day` prefix and preserves the remaining text. Undo restores the original line.
 
-Whichever shortcut is chosen, it should run exactly the calendar button’s action: infer the date from the current line, apply immediately when the guess is clear, and open the date picker otherwise. Show the chosen keys in the calendar tooltip, and keep the shortcut scoped to the editable document.
+Day labels use abbreviated months and weekdays, with a numeric day: **Oct 13 Tue**. The underlying full date is retained for year/month/week grouping and saving. The font is smaller and has no underline.
 
-No shortcut has been assigned in this change.
+The command applies to a single top-level line outside lists and tables. No modifier-key shortcut is assigned.

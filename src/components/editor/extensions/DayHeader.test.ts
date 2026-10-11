@@ -13,6 +13,26 @@ function make(content = "<p>Daily tasks</p>") {
 afterEach(() => editors.splice(0).forEach(editor => editor.destroy()));
 
 describe("day sections", () => {
+  it("runs /day on Enter only at the start of a line and removes the command when applied", () => {
+    const editor = make("<p>/day tomorrow</p>");
+    let requested = 0;
+    editor.view.dom.addEventListener("thido:format-day", () => { requested += 1; });
+    editor.commands.setTextSelection(editor.state.doc.firstChild!.nodeSize - 1);
+    const event = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+    editor.view.someProp("handleKeyDown", handler => handler(editor.view, event));
+    expect(requested).toBe(1);
+    expect(editor.state.doc.textContent).toBe("/day tomorrow");
+    editor.commands.setDayHeader("2026-10-12");
+    expect(editor.state.doc.textContent).toBe("tomorrow");
+    expect(editor.getHTML()).toContain("Oct 12 Mon");
+    editor.commands.undo();
+    expect(editor.state.doc.textContent).toBe("/day tomorrow");
+    editor.commands.setContent("<p>Use /day</p>");
+    editor.commands.setTextSelection(editor.state.doc.firstChild!.nodeSize - 1);
+    editor.view.someProp("handleKeyDown", handler => handler(editor.view, event));
+    expect(requested).toBe(1);
+  });
+
   it("only enables the outline while at least one day exists, including undo and reload", () => {
     const editor = make("<h1>A normal heading</h1><p>Text</p>");
     expect(hasDayHeaders(editor.state.doc)).toBe(false);
@@ -32,7 +52,7 @@ describe("day sections", () => {
     expect(editor.commands.setDayHeader("2026-10-11")).toBe(true);
     expect(editor.state.doc.firstChild?.type.name).toBe("dayHeader");
     expect(editor.state.doc.firstChild?.textContent).toBe("Daily tasks");
-    expect(editor.getHTML()).toContain("Sunday, October 11, 2026");
+    expect(editor.getHTML()).toContain("Oct 11 Sun");
     const restored = make(editor.getHTML());
     expect(restored.getJSON()).toEqual(editor.getJSON());
     restored.commands.setContent(editor.getJSON());
@@ -83,7 +103,7 @@ describe("day sections", () => {
     const editor = make();
     editor.commands.setDayHeader("2026-10-11");
     const json = editor.getJSON();
-    expect(JSON.stringify(daysForExport(json))).toContain("Sunday, October 11, 2026");
+    expect(JSON.stringify(daysForExport(json))).toContain("Oct 11 Sun");
     expect(json.content?.[0].type).toBe("dayHeader");
   });
 });
