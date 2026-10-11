@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 
+import { ConflictRecovery } from "@/components/conflicts/ConflictRecovery";
 import { Brand } from "@/components/Brand";
 import {
   UserMenu,
@@ -84,6 +85,7 @@ export function SpreadsheetEditor({
     const snapshot = { content, title };
     const snapshotVersion = changeVersion;
     const timeout = window.setTimeout(() => {
+      if (conflictRef.current) return;
       setSaveState("saving");
       saveChainRef.current = saveChainRef.current
         .then(async () => {
@@ -139,11 +141,13 @@ export function SpreadsheetEditor({
   }, []);
 
   function updateTitle(nextTitle: string) {
+    if (conflictRef.current) return;
     setTitle(nextTitle.slice(0, 200));
     markChanged();
   }
 
   function updateCell(reference: string, nextValue: string) {
+    if (conflictRef.current) return;
     const value = nextValue.slice(0, MAX_SPREADSHEET_CELL_LENGTH);
     setContent((current) => {
       const cells = { ...current.cells };
@@ -171,6 +175,7 @@ export function SpreadsheetEditor({
     event: React.ClipboardEvent<HTMLInputElement>,
     reference: string,
   ) {
+    if (conflictRef.current) { event.preventDefault(); return; }
     const text = event.clipboardData.getData("text/plain");
     if (!text.includes("\t") && !/[\r\n]/.test(text)) return;
     event.preventDefault();
@@ -203,6 +208,7 @@ export function SpreadsheetEditor({
             Spreadsheet title
           </label>
           <input
+            readOnly={saveState === "conflict"}
             id="spreadsheet-title"
             value={title}
             onChange={(event) => updateTitle(event.target.value)}
@@ -238,19 +244,14 @@ export function SpreadsheetEditor({
       </header>
 
       {saveState === "conflict" ? (
-        <div
-          role="alert"
-          className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-amber-400/40 bg-amber-400/10 px-4 py-2 text-sm"
-        >
-          <span>A newer version exists. Reload before making more changes.</span>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="rounded-md bg-[var(--foreground)] px-3 py-1.5 text-xs font-semibold text-[var(--background)]"
-          >
-            Reload
-          </button>
-        </div>
+        <ConflictRecovery
+          getText={() => `${title}\n\n${Array.from({ length: content.rows }, (_, row) =>
+            Array.from({ length: content.columns }, (_, column) =>
+              content.cells[spreadsheetCellReference(row, column)] ?? "",
+            ).join("\t"),
+          ).join("\n")}`}
+          onReload={async () => { window.location.reload(); }}
+        />
       ) : null}
 
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2">
@@ -264,6 +265,7 @@ export function SpreadsheetEditor({
           fx
         </span>
         <input
+          readOnly={saveState === "conflict"}
           id="selected-cell-value"
           value={content.cells[selectedCell] ?? ""}
           onChange={(event) => updateCell(selectedCell, event.target.value)}
@@ -273,6 +275,7 @@ export function SpreadsheetEditor({
         />
         <button
           type="button"
+          disabled={saveState === "conflict"}
           onClick={() => updateCell(selectedCell, "")}
           className="secondary-button rounded-md px-2.5 py-2 text-xs font-medium"
         >
@@ -281,7 +284,7 @@ export function SpreadsheetEditor({
         <button
           type="button"
           onClick={addRows}
-          disabled={content.rows >= MAX_SPREADSHEET_ROWS}
+          disabled={saveState === "conflict" || content.rows >= MAX_SPREADSHEET_ROWS}
           className="secondary-button rounded-md px-2.5 py-2 text-xs font-medium disabled:opacity-50"
         >
           Add 10 rows
@@ -289,7 +292,7 @@ export function SpreadsheetEditor({
         <button
           type="button"
           onClick={addColumns}
-          disabled={content.columns >= MAX_SPREADSHEET_COLUMNS}
+          disabled={saveState === "conflict" || content.columns >= MAX_SPREADSHEET_COLUMNS}
           className="secondary-button rounded-md px-2.5 py-2 text-xs font-medium disabled:opacity-50"
         >
           Add 2 columns
@@ -341,6 +344,7 @@ export function SpreadsheetEditor({
                       className="h-8 w-32 min-w-32 border-r border-b border-[var(--border)] bg-[var(--surface)] p-0"
                     >
                       <input
+                        readOnly={saveState === "conflict"}
                         id={`spreadsheet-cell-${reference}`}
                         aria-label={`Cell ${reference}`}
                         value={visibleValue}

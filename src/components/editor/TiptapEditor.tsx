@@ -10,6 +10,7 @@ import {
 import { EditorContent, useEditor, type JSONContent } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { getEditorExtensions } from "@/lib/editorExtensions";
+import { ConflictRecovery } from "@/components/conflicts/ConflictRecovery";
 import { Toolbar } from "./Toolbar";
 import { DEFAULT_AUTOSAVE_DELAY_SECONDS } from "@/lib/autosave";
 import { AutosaveStatus, type SaveState } from "./AutosaveStatus";
@@ -190,8 +191,8 @@ export function TiptapEditor({
   const titleManuallySetRef = useRef(initialTitleManuallySet);
   const pendingTablePasteRef = useRef<PendingTablePaste | null>(null);
   const documentImportingRef = useRef(false);
-  const canEditNow = canEdit && !documentAiLocked;
-  const canCommentNow = canComment && !documentAiLocked;
+  const canEditNow = canEdit && !documentAiLocked && !documentConflict;
+  const canCommentNow = canComment && !documentAiLocked && !documentConflict;
   const updateDocumentAiLock = useCallback((locked: boolean) => {
     documentAiLockedRef.current = locked;
     setDocumentAiLocked(locked);
@@ -549,39 +550,31 @@ export function TiptapEditor({
   }
 
   async function reloadLatestDocument() {
-    try {
-      const response = await fetch(`/api/documents/${documentId}`, {
-        cache: "no-store",
-      });
-      const body = await response.json().catch(() => null);
-      if (!response.ok || !body?.document) {
-        throw new Error("Could not load the latest document.");
-      }
-      const latest = body.document as {
-        title: string;
-        titleManuallySet: boolean;
-        content: JSONContent | null;
-        revision: number;
-      };
-      setTitle(latest.title);
-      titleRef.current = latest.title;
-      titleManuallySetRef.current = latest.titleManuallySet;
-      replaceDocumentUrl(latest.title);
-      editorRef.current?.commands.setContent(latest.content ?? "", {
-        emitUpdate: false,
-      });
-      resetPendingSaves();
-      conflictRef.current = false;
-      setDocumentConflict(null);
-      updateRevision(latest.revision);
-      setSaveState("saved");
-    } catch (error) {
-      setCommentError(
-        error instanceof Error
-          ? error.message
-          : "Could not load the latest document.",
-      );
+    const response = await fetch(`/api/documents/${documentId}`, {
+      cache: "no-store",
+    });
+    const body = await response.json().catch(() => null);
+    if (!response.ok || !body?.document) {
+      throw new Error("Could not load the latest document.");
     }
+    const latest = body.document as {
+      title: string;
+      titleManuallySet: boolean;
+      content: JSONContent | null;
+      revision: number;
+    };
+    setTitle(latest.title);
+    titleRef.current = latest.title;
+    titleManuallySetRef.current = latest.titleManuallySet;
+    replaceDocumentUrl(latest.title);
+    editorRef.current?.commands.setContent(latest.content ?? "", {
+      emitUpdate: false,
+    });
+    resetPendingSaves();
+    conflictRef.current = false;
+    setDocumentConflict(null);
+    updateRevision(latest.revision);
+    setSaveState("saved");
   }
 
   function handleDocumentRestored(document: RestoredDocument) {
@@ -1152,25 +1145,10 @@ export function TiptapEditor({
         )}
 
         {documentConflict && (
-          <div
-            className="mx-auto flex w-full max-w-none flex-wrap items-center justify-between gap-3 border border-[var(--warm)] bg-[var(--surface)] px-4 py-3 text-sm"
-            role="alert"
-          >
-            <div>
-              <p className="font-semibold">Your copy is out of date.</p>
-              <p className="mt-1 text-xs text-[var(--muted)]">
-                {documentConflict} Copy any unsaved text you need before
-                reloading.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => void reloadLatestDocument()}
-              className="secondary-button rounded-md px-3 py-2 text-xs font-medium"
-            >
-              Reload latest version
-            </button>
-          </div>
+          <ConflictRecovery
+            getText={() => `${titleRef.current}\n\n${editorRef.current?.getText() ?? ""}`}
+            onReload={reloadLatestDocument}
+          />
         )}
 
         {recentThidoChange && (

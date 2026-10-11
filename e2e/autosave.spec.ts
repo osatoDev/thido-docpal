@@ -161,10 +161,12 @@ test("failed saves stay unsaved, guard navigation, and can be retried", async ({
 
 test("stale saves require conflict resolution instead of claiming success", async ({ page }) => {
   await openSeedDocument(page);
+  let failReload = true;
   await page.route(`**${savePath}`, async route => {
     if (route.request().method() === "PATCH") {
       return route.fulfill({ status: 409, json: { documentConflict: true, error: "Changed in another tab." } });
     }
+    if (failReload) return route.fulfill({ status: 503, json: {} });
     await route.continue();
   });
   const status = page.getByTestId("autosave-status");
@@ -172,7 +174,29 @@ test("stale saves require conflict resolution instead of claiming success", asyn
   await status.getByRole("button", { name: "Save now" }).click();
   await expect(status).toContainText("Unsaved changes · resolve conflict");
   await expect(status.getByRole("button", { name: "Retry save" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Reload latest version" }).click();
+  await expect(page.getByRole("textbox", { name: "Document title" })).toHaveAttribute("readonly", "");
+  await expect(page.locator(".ProseMirror")).toHaveAttribute("contenteditable", "false");
+  await page.getByRole("button", { name: "Review recovery options" }).click();
+  const recovery = page.getByRole("dialog", { name: "Keep your unsaved work" });
+  await expect(recovery.getByRole("button", { name: "Reload latest version" })).toBeDisabled();
+  await recovery.getByRole("button", { name: "Stay here" }).click();
+  await expect(recovery).not.toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Document title" })).toHaveValue("Conflicting edit");
+  await page.getByRole("button", { name: "Review recovery options" }).click();
+  const downloadPromise = page.waitForEvent("download");
+  await recovery.getByRole("button", { name: "Download my text" }).click();
+  const download = await downloadPromise;
+  const stream = await download.createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
+  expect(Buffer.concat(chunks).toString("utf8")).toContain("Conflicting edit");
+  await recovery.getByRole("checkbox").check();
+  await recovery.getByRole("button", { name: "Reload latest version" }).click();
+  await expect(recovery.getByRole("alert")).toContainText("Your current copy is still here");
+  await expect(page.getByRole("textbox", { name: "Document title" })).toHaveValue("Conflicting edit");
+  failReload = false;
+  await recovery.getByRole("button", { name: "Reload latest version" }).click();
+  await expect(page.locator(".ProseMirror")).toHaveAttribute("contenteditable", "true");
   await expect(status.getByText("Saved", { exact: true })).toBeVisible();
 });
 
