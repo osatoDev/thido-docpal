@@ -4,10 +4,6 @@
     {
       "path": "/api/cron/engagement-nudges",
       "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron/document-history",
-      "schedule": "0 10 * * *"
     }
   ]
 }

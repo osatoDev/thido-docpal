@@ -135,5 +135,3 @@ available again. Free beta access never requires a card.
 
 Stripe setup, webhook events, and sandbox verification are documented in
 `docs/billing.md`.
-
-The running production-readiness checklist is in `docs/production-todo.md`.

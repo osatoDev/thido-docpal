@@ -9,10 +9,6 @@ import { SettingsForm } from "@/components/settings/SettingsForm";
 import { ConnectedAccounts } from "@/components/settings/ConnectedAccounts";
 import { SecurityPanel } from "@/components/settings/SecurityPanel";
 import { AccountDataPanel } from "@/components/settings/AccountDataPanel";
-import {
-  DEFAULT_APPLICATION_STYLE,
-  isApplicationStyle,
-} from "@/lib/applicationStyle";
 
 export default async function SettingsPage({
   searchParams,
@@ -82,11 +78,6 @@ export default async function SettingsPage({
           isAiModelId(settings.aiModel) ? settings.aiModel : DEFAULT_AI_MODEL
         }
         initialDocumentStartMode={settings.documentStartMode}
-        initialApplicationStyle={
-          isApplicationStyle(settings.applicationStyle)
-            ? settings.applicationStyle
-            : DEFAULT_APPLICATION_STYLE
-        }
         initialChecklistMoveControls={settings.checklistMoveControls}
         initialPlanFeedbackDailyLimit={settings.planFeedbackDailyLimit}
       />

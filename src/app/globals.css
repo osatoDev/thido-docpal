@@ -63,81 +63,6 @@
   color: var(--foreground) !important;
 }
 
-:root[data-app-style="clean"] {
-  --background: light-dark(#f6f8fa, #111418);
-  --foreground: light-dark(#1f2328, #eef1f4);
-  --surface: light-dark(#ffffff, #171b20);
-  --surface-raised: light-dark(#ffffff, #1d2228);
-  --surface-subtle: light-dark(#edf1f4, #242a31);
-  --muted: light-dark(#66707a, #aab3bc);
-  --muted-soft: light-dark(#8a949e, #7f8994);
-  --border: light-dark(#d8dee4, #343b44);
-  --border-strong: light-dark(#b7c0c9, #505a65);
-  --accent: light-dark(#8bb8d8, #76a9cd);
-  --accent-strong: light-dark(#24658f, #9ac7e5);
-  --ring: light-dark(#24658f, #9ac7e5);
-  --app-display-font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --document-font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --document-font-size: 1rem;
-  --document-line-height: 1.65;
-}
-
-:root[data-app-style="editorial"] {
-  --background: light-dark(#f1eee7, #171512);
-  --surface: light-dark(#fbfaf6, #1f1c18);
-  --surface-raised: light-dark(#fffefb, #26221d);
-  --surface-subtle: light-dark(#e8e2d7, #302b24);
-  --border: light-dark(#d5ccbd, #443d33);
-  --border-strong: light-dark(#b9ad99, #665b4c);
-  --accent: light-dark(#b0966c, #c3a77a);
-  --accent-strong: light-dark(#614b2f, #dcc397);
-  --ring: light-dark(#614b2f, #dcc397);
-  --app-font-family: Georgia, "Times New Roman", serif;
-  --app-display-font-family: Iowan Old Style, Baskerville, Georgia, serif;
-  --document-font-family: Georgia, "Times New Roman", serif;
-  --document-font-size: 1.06rem;
-  --document-line-height: 1.85;
-}
-
-:root[data-app-style="warm"] {
-  --background: light-dark(#eee6da, #1a1612);
-  --foreground: light-dark(#43362c, #f1e4d5);
-  --surface: light-dark(#fbf4e8, #211b16);
-  --surface-raised: light-dark(#fffaf1, #292019);
-  --surface-subtle: light-dark(#eadcc9, #342920);
-  --muted: light-dark(#786657, #baa694);
-  --muted-soft: light-dark(#9a8775, #8f7b69);
-  --border: light-dark(#dfccb2, #493a2e);
-  --border-strong: light-dark(#c5aa89, #6a5542);
-  --accent: light-dark(#c59b6e, #c99f72);
-  --accent-strong: light-dark(#70452d, #e0b78c);
-  --warm: light-dark(#9b5d32, #dea36f);
-  --ring: light-dark(#70452d, #e0b78c);
-  --app-display-font-family: Charter, Georgia, "Times New Roman", serif;
-  --document-font-family: Charter, Georgia, "Times New Roman", serif;
-  --document-font-size: 1.08rem;
-  --document-line-height: 1.82;
-}
-
-:root[data-app-style="bold"] {
-  --background: light-dark(#eef2f8, #10141c);
-  --foreground: light-dark(#172033, #f2f5fb);
-  --surface: light-dark(#ffffff, #171d28);
-  --surface-raised: light-dark(#ffffff, #1e2634);
-  --surface-subtle: light-dark(#e2e9f3, #283245);
-  --muted: light-dark(#5d687c, #aab5c9);
-  --muted-soft: light-dark(#818ba0, #778399);
-  --border: light-dark(#cbd5e5, #354157);
-  --border-strong: light-dark(#a9b7cd, #55637c);
-  --accent: light-dark(#84a9de, #7da8e4);
-  --accent-strong: light-dark(#315c9b, #9fc3f5);
-  --ring: light-dark(#315c9b, #9fc3f5);
-  --app-display-font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --document-font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --document-font-size: 1.02rem;
-  --document-line-height: 1.68;
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
@@ -387,12 +312,6 @@ select {
   stroke-linejoin: round;
 }
 
-.comment-highlight {
-  border-bottom: 2px solid var(--warm);
-  background-color: color-mix(in srgb, var(--warm) 24%, transparent);
-  border-radius: 2px;
-}
-
 .ProseMirror {
   --document-side-margin: 40mm;
   color: var(--foreground);
@@ -412,35 +331,6 @@ select {
 
 .ProseMirror[data-document-side-margin="wide"] {
   --document-side-margin: 60mm;
-}
-
-:root[data-app-style="clean"] .ProseMirror :is(h1, h2, h3, h4, h5, h6) {
-  font-family: inherit;
-  font-weight: 680;
-  letter-spacing: -0.025em;
-}
-
-:root[data-app-style="editorial"] .ProseMirror :is(h1, h2) {
-  border-bottom: 1px solid color-mix(in srgb, var(--foreground) 22%, transparent);
-  padding-bottom: 0.3em;
-  font-family: var(--app-display-font-family);
-  letter-spacing: -0.035em;
-}
-
-:root[data-app-style="warm"] .ProseMirror :is(h1, h2, h3, h4, h5, h6) {
-  color: var(--accent-strong);
-  font-family: inherit;
-}
-
-:root[data-app-style="bold"] .app-panel {
-  box-shadow: var(--shadow), inset 0.2rem 0 var(--accent-strong);
-}
-
-:root[data-app-style="bold"] .ProseMirror :is(h1, h2, h3) {
-  color: var(--accent-strong);
-  font-family: inherit;
-  font-weight: 800;
-  letter-spacing: -0.045em;
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
@@ -934,11 +824,6 @@ select {
     padding-inline: var(--document-print-side-margin, 40mm) !important;
   }
 
-  .comment-highlight {
-    border-bottom: 0;
-    background: transparent;
-  }
-
   .ProseMirror img {
     break-inside: avoid;
   }
@@ -984,4 +869,4 @@ select {
   break-after: avoid;
 }
 .document-day-header > time { font-weight: 500; }
-.document-day-header > [data-day-content]:not(:empty)::before { content: " — "; }
+.document-day-header > [data-day-content]:not(:empty)::before { content: " \2014 "; }

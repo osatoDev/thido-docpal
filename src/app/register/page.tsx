@@ -27,7 +27,7 @@ export default async function RegisterPage({
         <div className="flex flex-col items-center gap-2 text-center">
           <p className="page-kicker">Create your account</p>
           <h1 className="text-3xl font-semibold tracking-[-0.045em]">
-            Start writing with Thido.
+            Start planning with Thido.
           </h1>
           <p className="max-w-sm text-sm leading-6 text-[var(--muted)]">
             {seatsRemaining > 0

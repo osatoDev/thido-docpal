@@ -56,8 +56,6 @@ export default async function AdminPage() {
     users,
     betaUsers,
     documents,
-    comments,
-    pendingSuggestions,
     awaitingFounderReplies,
     recentDocuments,
     analytics,
@@ -67,8 +65,6 @@ export default async function AdminPage() {
       prisma.user.count(),
       prisma.user.count({ where: { betaSeat: { not: null } } }),
       prisma.document.count({ where: { isPlaceholder: false } }),
-      prisma.comment.count(),
-      prisma.suggestion.count({ where: { status: "PENDING" } }),
       prisma.feedbackThread.count({ where: { responseDueAt: { not: null } } }),
       prisma.document.findMany({
         where: { isPlaceholder: false },
@@ -112,16 +108,6 @@ export default async function AdminPage() {
       label: "Documents",
       value: documents,
       href: adminDetailHref("documents"),
-    },
-    {
-      label: "Comments",
-      value: comments,
-      href: adminDetailHref("comments"),
-    },
-    {
-      label: "Pending suggestions",
-      value: pendingSuggestions,
-      href: adminDetailHref("pending-suggestions"),
     },
     {
       label: "Founder replies due",

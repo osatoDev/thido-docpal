@@ -3,9 +3,7 @@ import "server-only";
 import { Resend } from "resend";
 
 import { adminDetailHref } from "@/lib/adminDetails";
-import { documentEditPath } from "@/lib/documentUrls";
 import { founderFeedbackRecipients } from "@/lib/feedback";
-import type { HistoryNotice } from "@/lib/documentHistoryRetention";
 
 let resendClient: Resend | null = null;
 
@@ -81,39 +79,6 @@ async function sendEmail({
 
   if (error) throw new Error(`Email delivery failed: ${error.message}`);
   return data?.id;
-}
-
-export async function wasHistoryNoticeDelivered(emailId: string) {
-  const resend = getResend();
-  if (!resend) return false;
-  const { data, error } = await resend.emails.get(emailId);
-  if (error) throw new Error(`Could not verify history notice delivery: ${error.message}`);
-  return !!data && ["delivered", "opened", "clicked"].includes(data.last_event);
-}
-
-export async function sendHistoryRetentionEmail(notice: HistoryNotice) {
-  // Retention must never treat a development preview as a sent warning.
-  if (!process.env.RESEND_API_KEY) throw new Error("History retention requires a configured email sender.");
-  const url = appUrl(`/documents/${encodeURIComponent(notice.documentId)}/history`);
-  const date = notice.deleteAfter.toLocaleDateString("en", { dateStyle: "long", timeZone: "UTC" });
-  const greeting = notice.name ? `Hi ${notice.name},` : "Hello,";
-  const paragraphs = [
-    greeting,
-    `Your document “${notice.documentTitle}” now has more than 100 saved versions. Those drafts can be valuable, so we want to give you a choice before removing any of them.`,
-    `To keep document storage manageable, we plan to remove older versions on or after ${date} (UTC), after a full 14-day notice period. Your current document and at least the newest 100 versions will stay safe. This notice only covers versions that were already older than those 100 when we sent it.`,
-    `If you would like to keep your full history, open the link below, sign in as the document owner, and choose “Keep all versions”. This stops automatic history cleanup for this document, including future versions. There is no need to reply to this email.`,
-    `If you do nothing, the older versions covered by this notice will be permanently removed after the notice period. You can review your history and make your choice here:`,
-  ];
-  const emailId = await sendEmail({
-    to: notice.email,
-    subject: "A choice about your document’s version history",
-    text: `${paragraphs.join("\n\n")}\n\n${url}\n\nThank you for writing with Thido.`,
-    html: emailShell("Keep the drafts that matter to you", paragraphs.map(escapeHtml).join("<br /><br />"), "Review and keep my history", url),
-    previewUrl: url,
-    idempotencyKey: `history-retention-${notice.noticeId}`,
-  });
-  if (!emailId) throw new Error("History notification was not accepted by the email provider.");
-  return emailId;
 }
 
 export async function sendWaitlistConfirmationEmail(email: string) {
@@ -313,88 +278,6 @@ export async function sendAdminNewDocumentNotification({
   });
 }
 
-const permissionDescriptions = {
-  VIEW: "view the document",
-  COMMENT: "view and comment on the document",
-  EDIT: "edit and comment on the document",
-  FULL: "edit, delete, and manage sharing for the document",
-} as const;
-
-export async function sendDocumentInvitationEmail({
-  email,
-  inviterName,
-  documentTitle,
-  documentId,
-  permission,
-  idempotencyKey,
-}: {
-  email: string;
-  inviterName: string;
-  documentTitle: string;
-  documentId: string;
-  permission: keyof typeof permissionDescriptions;
-  idempotencyKey: string;
-}) {
-  const url = appUrl(documentEditPath(documentId, documentTitle));
-  const description = permissionDescriptions[permission];
-  const safeInviterName = escapeHtml(inviterName);
-  const safeDocumentTitle = escapeHtml(documentTitle);
-
-  await sendEmail({
-    to: email,
-    subject: `${inviterName} shared “${documentTitle}” with you`,
-    text:
-      `${inviterName} invited you to ${description}: “${documentTitle}”.\n\n` +
-      `Open the document: ${url}\n\nSign in to Thido with ${email} to use this access.`,
-    html: emailShell(
-      `${inviterName} shared a document with you`,
-      `${safeInviterName} invited you to ${escapeHtml(description)}: <strong>${safeDocumentTitle}</strong>. Sign in with this email address to continue.`,
-      "Open document",
-      url,
-    ),
-    previewUrl: url,
-    idempotencyKey,
-  });
-}
-
-export async function sendLinkAccessNotificationEmail({
-  ownerEmail,
-  documentId,
-  documentTitle,
-  accessorName,
-  accessorEmail,
-}: {
-  ownerEmail: string;
-  documentId: string;
-  documentTitle: string;
-  accessorName: string | null;
-  accessorEmail: string | null;
-}) {
-  const url = appUrl(documentEditPath(documentId, documentTitle));
-  const accessor =
-    accessorName?.trim() || accessorEmail?.trim() || "Someone";
-  const safeAccessor = escapeHtml(accessor);
-  const safeDocumentTitle = escapeHtml(documentTitle);
-
-  await sendEmail({
-    to: ownerEmail,
-    subject: `${accessor} used your full-access link to “${documentTitle}”`,
-    text:
-      `${accessor}${accessorEmail ? ` (${accessorEmail})` : ""} signed in through ` +
-      `your full-access share link and can now edit, delete, and manage sharing for ` +
-      `“${documentTitle}”.\n\nIf this wasn't expected, revoke the link from the document's ` +
-      `share menu.\n\nOpen the document: ${url}`,
-    html: emailShell(
-      "A full-access link was used",
-      `${safeAccessor}${accessorEmail ? ` (${escapeHtml(accessorEmail)})` : ""} signed in through your full-access share link for <strong>${safeDocumentTitle}</strong> and can now edit, delete, and manage sharing. If this wasn't expected, revoke the link from the document's share menu.`,
-      "Open document",
-      url,
-    ),
-    previewUrl: url,
-    idempotencyKey: `link-access-full-${documentId}-${accessorEmail ?? accessor}`,
-  });
-}
-
 function emailShell(title: string, body: string, action: string, url: string) {
   return `<!doctype html>
 <html lang="en">
@@ -557,55 +440,23 @@ export async function sendActivationNudgeEmail({
   email: string;
   name: string | null;
 }) {
-  const url = appUrl("/documents/new");
+  const url = appUrl("/");
   const greeting = name?.trim() ? `Hi ${name.trim()},` : "Hi,";
   await sendEmail({
     to: email,
     subject: "Haven't had a chance to try Thido yet?",
     text:
       `${greeting}\n\nYou signed up for Thido but haven't opened it yet. ` +
-      `The easiest way in is to answer a few questions or paste a prompt and ` +
-      `let Thido draft the first version for you, instead of starting from a ` +
-      `blank page.\n\nTry it: ${url}`,
+      `The easiest way in is to type one task the way you would say it, like ` +
+      `"Dentist next Tuesday 3pm", and Thido puts it under the right day.` +
+      `\n\nTry it: ${url}`,
     html: emailShell(
       "Haven't had a chance to try Thido yet?",
-      `${escapeHtml(greeting)} You signed up for Thido but haven't opened it yet. The easiest way in is to answer a few questions or paste a prompt and let Thido draft the first version for you, instead of starting from a blank page.`,
-      "Draft with AI",
+      `${escapeHtml(greeting)} You signed up for Thido but haven't opened it yet. The easiest way in is to type one task the way you would say it, like &ldquo;Dentist next Tuesday 3pm&rdquo;, and Thido puts it under the right day.`,
+      "Plan your day",
       url,
     ),
     previewUrl: url,
     idempotencyKey: `activation-nudge-${email.toLowerCase()}`,
-  });
-}
-
-export async function sendReactivationNudgeEmail({
-  email,
-  name,
-  documentId,
-  title,
-}: {
-  email: string;
-  name: string | null;
-  documentId: string;
-  title: string;
-}) {
-  const url = appUrl(documentEditPath(documentId, title));
-  const greeting = name?.trim() ? `Hi ${name.trim()},` : "Hi,";
-  const safeTitle = escapeHtml(title);
-  await sendEmail({
-    to: email,
-    subject: `Your document "${title}" is still here`,
-    text:
-      `${greeting}\n\nYou started "${title}" in Thido and it's saved exactly ` +
-      `as you left it. Pick up where you left off whenever you're ready.\n\n` +
-      `Continue: ${url}`,
-    html: emailShell(
-      "Your document is still here",
-      `${escapeHtml(greeting)} You started <strong>${safeTitle}</strong> in Thido and it's saved exactly as you left it. Pick up where you left off whenever you're ready.`,
-      "Continue document",
-      url,
-    ),
-    previewUrl: url,
-    idempotencyKey: `reactivation-nudge-${documentId}`,
   });
 }

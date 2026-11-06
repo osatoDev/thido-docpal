@@ -36,7 +36,7 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const { id } = await params;
-  const document = await getDocumentForUser(id, userId, session.user.email, "EDIT");
+  const document = await getDocumentForUser(id, userId);
   if (!document) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   if (trigger === "AUTO") {

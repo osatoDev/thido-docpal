@@ -8,13 +8,12 @@ import {
 describe("admin detail routes", () => {
   it("accepts known detail views", () => {
     expect(parseAdminDetailView("users")).toBe("users");
-    expect(parseAdminDetailView("pending-suggestions")).toBe(
-      "pending-suggestions",
-    );
+    expect(parseAdminDetailView("waitlist")).toBe("waitlist");
   });
 
   it("rejects unknown detail views", () => {
     expect(parseAdminDetailView("billing-secrets")).toBeNull();
+    expect(parseAdminDetailView("comments")).toBeNull();
   });
 
   it("uses only positive integer page numbers", () => {

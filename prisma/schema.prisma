@@ -50,45 +50,40 @@ model VerificationToken {
 // ---------- App models ----------
 
 model User {
-  id                       String                 @id @default(cuid())
+  id                       String             @id @default(cuid())
   name                     String?
-  email                    String?                @unique
+  email                    String?            @unique
   emailVerified            DateTime?
   image                    String?
-  passwordHash             String?                @db.Text
-  sessionVersion           Int                    @default(0)
-  betaSeat                 Int?                   @unique
+  passwordHash             String?            @db.Text
+  sessionVersion           Int                @default(0)
+  betaSeat                 Int?               @unique
   betaGrantedAt            DateTime?
-  stripeCustomerId         String?                @unique
-  stripeSubscriptionId     String?                @unique
+  stripeCustomerId         String?            @unique
+  stripeSubscriptionId     String?            @unique
   stripePriceId            String?
   stripeSubscriptionStatus String?
   stripeCurrentPeriodEnd   DateTime?
-  stripeCancelAtPeriodEnd  Boolean                @default(false)
-  aiCreditsUsed            Int                    @default(0)
-  aiCreditsPeriodStart     DateTime               @default(now())
-  createdAt                DateTime               @default(now())
+  stripeCancelAtPeriodEnd  Boolean            @default(false)
+  aiCreditsUsed            Int                @default(0)
+  aiCreditsPeriodStart     DateTime           @default(now())
+  createdAt                DateTime           @default(now())
   activationNudgeSentAt    DateTime?
-  reactivationNudgeSentAt  DateTime?
   accounts                 Account[]
   aiCreditCharges          AiCreditCharge[]
   sessions                 Session[]
   documents                Document[]
-  spreadsheets             Spreadsheet[]
-  comments                 Comment[]
   settings                 UserSettings?
   authTokens               AuthToken[]
   aiGenerations            AiGeneration[]
   feedbackThread           FeedbackThread?
   feedbackMessages         FeedbackMessage[]
-  collaboratorInvites      DocumentCollaborator[] @relation("CollaboratorInviter")
-  uploadedDocumentImages   DocumentImage[]        @relation("DocumentImageUploader")
-  documentRevisions        DocumentRevision[]     @relation("DocumentRevisionActor")
-  documentLinkAccesses     DocumentLinkAccess[]
+  uploadedDocumentImages   DocumentImage[]    @relation("DocumentImageUploader")
+  documentRevisions        DocumentRevision[] @relation("DocumentRevisionActor")
   documentFolders          DocumentFolder[]
   planFeedback             PlanFeedback[]
-  waitlistReviews          WaitlistEntry[]        @relation("WaitlistReviewer")
-  waitlistAdmission        WaitlistEntry?         @relation("WaitlistApprovedUser")
+  waitlistReviews          WaitlistEntry[]    @relation("WaitlistReviewer")
+  waitlistAdmission        WaitlistEntry?     @relation("WaitlistApprovedUser")
 }
 
 enum WaitlistStatus {
@@ -197,12 +192,6 @@ model AuthToken {
   @@index([expiresAt])
 }
 
-enum AICommentMode {
-  PROPOSE
-  AUTO
-  AUTO_APPLY
-}
-
 enum DocumentStartMode {
   NEW_DOCUMENT
   MOST_RECENT
@@ -212,10 +201,8 @@ model UserSettings {
   id                     String            @id @default(cuid())
   userId                 String            @unique
   user                   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  aiCommentMode          AICommentMode     @default(AUTO)
   aiModel                String            @default("claude-sonnet-5")
   documentStartMode      DocumentStartMode @default(NEW_DOCUMENT)
-  applicationStyle       String            @default("classic")
   autosaveDelaySeconds   Int               @default(120)
   checklistMoveControls  Boolean           @default(true)
   planFeedbackDailyLimit Int               @default(3)
@@ -237,40 +224,25 @@ enum DocumentRevisionSource {
   IMPORT
 }
 
-enum DocumentPermission {
-  VIEW
-  COMMENT
-  EDIT
-  FULL
-}
-
 model Document {
-  id               String                 @id @default(cuid())
-  guestDraftId     String?                @unique
-  shareToken       String?                @unique
-  sharePermission  DocumentPermission     @default(VIEW)
-  title            String                 @default("Untitled Document")
-  titleManuallySet Boolean                @default(false)
+  id               String             @id @default(cuid())
+  title            String             @default("Untitled Document")
+  titleManuallySet Boolean            @default(false)
   ownerId          String
-  owner            User                   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner            User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   folderId         String?
-  folder           DocumentFolder?        @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  status           DocumentStatus         @default(DRAFTING)
-  isPlaceholder    Boolean                @default(false)
+  folder           DocumentFolder?    @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  status           DocumentStatus     @default(DRAFTING)
+  isPlaceholder    Boolean            @default(false)
   content          Json?
-  revision         Int                    @default(0)
-  createdAt        DateTime               @default(now())
-  updatedAt        DateTime               @updatedAt
-  lastAccessedAt   DateTime               @default(now())
-  promptAnswers    PromptAnswer[]
-  comments         Comment[]
-  collaborators    DocumentCollaborator[]
+  revision         Int                @default(0)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  lastAccessedAt   DateTime           @default(now())
   aiGenerations    AiGeneration[]
   aiCreditCharges  AiCreditCharge[]
   images           DocumentImage[]
   revisions        DocumentRevision[]
-  historyRetention DocumentHistoryRetention?
-  linkAccesses     DocumentLinkAccess[]
   planFeedback     PlanFeedback[]
 
   @@index([ownerId])
@@ -279,65 +251,17 @@ model Document {
 }
 
 model DocumentFolder {
-  id           String        @id @default(cuid())
-  name         String
-  nameKey      String
-  ownerId      String
-  owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  documents    Document[]
-  spreadsheets Spreadsheet[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id        String     @id @default(cuid())
+  name      String
+  nameKey   String
+  ownerId   String
+  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  documents Document[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   @@unique([ownerId, nameKey])
   @@index([ownerId, name])
-}
-
-model Spreadsheet {
-  id             String          @id @default(cuid())
-  title          String          @default("Untitled Spreadsheet")
-  ownerId        String
-  owner          User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  folderId       String?
-  folder         DocumentFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  content        Json
-  revision       Int             @default(0)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  lastAccessedAt DateTime        @default(now())
-
-  @@index([ownerId])
-  @@index([folderId])
-}
-
-model DocumentLinkAccess {
-  id             String   @id @default(cuid())
-  documentId     String
-  document       Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt      DateTime @default(now())
-  lastAccessedAt DateTime @default(now())
-
-  @@unique([documentId, userId])
-  @@index([userId])
-  @@index([documentId, lastAccessedAt])
-}
-
-model DocumentHistoryRetention {
-  documentId       String   @id
-  document         Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  keepAll          Boolean  @default(false)
-  noticeId         String?
-  noticeClaimedAt  DateTime?
-  noticeSentAt     DateTime?
-  noticeEmailId    String?
-  deliveryConfirmedAt DateTime?
-  deleteAfter      DateTime?
-  cutoffRevision   Int?
-  updatedAt        DateTime @updatedAt
-
-  @@index([keepAll, deleteAfter])
 }
 
 model DocumentRevision {
@@ -373,133 +297,6 @@ model DocumentImage {
 
   @@index([documentId])
   @@index([uploadedById])
-}
-
-model DocumentCollaborator {
-  id          String             @id @default(cuid())
-  documentId  String
-  document    Document           @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  email       String
-  permission  DocumentPermission @default(VIEW)
-  invitedById String?
-  invitedBy   User?              @relation("CollaboratorInviter", fields: [invitedById], references: [id], onDelete: SetNull)
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-
-  @@unique([documentId, email])
-  @@index([email])
-  @@index([invitedById])
-}
-
-enum PromptStage {
-  INITIAL
-  FOLLOWUP
-}
-
-model PromptAnswer {
-  id         String      @id @default(cuid())
-  documentId String
-  document   Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  stage      PromptStage
-  order      Int
-  question   String      @db.Text
-  answer     String      @default("") @db.Text
-  createdAt  DateTime    @default(now())
-
-  @@index([documentId])
-}
-
-enum AuthorType {
-  USER
-  AI
-}
-
-enum CommentIntent {
-  QUESTION
-  CHANGE_REQUEST
-  FEEDBACK
-}
-
-enum CommentStatus {
-  OPEN
-  RESOLVED
-}
-
-enum CommentScope {
-  SELECTION
-  DOCUMENT
-}
-
-enum CommentAiStatus {
-  NOT_REQUESTED
-  PENDING
-  SUCCEEDED
-  FAILED
-}
-
-model Comment {
-  id         String     @id @default(cuid())
-  documentId String
-  document   Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  authorId   String?
-  author     User?      @relation(fields: [authorId], references: [id])
-  authorType AuthorType @default(USER)
-
-  parentId String?
-  parent   Comment?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
-  replies  Comment[] @relation("CommentThread")
-
-  scope CommentScope @default(SELECTION)
-
-  // Selection comments match the Tiptap CommentMark's commentId attribute.
-  // Document comments deliberately have no text anchor.
-  anchorMarkId String?
-  quotedText   String? @db.Text
-  isOrphaned   Boolean @default(false)
-
-  intent CommentIntent?
-  status CommentStatus  @default(OPEN)
-  body   String         @db.Text
-
-  aiStatus      CommentAiStatus @default(NOT_REQUESTED)
-  aiStartedAt   DateTime?
-  aiCompletedAt DateTime?
-
-  suggestion    Suggestion?
-  aiGenerations AiGeneration[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([documentId])
-  @@index([documentId, scope, aiStatus])
-  @@index([anchorMarkId])
-  @@index([parentId])
-}
-
-enum SuggestionStatus {
-  PENDING
-  ACCEPTED
-  REJECTED
-  AUTO_APPLIED
-}
-
-model Suggestion {
-  id         String  @id @default(cuid())
-  commentId  String  @unique
-  comment    Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  documentId String
-
-  scope        CommentScope     @default(SELECTION)
-  anchorMarkId String?
-  originalText String           @db.Text
-  proposedText String           @db.Text
-  status       SuggestionStatus @default(PENDING)
-
-  createdAt  DateTime  @default(now())
-  resolvedAt DateTime?
-
-  @@index([documentId])
 }
 
 enum AiFeature {
@@ -550,8 +347,6 @@ model AiGeneration {
   user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   documentId String?
   document   Document? @relation(fields: [documentId], references: [id], onDelete: SetNull)
-  commentId  String?
-  comment    Comment?  @relation(fields: [commentId], references: [id], onDelete: SetNull)
 
   providerRequestId String?
   environment       String?
@@ -584,7 +379,6 @@ model AiGeneration {
   @@index([status, startedAt])
   @@index([userId, startedAt])
   @@index([documentId])
-  @@index([commentId])
   @@index([providerRequestId])
 }
 

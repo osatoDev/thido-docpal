@@ -12,8 +12,10 @@ test.beforeAll(async () => {
   await prisma.document.create({ data: {
     id: documentId, ownerId: owner.id, title: "History test", titleManuallySet: true, status: "READY", revision: 125,
     content: { type: "doc", content: [{ type: "documentPreferences", attrs: { sideMargin: "standard" } }, { type: "paragraph", content: [{ type: "text", text: "Current document" }] }] },
+    // One version per past day, newest yesterday, so retention has real buckets to thin.
     revisions: { create: Array.from({ length: 125 }, (_, index) => ({
       revision: index + 1, title: `Draft ${index + 1}`, source: "IMPORT", actorId: owner.id,
+      createdAt: new Date(Date.now() - (125 - index) * 86_400_000),
       content: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: `Snapshot ${index + 1}` }] }] },
     })) },
   } });
@@ -62,7 +64,11 @@ test("loads ten metadata rows and only the selected preview, then shows more on 
   await dialog.getByRole("button", { name: "Restore this version" }).click();
   await expect(dialog).not.toBeVisible();
   await expect(page.locator(".ProseMirror")).toContainText("Snapshot 110");
-  expect(await prisma.documentRevision.count({ where: { documentId } })).toBe(126);
+  const newest = await prisma.documentRevision.findFirstOrThrow({ where: { documentId }, orderBy: { revision: "desc" } });
+  expect(newest).toMatchObject({ revision: 126, source: "RESTORE", restoredFromRevision: 110 });
+  // Versions older than 30 days were thinned to one per week by the restore write.
+  expect(await prisma.documentRevision.count({ where: { documentId } })).toBeLessThan(126);
+  expect(await prisma.documentRevision.count({ where: { documentId, revision: 110 } })).toBe(1);
 });
 
 test("cursor paging can reach versions beyond the previous 100-row cap", async ({ page }) => {
@@ -79,28 +85,17 @@ test("cursor paging can reach versions beyond the previous 100-row cap", async (
   } while (cursor !== null);
   expect(seen.length).toBe(expectedCount);
   expect(new Set(seen).size).toBe(expectedCount);
-  expect(seen.at(-1)).toBe(1);
+  expect(seen.every((revision, index) => index === 0 || revision < seen[index - 1])).toBe(true);
   expect((await page.request.get(`${path}?before=invalid`)).status()).toBe(400);
 });
 
-test("owner can keep all history; email-page GET does not change the preference", async ({ page, browser }) => {
-  await page.goto(`/documents/${documentId}/history`);
-  expect(await prisma.documentHistoryRetention.findUnique({ where: { documentId } })).toBeNull();
-  await page.getByRole("button", { name: "Keep all versions", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("Automatic history cleanup is off");
-  const state = await prisma.documentHistoryRetention.findUniqueOrThrow({ where: { documentId } });
-  expect(state.keepAll).toBe(true);
-  expect(state.deleteAfter).toBeNull();
+test("version history is private to the document owner", async ({ page, browser }) => {
   const anonymous = await browser.newContext({ storageState: { cookies: [], origins: [] } });
-  const response = await anonymous.request.post(`http://127.0.0.1:3100${path}/retention`, { data: { keepAll: true } });
-  expect(response.status()).toBe(401);
   const list = await anonymous.request.get(`http://127.0.0.1:3100${path}`);
   expect(list.status()).toBe(401);
   await anonymous.close();
   const stranger = await prisma.user.create({ data: { email: "history-other@thido.test" } });
   const otherDocument = await prisma.document.create({ data: { ownerId: stranger.id } });
-  const forbidden = await page.request.post(`/api/documents/${otherDocument.id}/revisions/retention`, { data: { keepAll: true } });
-  expect(forbidden.status()).toBe(404);
   const hiddenPreview = await page.request.get(`/api/documents/${otherDocument.id}/revisions?revision=1`);
   expect(hiddenPreview.status()).toBe(404);
   await prisma.user.delete({ where: { id: stranger.id } });

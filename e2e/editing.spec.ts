@@ -21,30 +21,29 @@ test.describe("document editing", () => {
       timeout: 15_000,
     });
 
+    await page.clock.resume();
     await page.reload();
     await expect(page.locator(".ProseMirror")).toContainText(marker.trim());
   });
 
-  test("File menu Download opens a side flyout", async ({ page }) => {
+  test("View menu Zoom opens a side flyout", async ({ page }) => {
     await openSeedDocument(page);
 
-    await page.getByRole("menuitem", { name: "File" }).click();
-    const fileMenu = page.getByRole("menu", { name: "File" });
-    await expect(fileMenu).toBeVisible();
+    await page.getByRole("menuitem", { name: "View" }).click();
+    const viewMenu = page.getByRole("menu", { name: "View" });
+    await expect(viewMenu).toBeVisible();
 
-    await fileMenu.getByRole("menuitem", { name: "Download" }).click();
-    const downloadMenu = page.getByRole("menu", { name: "Download" });
-    await expect(downloadMenu).toBeVisible();
-    await expect(
-      downloadMenu.getByRole("menuitem", { name: "PDF document (.pdf)" }),
-    ).toBeVisible();
+    await viewMenu.getByRole("menuitem", { name: "Zoom" }).click();
+    const zoomMenu = page.getByRole("menu", { name: "Zoom" });
+    await expect(zoomMenu).toBeVisible();
+    await expect(zoomMenu.getByRole("menuitem", { name: /^100%/ })).toBeVisible();
 
     // The flyout is portalled to <body>, positioned beside (not inside) the
-    // File menu panel.
-    const flyoutBox = await downloadMenu.boundingBox();
-    const fileBox = await fileMenu.boundingBox();
-    expect(flyoutBox && fileBox).toBeTruthy();
-    expect(flyoutBox!.x).toBeGreaterThan(fileBox!.x + fileBox!.width - 4);
+    // View menu panel.
+    const flyoutBox = await zoomMenu.boundingBox();
+    const viewBox = await viewMenu.boundingBox();
+    expect(flyoutBox && viewBox).toBeTruthy();
+    expect(flyoutBox!.x).toBeGreaterThan(viewBox!.x + viewBox!.width - 4);
   });
 
   test("bold and heading formatting apply to the selection", async ({ page }) => {

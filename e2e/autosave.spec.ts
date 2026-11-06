@@ -223,5 +223,10 @@ test("settings persist a custom autosave countdown", async ({ page }) => {
     await expect(page.getByRole("textbox", { name: "Document title" })).toHaveValue("Custom autosave delay");
   } finally {
     await page.request.patch("/api/settings", { data: { autosaveDelaySeconds: 120 } });
+    // Later specs open the seed document by its original title.
+    const current = await (await page.request.get(savePath)).json();
+    await page.request.patch(savePath, {
+      data: { title: SEED.documentTitle, titleUpdateSource: "USER", baseRevision: current.document.revision },
+    });
   }
 });

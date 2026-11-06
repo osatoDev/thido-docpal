@@ -7,11 +7,10 @@ import { NewDocumentMenu } from "@/components/documents/NewDocumentMenu";
 // Every other signed-in page caps its content at max-w-[90rem] and centers
 // it, and this row matches that by default so "New document" lines up with
 // the content edge below it. The document editor is the one deliberate
-// exception (see production-todo.md: "Use the full available
-// document-editor width...") and goes edge-to-edge with its own narrower
-// px-2/sm:px-3/lg:px-4 inset instead. Above a 1440px-wide (90rem) viewport,
-// not matching that here left "New document" sitting well left of the
-// editor's own Share/Dark/Avatar row, which is exactly what this checks for.
+// exception: it uses the full available width and goes edge-to-edge with
+// its own narrower px-2/sm:px-3/lg:px-4 inset instead. Above a 1440px-wide
+// (90rem) viewport, not matching that here left "New document" sitting well
+// left of the editor's own header row, which is exactly what this checks for.
 const FULL_WIDTH_ROUTE = /^\/documents\/[^/]+\/edit(\/|$)/;
 
 export function SignedInPageActions({ signedIn }: { signedIn: boolean }) {

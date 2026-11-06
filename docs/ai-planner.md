@@ -26,4 +26,4 @@ Feedback is 2–4 sentences and is stored in the `PlanFeedback` table. It appear
 
 ## Not yet built: phone reminders
 
-Phone reminders are planned for the next iteration and are tracked in `docs/production-todo.md`. The leading `HH:MM` in task text gives a future reminder scheduler a time to read.
+Phone reminders are planned for the next iteration. The leading `HH:MM` in task text gives a future reminder scheduler a time to read.

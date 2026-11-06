@@ -19,10 +19,8 @@ function proxyMatches(url: string) {
 describe("proxy route scope", () => {
   it.each([
     "/",
-    "/documents/new",
     "/login",
     "/privacy",
-    "/share/public-token",
     "/api/documents",
     "/thido-docpal-mark.svg",
   ])("keeps public and route-handler requests off the auth proxy: %s", (url) => {
@@ -35,10 +33,8 @@ describe("proxy route scope", () => {
     "/dashboard",
     "/documents/123/edit",
     "/documents/123/edit/project-plan",
-    "/documents/123/wizard",
     "/feedback",
     "/settings",
-    "/spreadsheets/123/edit",
   ])("retains optimistic auth checks for private pages: %s", (url) => {
     expect(proxyMatches(url)).toBe(true);
   });

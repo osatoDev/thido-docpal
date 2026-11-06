@@ -6,9 +6,9 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { useEditorHashNavigation } from "@/components/editor/useEditorHashNavigation";
 
-export function PublicDocumentViewer({
+export function ReadOnlyDocumentViewer({
   content,
-  ariaLabel = "Shared document content",
+  ariaLabel = "Document content",
 }: {
   content: JSONContent;
   ariaLabel?: string;

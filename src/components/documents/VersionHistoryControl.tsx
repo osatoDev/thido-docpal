@@ -3,9 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { JSONContent } from "@tiptap/react";
 
-import { HistoryRetentionControl, type HistoryRetention } from "./HistoryRetentionControl";
-
-import { PublicDocumentViewer } from "@/components/documents/PublicDocumentViewer";
+import { ReadOnlyDocumentViewer } from "@/components/documents/ReadOnlyDocumentViewer";
 
 type RevisionSource = "INITIAL" | "USER" | "AI" | "RESTORE" | "IMPORT";
 
@@ -53,7 +51,6 @@ export function VersionHistoryDialog({
   const [restoring, setRestoring] = useState(false);
   const [nextCursor, setNextCursor] = useState<number | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [retention, setRetention] = useState<HistoryRetention | null>(null);
   const [preview, setPreview] = useState<{ revision: number; content: JSONContent | null } | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewAttempt, setPreviewAttempt] = useState(0);
@@ -79,7 +76,6 @@ export function VersionHistoryDialog({
         const nextRevisions = (body?.revisions ?? []) as RevisionSummary[];
         setRevisions(nextRevisions);
         setNextCursor(body.nextCursor ?? null);
-        setRetention(body.retention ?? null);
         setSelectedRevision(nextRevisions[0]?.revision ?? null);
       } catch (reason) {
         if (cancelled) return;
@@ -211,7 +207,6 @@ export function VersionHistoryDialog({
           </button>
         </header>
 
-        {retention ? <div className="border-b border-[var(--border)] px-5 py-3"><HistoryRetentionControl documentId={documentId} initial={retention} /></div> : null}
 
         {loading ? (
           <p className="p-6 text-sm text-[var(--muted)]" role="status">
@@ -243,7 +238,7 @@ export function VersionHistoryDialog({
                     {new Date(revision.createdAt).toLocaleString()}
                   </span>
                   <span className="mt-0.5 block">
-                    {revision.actor?.name || "A collaborator"}
+                    {revision.actor?.name || "You"}
                   </span>
                 </button>
               ))}
@@ -270,7 +265,7 @@ export function VersionHistoryDialog({
                     ) : preview?.revision !== selected.revision ? (
                       <p role="status" className="text-sm text-[var(--muted)]">Loading version preview…</p>
                     ) : preview.content ? (
-                      <PublicDocumentViewer
+                      <ReadOnlyDocumentViewer
                         key={selected.revision}
                         content={preview.content}
                         ariaLabel={`Preview of version ${selected.revision}`}

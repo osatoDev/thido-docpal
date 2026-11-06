@@ -8,7 +8,6 @@ import {
   useSyncExternalStore,
 } from "react";
 import { EditorContent, useEditor, useEditorState, type JSONContent } from "@tiptap/react";
-import { BubbleMenu } from "@tiptap/react/menus";
 import { hasDayHeaders } from "@/lib/documentDays";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { ConflictRecovery } from "@/components/conflicts/ConflictRecovery";
@@ -22,26 +21,12 @@ import { PlannerBar } from "./PlannerBar";
 import { TableContextMenu } from "./TableContextMenu";
 import { TableConversionDialog } from "./TableConversionDialog";
 import { useEditorHashNavigation } from "./useEditorHashNavigation";
-import { CommentSidebar } from "@/components/comments/CommentSidebar";
-import { CommentComposer } from "@/components/comments/CommentComposer";
-import { RecentThidoChangeNotice } from "@/components/comments/RecentThidoChangeNotice";
 import {
   UserMenu,
   type UserMenuProfile,
 } from "@/components/account/UserMenu";
-import {
-  ShareDocumentControl,
-  type CollaboratorPermission,
-  type CollaboratorSummary,
-} from "@/components/documents/ShareDocumentControl";
 import { type RestoredDocument } from "@/components/documents/VersionHistoryControl";
 import { Brand } from "@/components/Brand";
-import { Tooltip } from "@/components/Tooltip";
-import type {
-  CommentWithReplies,
-  SuggestionWithStatus,
-} from "@/lib/types";
-import { isCommentQueuedForBatch } from "@/lib/commentProcessing";
 import {
   createLocalizedDefaultDocumentTitle,
   hasMeaningfulDocumentContent,
@@ -70,20 +55,7 @@ type Props = {
   initialCreatedAt: string;
   initialContent: JSONContent | null;
   initialRevision: number;
-  initialComments: CommentWithReplies[];
-  initialDocumentAiLocked: boolean;
-  initialShareToken: string | null;
-  initialSharePermission: CollaboratorPermission;
-  initialLinkAccesses: Array<{
-    userId: string;
-    name: string | null;
-    email: string | null;
-    lastAccessedAt: string;
-  }>;
-  initialCollaborators: CollaboratorSummary[];
-  accessPermission: CollaboratorPermission;
   currentUser: UserMenuProfile;
-  startedFromPaste?: boolean;
   checklistMoveControls?: boolean;
   autosaveDelaySeconds?: number;
 };
@@ -93,17 +65,6 @@ type DocumentSave = {
   titleUpdateSource?: "AUTO" | "USER";
   content?: JSONContent;
 };
-type SelectionComposer = {
-  scope: "SELECTION";
-  anchorMarkId: string;
-  quotedText: string;
-  from: number;
-  to: number;
-};
-type DocumentComposer = {
-  scope: "DOCUMENT";
-};
-type ActiveComposer = SelectionComposer | DocumentComposer;
 type PendingTablePaste = {
   from: number;
   originalText: string;
@@ -111,7 +72,6 @@ type PendingTablePaste = {
   to: number;
 };
 
-const BROADER_SCOPE_PROMPT = /\b(paragraph|section|intro|introduction|conclusion|opening|closing|entire|whole|overall)\b/i;
 const subscribeToHydration = () => () => undefined;
 
 export function TiptapEditor({
@@ -121,23 +81,11 @@ export function TiptapEditor({
   initialCreatedAt,
   initialContent,
   initialRevision,
-  initialComments,
-  initialDocumentAiLocked,
-  initialShareToken,
-  initialSharePermission,
-  initialLinkAccesses,
-  initialCollaborators,
-  accessPermission,
   currentUser,
-  startedFromPaste = false,
   checklistMoveControls = true,
   autosaveDelaySeconds = DEFAULT_AUTOSAVE_DELAY_SECONDS,
 }: Props) {
   const autosaveDelayMs = autosaveDelaySeconds * 1000;
-  const canComment = accessPermission !== "VIEW";
-  const canEdit =
-    accessPermission === "EDIT" || accessPermission === "FULL";
-  const canManage = accessPermission === "FULL";
   const [title, setTitle] = useState(initialTitle);
   const hasHydrated = useSyncExternalStore(
     subscribeToHydration,
@@ -155,19 +103,8 @@ export function TiptapEditor({
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveDeadline, setSaveDeadline] = useState<number | null>(null);
   const [documentConflict, setDocumentConflict] = useState<string | null>(null);
-  const [comments, setComments] = useState<CommentWithReplies[]>(initialComments);
-  const [activeComposer, setActiveComposer] = useState<ActiveComposer | null>(null);
-  const [commentsSidebarOpen, setCommentsSidebarOpen] = useState(
-    initialComments.length > 0,
-  );
   const [documentOutlineOpen, setDocumentOutlineOpen] = useState(true);
   const [editorZoom, setEditorZoom] = useState(100);
-  const [documentAiLocked, setDocumentAiLocked] = useState(
-    initialDocumentAiLocked,
-  );
-  const [commentError, setCommentError] = useState<string | null>(null);
-  const [recentThidoChange, setRecentThidoChange] =
-    useState<SuggestionWithStatus | null>(null);
   const [pendingTablePaste, setPendingTablePaste] =
     useState<PendingTablePaste | null>(null);
   const [fileDragActive, setFileDragActive] = useState(false);
@@ -188,20 +125,11 @@ export function TiptapEditor({
   const revisionRef = useRef(initialRevision);
   const conflictRef = useRef(false);
   const mountedRef = useRef(true);
-  const documentAiLockedRef = useRef(initialDocumentAiLocked);
   const titleRef = useRef(initialTitle);
   const titleManuallySetRef = useRef(initialTitleManuallySet);
   const pendingTablePasteRef = useRef<PendingTablePaste | null>(null);
   const documentImportingRef = useRef(false);
-  const canEditNow = canEdit && !documentAiLocked && !documentConflict;
-  const canCommentNow = canComment && !documentAiLocked && !documentConflict;
-  const updateDocumentAiLock = useCallback((locked: boolean) => {
-    documentAiLockedRef.current = locked;
-    setDocumentAiLocked(locked);
-    if (locked) {
-      setActiveComposer(null);
-    }
-  }, []);
+  const canEditNow = !documentConflict;
 
   const updateRevision = useCallback((nextRevision: number) => {
     revisionRef.current = nextRevision;
@@ -244,13 +172,7 @@ export function TiptapEditor({
           "prose prose-sm sm:prose-base max-w-none min-h-[60vh] focus:outline-none prose-headings:text-[var(--foreground)] prose-p:text-[var(--foreground)] prose-strong:text-[var(--foreground)] prose-blockquote:text-[var(--muted)]",
       },
       handlePaste: (view, event) => {
-        if (
-          !canEdit ||
-          documentAiLockedRef.current ||
-          pendingTablePasteRef.current
-        ) {
-          return false;
-        }
+        if (pendingTablePasteRef.current) return false;
         const originalText = event.clipboardData?.getData("text/plain") ?? "";
         const clipboardHtml = event.clipboardData?.getData("text/html") ?? "";
         if (hasHtmlTable(clipboardHtml)) return false;
@@ -270,9 +192,7 @@ export function TiptapEditor({
       },
       handleDrop: (view, event, _slice, moved) => {
         const file = event.dataTransfer?.files?.[0];
-        if (moved || !file || !canEdit || documentAiLockedRef.current) {
-          return false;
-        }
+        if (moved || !file) return false;
 
         event.preventDefault();
         setFileDragActive(false);
@@ -299,23 +219,21 @@ export function TiptapEditor({
     onUpdate: ({ editor, transaction, appendedTransactions }) => {
       // Editability/selection updates are not unsaved document changes.
       if (!transaction.docChanged && !appendedTransactions.some((tr) => tr.docChanged)) return;
-      if (!documentAiLockedRef.current && (canEdit || canComment)) {
-        const content = editor.getJSON();
-        const inferredTitle = titleManuallySetRef.current
-          ? null
-          : inferDocumentTitle(content);
-        if (inferredTitle && inferredTitle !== titleRef.current) {
-          titleRef.current = inferredTitle;
-          setTitle(inferredTitle);
-          scheduleSave({
-            content,
-            title: inferredTitle,
-            titleUpdateSource: "AUTO",
-          });
-          return;
-        }
-        scheduleSave({ content });
+      const content = editor.getJSON();
+      const inferredTitle = titleManuallySetRef.current
+        ? null
+        : inferDocumentTitle(content);
+      if (inferredTitle && inferredTitle !== titleRef.current) {
+        titleRef.current = inferredTitle;
+        setTitle(inferredTitle);
+        scheduleSave({
+          content,
+          title: inferredTitle,
+          titleUpdateSource: "AUTO",
+        });
+        return;
       }
+      scheduleSave({ content });
     },
   });
   const hasDays = useEditorState({
@@ -418,29 +336,8 @@ export function TiptapEditor({
     editor?.setEditable(canEditNow, false);
   }, [canEditNow, editor]);
 
-  useEffect(() => {
-    function toggleCommentsSidebar(event: KeyboardEvent) {
-      const commandModifier = event.metaKey || event.ctrlKey;
-      if (
-        !commandModifier ||
-        !event.altKey ||
-        !event.shiftKey ||
-        event.code !== "KeyA" ||
-        event.repeat
-      ) {
-        return;
-      }
-
-      event.preventDefault();
-      setCommentsSidebarOpen((open) => !open);
-    }
-
-    document.addEventListener("keydown", toggleCommentsSidebar);
-    return () => document.removeEventListener("keydown", toggleCommentsSidebar);
-  }, []);
-
   function scheduleSave(next: DocumentSave) {
-    if (documentAiLockedRef.current || conflictRef.current) return;
+    if (conflictRef.current) return;
     unsavedChangesRef.current = true;
     saveVersionRef.current += 1;
     pendingSaveRef.current = { ...pendingSaveRef.current, ...next };
@@ -458,7 +355,7 @@ export function TiptapEditor({
   }
 
   function saveNow() {
-    if (documentAiLockedRef.current || conflictRef.current) return;
+    if (conflictRef.current) return;
     if (!pendingSaveRef.current && !failedSaveRef.current) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = null;
@@ -521,14 +418,6 @@ export function TiptapEditor({
               ? body.error
               : "This document changed somewhere else.",
           );
-        } else if (body?.documentAiLocked === true) {
-          updateDocumentAiLock(true);
-          setCommentError(
-            typeof body.error === "string"
-              ? body.error
-              : "Thido is working across the whole document.",
-          );
-          void pollForDocumentUnlock();
         }
         return { ok: false, body };
       } catch {
@@ -612,7 +501,6 @@ export function TiptapEditor({
       kind: "loading",
       text: `Importing ${file.name}…`,
     });
-    setCommentError(null);
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
       debounceRef.current = null;
@@ -668,361 +556,13 @@ export function TiptapEditor({
     }
   }
 
-  function startComment() {
-    if (!editor || documentAiLockedRef.current) return;
-    const { from, to } = editor.state.selection;
-    if (from === to) return;
-
-    setCommentError(null);
-    if (activeComposer?.scope === "SELECTION") {
-      editor
-        .chain()
-        .setTextSelection({
-          from: activeComposer.from,
-          to: activeComposer.to,
-        })
-        .unsetComment()
-        .run();
-    }
-    const quotedText = editor.state.doc.textBetween(from, to, " ");
-    const anchorMarkId = crypto.randomUUID();
-
-    editor
-      .chain()
-      .setTextSelection({ from, to })
-      .setComment(anchorMarkId)
-      .run();
-    setCommentsSidebarOpen(true);
-    setActiveComposer({
-      scope: "SELECTION",
-      anchorMarkId,
-      quotedText,
-      from,
-      to,
-    });
-  }
-
-  function startAiEdit() {
-    if (!editor || documentAiLockedRef.current) return;
-    const { from, to } = editor.state.selection;
-    if (from === to) {
-      startDocumentComment();
-      return;
-    }
-    startComment();
-  }
-
-  function startDocumentComment() {
-    if (!editor || documentAiLockedRef.current) return;
-    if (activeComposer?.scope === "SELECTION") {
-      editor
-        .chain()
-        .setTextSelection({
-          from: activeComposer.from,
-          to: activeComposer.to,
-        })
-        .unsetComment()
-        .run();
-    }
-    setCommentError(null);
-    setCommentsSidebarOpen(true);
-    setActiveComposer({ scope: "DOCUMENT" });
-  }
-
-  function cancelComment() {
-    if (editor && activeComposer?.scope === "SELECTION") {
-      editor
-        .chain()
-        .setTextSelection({ from: activeComposer.from, to: activeComposer.to })
-        .unsetComment()
-        .run();
-    }
-    setActiveComposer(null);
-  }
-
-  function submitComment(body: string) {
-    if (!activeComposer || documentAiLockedRef.current) return;
-    const composer =
-      activeComposer.scope === "SELECTION"
-        ? expandCommentScope(activeComposer, body)
-        : activeComposer;
-    setCommentError(null);
-    setActiveComposer(null);
-
-    void persistComment(composer, body);
-  }
-
-  function expandCommentScope(composer: SelectionComposer, body: string) {
-    if (!editor || !BROADER_SCOPE_PROMPT.test(body)) {
-      return composer;
-    }
-
-    const { doc } = editor.state;
-    const from = Math.min(composer.from, composer.to);
-    const to = Math.max(composer.from, composer.to);
-    const $from = doc.resolve(from);
-    const $to = doc.resolve(to);
-
-    // Keep wider rewrites constrained to the containing text block for now.
-    if (!$from.sameParent($to) || !$from.parent.isTextblock) {
-      return composer;
-    }
-
-    const expandedFrom = $from.start();
-    const expandedTo = $from.end();
-    if (
-      expandedFrom === composer.from &&
-      expandedTo === composer.to
-    ) {
-      return composer;
-    }
-
-    const quotedText = doc.textBetween(expandedFrom, expandedTo, " ");
-
-    editor
-      .chain()
-      .setTextSelection({ from: composer.from, to: composer.to })
-      .unsetComment()
-      .setTextSelection({ from: expandedFrom, to: expandedTo })
-      .setComment(composer.anchorMarkId)
-      .run();
-
-    return {
-      ...composer,
-      from: expandedFrom,
-      to: expandedTo,
-      quotedText,
-    };
-  }
-
-  async function persistComment(composer: ActiveComposer, body: string) {
-    try {
-      if (!editor) throw new Error("Editor is not ready");
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-        debounceRef.current = null;
-      }
-
-      // Suggestion approval resolves changes by this mark, so the mark must
-      // be durable before the comment starts background AI generation.
-      setSaveState("saving");
-      const pendingSave = pendingSaveRef.current;
-      pendingSaveRef.current = null;
-      const saveResult = await saveDocumentUpdate({
-        ...pendingSave,
-        content: editor.getJSON(),
-      });
-      if (!saveResult.ok) {
-        const errorBody = saveResult.body;
-        if (errorBody?.documentAiLocked === true) {
-          updateDocumentAiLock(true);
-          void pollForDocumentUnlock();
-        }
-        throw new Error(
-          typeof errorBody?.error === "string"
-            ? errorBody.error
-            : composer.scope === "DOCUMENT"
-              ? "Could not save the document before commenting"
-              : "Could not save the comment highlight",
-        );
-      }
-
-      const res = await fetch(`/api/documents/${documentId}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          scope: composer.scope,
-          anchorMarkId:
-            composer.scope === "SELECTION" ? composer.anchorMarkId : null,
-          quotedText:
-            composer.scope === "SELECTION" ? composer.quotedText : null,
-          body,
-        }),
-      });
-      if (!res.ok) {
-        const errorBody = await res.json().catch(() => null);
-        if (errorBody?.documentAiLocked === true) {
-          updateDocumentAiLock(true);
-          void pollForDocumentUnlock();
-        }
-        throw new Error(
-          typeof errorBody?.error === "string"
-            ? errorBody.error
-            : "Could not create comment",
-        );
-      }
-      const data = await res.json();
-      const savedComment: CommentWithReplies = {
-        ...data.comment,
-        replies: data.comment.replies ?? [],
-        suggestion: data.comment.suggestion ?? null,
-      };
-
-      if (!mountedRef.current) return;
-      setComments((prev) => [savedComment, ...prev]);
-    } catch (error) {
-      if (!mountedRef.current) return;
-      setSaveState("error");
-      setCommentError(
-        error instanceof Error
-          ? error.message
-          : "The comment could not be saved. You can keep editing and try again.",
-      );
-    }
-  }
-
-  const pollForDocumentUnlock = useCallback(async () => {
-    for (let attempt = 0; attempt < 480; attempt += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 1250));
-      if (!mountedRef.current) return;
-
-      try {
-        const response = await fetch(
-          `/api/documents/${documentId}/comments`,
-          { cache: "no-store" },
-        );
-        if (!response.ok) continue;
-        const data = await response.json();
-        const locked = data.documentAiLocked === true;
-        const refreshedComments = data.comments as CommentWithReplies[];
-        setComments(refreshedComments);
-        updateDocumentAiLock(locked);
-
-        if (!locked) {
-          if (data.documentContent && editorRef.current) {
-            editorRef.current.commands.setContent(data.documentContent, {
-              emitUpdate: false,
-            });
-            if (typeof data.documentRevision === "number") {
-              updateRevision(data.documentRevision);
-            }
-            const appliedSuggestion = refreshedComments
-              .map((comment) => comment.suggestion)
-              .find((suggestion) => suggestion?.status === "AUTO_APPLIED");
-            if (appliedSuggestion) setRecentThidoChange(appliedSuggestion);
-          }
-          return;
-        }
-      } catch {
-        // The next polling attempt can recover from a transient refresh error.
-      }
-    }
-  }, [documentId, updateDocumentAiLock, updateRevision]);
-
-  useEffect(() => {
-    if (initialDocumentAiLocked) void pollForDocumentUnlock();
-  }, [initialDocumentAiLocked, pollForDocumentUnlock]);
-
-  function handleCommentChange(updated: CommentWithReplies) {
-    setComments((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-  }
-
-  function handleCommentDelete(id: string) {
-    setComments((prev) => prev.filter((c) => c.id !== id));
-  }
-
-  async function actionQueuedComments() {
-    if (
-      !editor ||
-      documentAiLockedRef.current ||
-      !comments.some(isCommentQueuedForBatch)
-    ) {
-      return;
-    }
-
-    setCommentError(null);
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-      debounceRef.current = null;
-    }
-
-    let requestStarted = false;
-    let responseReceived = false;
-    let keepLocked = false;
-    try {
-      setSaveState("saving");
-      const pendingSave = pendingSaveRef.current;
-      pendingSaveRef.current = null;
-      const saveResult = await saveDocumentUpdate({
-        ...pendingSave,
-        content: editor.getJSON(),
-      });
-      if (!saveResult.ok) {
-        throw new Error(
-          typeof saveResult.body?.error === "string"
-            ? saveResult.body.error
-            : "Could not save the document before actioning comments.",
-        );
-      }
-
-      updateDocumentAiLock(true);
-      requestStarted = true;
-      const response = await fetch(
-        `/api/documents/${documentId}/comments/action`,
-        { method: "POST" },
-      );
-      responseReceived = true;
-      const data = await response.json().catch(() => null);
-      if (!response.ok) {
-        if (data?.documentAiLocked === true) {
-          keepLocked = true;
-          void pollForDocumentUnlock();
-        }
-        throw new Error(
-          typeof data?.error === "string"
-            ? data.error
-            : "Thido could not action these comments.",
-        );
-      }
-
-      const refreshedComments = data.comments as CommentWithReplies[];
-      setComments(refreshedComments);
-      if (data.documentContent) {
-        editor.commands.setContent(data.documentContent, { emitUpdate: false });
-      }
-      if (typeof data.documentRevision === "number") {
-        updateRevision(data.documentRevision);
-      }
-      const appliedSuggestion = refreshedComments
-        .map((comment) => comment.suggestion)
-        .find((suggestion) => suggestion?.status === "AUTO_APPLIED");
-      if (appliedSuggestion) setRecentThidoChange(appliedSuggestion);
-      setSaveState("saved");
-    } catch (error) {
-      if (!mountedRef.current) return;
-      if (requestStarted && !responseReceived) {
-        keepLocked = true;
-        void pollForDocumentUnlock();
-      }
-      setCommentError(
-        error instanceof Error
-          ? error.message
-          : "Thido could not action these comments. They are ready to retry.",
-      );
-    } finally {
-      if (!keepLocked && mountedRef.current) updateDocumentAiLock(false);
-    }
-  }
-
-  function handleDocumentContentUpdated(
-    content: unknown,
-    suggestion: SuggestionWithStatus,
-    nextRevision?: number,
-  ) {
-    if (content && editor) {
-      editor.commands.setContent(content as JSONContent, { emitUpdate: false });
-      if (typeof nextRevision === "number") updateRevision(nextRevision);
-      setRecentThidoChange(suggestion);
-    }
-  }
-
   useEffect(() => {
     function handleSaveShortcut(event: KeyboardEvent) {
       if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey ||
         event.key.toLowerCase() !== "s" || event.isComposing) return;
       // Suppress the browser's Save Page dialog, including repeated keydowns.
       event.preventDefault();
-      if (!event.repeat && canComment) saveNow();
+      if (!event.repeat) saveNow();
     }
     document.addEventListener("keydown", handleSaveShortcut, true);
     return () => document.removeEventListener("keydown", handleSaveShortcut, true);
@@ -1060,56 +600,13 @@ export function TiptapEditor({
                   delayMs={autosaveDelayMs}
                   state={saveState}
                   deadline={saveDeadline}
-                  locked={documentAiLocked}
                   conflicted={documentConflict !== null}
                   onSaveNow={saveNow}
                 />
-                {!canEdit ? (
-                  <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] text-[var(--muted)]">
-                    {canComment ? "Comment access" : "View only"}
-                  </span>
-                ) : null}
               </div>
             </div>
           </div>
           <div className="flex shrink-0 items-center justify-end gap-2">
-            <Tooltip
-              label={`${commentsSidebarOpen ? "Hide" : "Show"} comments (Ctrl/⌘ + Alt + Shift + A)`}
-              placement="bottom"
-            >
-              <button
-                type="button"
-                aria-controls="document-comments-sidebar"
-                aria-expanded={commentsSidebarOpen}
-                aria-keyshortcuts="Control+Alt+Shift+A Meta+Alt+Shift+A"
-                aria-label={`${commentsSidebarOpen ? "Hide" : "Show"} comments`}
-                onClick={() => setCommentsSidebarOpen((open) => !open)}
-                className={`secondary-button inline-flex size-10 items-center justify-center rounded-full ${
-                  commentsSidebarOpen ? "bg-[var(--surface-subtle)]" : ""
-                }`}
-              >
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  className="h-5 w-5"
-                >
-                  <rect x="3.5" y="4" width="17" height="16" rx="1.5" />
-                  <path d="M15.5 4v16M7 8h5M7 12h5" />
-                </svg>
-              </button>
-            </Tooltip>
-            {canManage && (
-              <ShareDocumentControl
-                documentId={documentId}
-                initialShareToken={initialShareToken}
-                initialSharePermission={initialSharePermission}
-                initialLinkAccesses={initialLinkAccesses}
-                initialCollaborators={initialCollaborators}
-              />
-            )}
             <UserMenu user={currentUser} />
           </div>
         </header>
@@ -1120,17 +617,12 @@ export function TiptapEditor({
             documentId={documentId}
             currentRevision={revision}
             canEdit={canEditNow}
-            canViewHistory={canEdit}
-            commentsOpen={commentsSidebarOpen}
+            canViewHistory
             outlineOpen={Boolean(hasDays && documentOutlineOpen)}
             zoom={editorZoom}
-            onToggleComments={() =>
-              setCommentsSidebarOpen((open) => !open)
-            }
             onToggleOutline={() =>
               setDocumentOutlineOpen((open) => hasDays ? !open : true)
             }
-            onEditWithAi={startAiEdit}
             onZoomChange={setEditorZoom}
             onImport={handleDocumentRestored}
             onConflict={handleDocumentConflict}
@@ -1144,37 +636,11 @@ export function TiptapEditor({
           {title}
         </h1>
 
-        {commentError && (
-          <p className="print-hidden text-xs text-[var(--danger)]" role="alert">
-            {commentError}
-          </p>
-        )}
-
         {documentConflict && (
           <ConflictRecovery
             getText={() => `${titleRef.current}\n\n${editorRef.current?.getText() ?? ""}`}
             onReload={reloadLatestDocument}
           />
-        )}
-
-        {recentThidoChange && (
-          <div className="print-hidden">
-            <RecentThidoChangeNotice
-              suggestion={recentThidoChange}
-              onDismiss={() => setRecentThidoChange(null)}
-            />
-          </div>
-        )}
-
-        {startedFromPaste && !initialContent && (
-          <div className="print-hidden mx-auto w-full max-w-none border-l-2 border-[var(--warm)] pl-4">
-            <p className="text-sm font-medium">Paste your document below.</p>
-            <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-              When it is saved, highlight any passage to target it, or choose
-              Add comment with nothing selected to leave feedback on the whole
-              document, then action your feedback together with Thido.
-            </p>
-          </div>
         )}
 
         {documentImportMessage ? (
@@ -1202,9 +668,7 @@ export function TiptapEditor({
 
         <div
           className="print-document-panel app-panel relative mx-auto flex w-full max-w-none flex-1 flex-col overflow-hidden rounded-sm"
-          aria-busy={
-            documentAiLocked || documentImportMessage?.kind === "loading"
-          }
+          aria-busy={documentImportMessage?.kind === "loading"}
           onDragEnter={(event) => {
             if (!canEditNow || !event.dataTransfer.types.includes("Files")) return;
             setFileDragActive(true);
@@ -1231,20 +695,6 @@ export function TiptapEditor({
               </div>
             </div>
           ) : null}
-          {editor && canCommentNow && (
-            <BubbleMenu editor={editor}>
-              <div className="print-hidden app-panel flex items-center gap-1 rounded-sm p-1">
-                <button
-                  type="button"
-                  data-testid="bubble-add-comment"
-                  onClick={startComment}
-                  className="rounded-sm px-2 py-1 text-xs font-medium hover:bg-[var(--surface-subtle)]"
-                >
-                  Add comment
-                </button>
-              </div>
-            </BubbleMenu>
-          )}
           <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
             {hasDays && documentOutlineOpen && editor ? (
               <DocumentOutline
@@ -1272,43 +722,6 @@ export function TiptapEditor({
         </div>
       </div>
 
-      {commentsSidebarOpen && (
-        <div
-          id="document-comments-sidebar"
-          className="print-hidden flex min-h-72 w-full shrink-0 flex-col border-t border-[var(--border)] lg:min-h-0 lg:w-80 lg:border-t-0"
-        >
-          {activeComposer && !documentAiLocked && (
-            <div className="border-b border-[var(--border)] bg-[var(--surface)] p-4">
-              <CommentComposer
-                key={
-                  activeComposer.scope === "SELECTION"
-                    ? activeComposer.anchorMarkId
-                    : "document"
-                }
-                scope={activeComposer.scope}
-                quotedText={
-                  activeComposer.scope === "SELECTION"
-                    ? activeComposer.quotedText
-                    : undefined
-                }
-                onSubmit={submitComment}
-                onCancel={cancelComment}
-              />
-            </div>
-          )}
-          <CommentSidebar
-            comments={comments}
-            onChange={handleCommentChange}
-            onDelete={handleCommentDelete}
-            onDocumentContentUpdated={handleDocumentContentUpdated}
-            documentAiLocked={documentAiLocked}
-            onActionComments={actionQueuedComments}
-            canCreateComments={canCommentNow && !!editor}
-            canActionComments={canEdit && !!editor}
-            canManageComments={canEditNow}
-          />
-        </div>
-      )}
       {pendingTablePaste ? (
         <TableConversionDialog
           table={pendingTablePaste.table}

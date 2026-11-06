@@ -24,7 +24,7 @@ export default async function Home() {
     const recentDocument = await prisma.document.findFirst({
       where: {
         AND: [
-          documentAccessWhere(session.user.id, session.user.email, "VIEW"),
+          documentAccessWhere(session.user.id),
           { isPlaceholder: false },
         ],
       },

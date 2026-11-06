@@ -1,20 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AI_MODELS, type AiModelId } from "@/lib/ai/models";
-import {
-  APPLICATION_STYLE_OPTIONS,
-  type ApplicationStyle,
-} from "@/lib/applicationStyle";
-
 import { AUTOSAVE_DELAY_OPTIONS } from "@/lib/autosave";
 import { PLAN_FEEDBACK_DAILY_LIMIT_OPTIONS } from "@/lib/planFeedbackPolicy";
 
 type Props = {
   initialAutosaveDelaySeconds: number;
   initialAiModel: AiModelId;
-  initialApplicationStyle: ApplicationStyle;
   initialDocumentStartMode: "NEW_DOCUMENT" | "MOST_RECENT";
   initialChecklistMoveControls: boolean;
   initialPlanFeedbackDailyLimit: number;
@@ -23,7 +17,6 @@ type Props = {
 export function SettingsForm({
   initialAutosaveDelaySeconds,
   initialAiModel,
-  initialApplicationStyle,
   initialDocumentStartMode,
   initialChecklistMoveControls,
   initialPlanFeedbackDailyLimit,
@@ -31,9 +24,6 @@ export function SettingsForm({
   const router = useRouter();
   const [autosaveDelaySeconds, setAutosaveDelaySeconds] = useState(initialAutosaveDelaySeconds);
   const [aiModel, setAiModel] = useState(initialAiModel);
-  const [applicationStyle, setApplicationStyle] = useState(
-    initialApplicationStyle,
-  );
   const [documentStartMode, setDocumentStartMode] = useState(
     initialDocumentStartMode,
   );
@@ -44,10 +34,6 @@ export function SettingsForm({
     initialPlanFeedbackDailyLimit,
   );
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-
-  useEffect(() => {
-    document.documentElement.dataset.appStyle = initialApplicationStyle;
-  }, [initialApplicationStyle]);
 
   async function save(update: Record<string, string | boolean | number>) {
     setSaveState("saving");
@@ -127,39 +113,10 @@ export function SettingsForm({
       <section className="border-b border-[var(--border)] py-7">
         <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
           <div>
-            <h2 className="font-semibold">Application style</h2>
-            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-              Changes the appearance of Thido across navigation, settings,
-              documents, and other application pages.
-            </p>
-          </div>
-          <select
-            aria-label="Application style"
-            value={applicationStyle}
-            onChange={(event) => {
-              const next = event.target.value as ApplicationStyle;
-              setApplicationStyle(next);
-              document.documentElement.dataset.appStyle = next;
-              void save({ applicationStyle: next });
-            }}
-            className="app-input rounded-md px-3 py-2.5 text-sm outline-none"
-          >
-            {APPLICATION_STYLE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}: {option.description}
-              </option>
-            ))}
-          </select>
-        </div>
-      </section>
-
-      <section className="border-b border-[var(--border)] py-7">
-        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
-          <div>
             <h2 className="font-semibold">AI model</h2>
             <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-              Used for drafting, follow-up questions, and batched comment
-              revisions.
+              Used for adding tasks in plain language and for feedback on your
+              plans.
             </p>
           </div>
           <select

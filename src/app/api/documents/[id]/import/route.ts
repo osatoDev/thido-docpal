@@ -8,14 +8,7 @@ import sharp from "sharp";
 
 import { auth } from "@/lib/auth";
 import { unauthorizedResponse } from "@/lib/apiResponses";
-import { reconcileOrphanedComments } from "@/lib/documentComments";
-import { getDocumentForUser } from "@/lib/documentAuth";
-import {
-  DOCUMENT_AI_LOCK_MESSAGE,
-  expireStaleCommentAiJobs,
-  hasActiveCommentAiJob,
-  lockDocumentForCommentAi,
-} from "@/lib/documentAiJobs";
+import { getDocumentForUser, lockDocumentRow } from "@/lib/documentAuth";
 import { recordDocumentRevision } from "@/lib/documentRevisions";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import {
@@ -50,7 +43,7 @@ export const runtime = "nodejs";
 const MAX_IMPORTED_IMAGE_BYTES = 8 * 1024 * 1024;
 
 type Params = { params: Promise<{ id: string }> };
-type ImportStage = "comment_reconciliation" | "conversion" | "persistence";
+type ImportStage = "conversion" | "persistence";
 
 function titleFromFilename(filename: string) {
   return (
@@ -131,12 +124,7 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
 
-  const document = await getDocumentForUser(
-    documentId,
-    session.user.id,
-    session.user.email,
-    "EDIT",
-  );
+  const document = await getDocumentForUser(documentId, session.user.id);
   if (!document) {
     return await errorResponse("Not found", 404, "not_found_or_forbidden");
   }
@@ -263,7 +251,7 @@ export async function POST(request: Request, { params }: Params) {
     const title = inferDocumentTitle(content) ?? titleFromFilename(file.name);
     importStage = "persistence";
     const result = await prisma.$transaction(async (transaction) => {
-      if (!(await lockDocumentForCommentAi(transaction, documentId))) {
+      if (!(await lockDocumentRow(transaction, documentId))) {
         return { kind: "missing" as const };
       }
       const current = await transaction.document.findUnique({
@@ -276,10 +264,6 @@ export async function POST(request: Request, { params }: Params) {
           kind: "conflict" as const,
           currentRevision: current.revision,
         };
-      }
-      await expireStaleCommentAiJobs(transaction, documentId);
-      if (await hasActiveCommentAiJob(transaction, documentId)) {
-        return { kind: "locked" as const };
       }
 
       const updatedDocument = await transaction.document.update({
@@ -305,13 +289,6 @@ export async function POST(request: Request, { params }: Params) {
     if (result.kind === "missing") {
       return await errorResponse("Not found", 404, "document_missing");
     }
-    if (result.kind === "locked") {
-      return await errorResponse(
-        DOCUMENT_AI_LOCK_MESSAGE,
-        409,
-        "document_locked",
-      );
-    }
     if (result.kind === "conflict") {
       return await errorResponse(
         "The document changed while the file was importing.",
@@ -324,8 +301,6 @@ export async function POST(request: Request, { params }: Params) {
       );
     }
 
-    importStage = "comment_reconciliation";
-    await reconcileOrphanedComments(prisma, documentId, content);
     logOutcome({ level: "info", reason: "imported", status: 200 });
     return NextResponse.json(
       {

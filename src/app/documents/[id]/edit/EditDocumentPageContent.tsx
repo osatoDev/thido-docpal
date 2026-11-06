@@ -5,12 +5,7 @@ import type { JSONContent } from "@tiptap/react";
 import { TiptapEditor } from "@/components/editor/TiptapEditor";
 import { auth } from "@/lib/auth";
 import { recordDocumentAccess } from "@/lib/documentAccess";
-import { isCommentAiJobActive } from "@/lib/documentAiJobs";
-import {
-  documentAccessWhere,
-  effectiveDocumentPermission,
-  normalizeCollaboratorEmail,
-} from "@/lib/documentAuth";
+import { documentAccessWhere } from "@/lib/documentAuth";
 import { documentEditPath } from "@/lib/documentUrls";
 import { prisma } from "@/lib/prisma";
 
@@ -20,37 +15,11 @@ export type EditDocumentSearchParams = Record<
 >;
 
 export const getAccessibleEditDocument = cache(
-  async (id: string, userId: string, email: string | null | undefined) =>
+  async (id: string, userId: string) =>
     prisma.document.findFirst({
       where: {
         id,
-        AND: documentAccessWhere(userId, email, "VIEW"),
-      },
-      include: {
-        collaborators: {
-          orderBy: { createdAt: "asc" },
-          select: { id: true, email: true, permission: true },
-        },
-        linkAccesses: {
-          orderBy: { lastAccessedAt: "desc" },
-          select: {
-            userId: true,
-            lastAccessedAt: true,
-            user: { select: { name: true, email: true } },
-          },
-        },
-        comments: {
-          where: { parentId: null },
-          orderBy: { createdAt: "asc" },
-          include: {
-            author: { select: { name: true } },
-            replies: {
-              orderBy: { createdAt: "asc" },
-              include: { author: { select: { name: true } } },
-            },
-            suggestion: true,
-          },
-        },
+        AND: documentAccessWhere(userId),
       },
     }),
 );
@@ -91,7 +60,7 @@ export async function EditDocumentPageContent({
   }
 
   const [document, settings] = await Promise.all([
-    getAccessibleEditDocument(id, session.user.id, session.user.email),
+    getAccessibleEditDocument(id, session.user.id),
     prisma.userSettings.findUnique({
       where: { userId: session.user.id },
       select: { checklistMoveControls: true, autosaveDelaySeconds: true },
@@ -100,10 +69,6 @@ export async function EditDocumentPageContent({
 
   if (!document) {
     notFound();
-  }
-
-  if (document.status !== "READY") {
-    redirect(`/documents/${encodeURIComponent(id)}/wizard`);
   }
 
   const canonicalPath = documentEditPath(document.id, document.title);
@@ -117,25 +82,6 @@ export async function EditDocumentPageContent({
     document.content && typeof document.content === "object"
       ? (document.content as JSONContent)
       : null;
-  const normalizedEmail = normalizeCollaboratorEmail(session.user.email ?? "");
-  const collaboratorPermission = document.collaborators.find(
-    (collaborator) => collaborator.email === normalizedEmail,
-  )?.permission;
-  const linkPermission =
-    document.shareToken &&
-    document.linkAccesses.some((access) => access.userId === session.user.id)
-      ? document.sharePermission
-      : null;
-  const accessPermission = effectiveDocumentPermission({
-    ownerId: document.ownerId,
-    userId: session.user.id,
-    collaboratorPermission,
-    linkPermission,
-  });
-  const initialDocumentAiLocked = document.comments.some(
-    (comment) => isCommentAiJobActive(comment),
-  );
-  const start = searchParams.start;
 
   return (
     <TiptapEditor
@@ -145,28 +91,7 @@ export async function EditDocumentPageContent({
       initialCreatedAt={document.createdAt.toISOString()}
       initialContent={content}
       initialRevision={document.revision}
-      initialComments={document.comments}
-      initialDocumentAiLocked={initialDocumentAiLocked}
-      initialShareToken={document.shareToken}
-      initialSharePermission={document.sharePermission}
-      initialLinkAccesses={
-        accessPermission === "FULL"
-          ? document.linkAccesses.map((access) => ({
-              userId: access.userId,
-              name: access.user.name,
-              email: access.user.email,
-              lastAccessedAt: access.lastAccessedAt.toISOString(),
-            }))
-          : []
-      }
-      initialCollaborators={
-        accessPermission === "FULL" ? document.collaborators : []
-      }
-      accessPermission={accessPermission}
       currentUser={session.user}
-      startedFromPaste={
-        (Array.isArray(start) ? start[0] : start) === "paste"
-      }
       autosaveDelaySeconds={settings?.autosaveDelaySeconds}
       checklistMoveControls={settings?.checklistMoveControls ?? true}
     />

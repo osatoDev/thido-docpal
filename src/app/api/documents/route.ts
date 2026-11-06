@@ -16,7 +16,7 @@ export async function GET() {
   const documents = await prisma.document.findMany({
     where: {
       AND: [
-        documentAccessWhere(session.user.id, session.user.email, "VIEW"),
+        documentAccessWhere(session.user.id),
         { isPlaceholder: false },
       ],
     },

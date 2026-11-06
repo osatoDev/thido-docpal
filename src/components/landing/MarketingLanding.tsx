@@ -3,24 +3,67 @@ import Link from "next/link";
 import { Brand } from "@/components/Brand";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { HOW_IT_WORKS_STEPS } from "@/lib/howItWorks";
-import { LANDING_STORIES } from "@/lib/landingStories";
 
 const VALUE_PROPS = [
   {
-    title: "Start from anything",
-    body: "A blank page, a document you already have, or a short brief for Thido to shape into a first version.",
+    title: "Type it the way you'd say it",
+    body: "“Dentist next Tuesday 3pm” or “Pay rent on the 1st”. Thido finds the day, adds the time, and puts the task in order.",
   },
   {
-    title: "Edit like a normal document",
-    body: "Headings, links, tables, checklists, footnotes, and export to Word or PDF.",
+    title: "One page, day by day",
+    body: "Tasks are checklists under date headers. Add a day with /day or the calendar button, and move between days by year, month and week.",
   },
   {
-    title: "Think it through with Thido",
-    body: "Ask questions, request changes on a passage, and keep the parts that are already right.",
+    title: "Feedback when you want it",
+    body: "Review my day gives two to four sentences on a day's plan. Thido can also check in a few times a day after you add tasks. Set how often in Settings, or turn it off.",
   },
 ] as const;
 
-function EditorPreview() {
+const PREVIEW_DAYS = [
+  {
+    date: "2026-11-10",
+    label: "Nov 10 Tue",
+    tasks: [
+      { text: "08:30 Gym", done: true },
+      { text: "15:00 Dentist", done: false },
+      { text: "Pick up dry cleaning", done: false },
+    ],
+  },
+  {
+    date: "2026-11-11",
+    label: "Nov 11 Wed",
+    tasks: [
+      { text: "09:30 Team standup", done: false },
+      { text: "18:00 Dinner with Ana", done: false },
+    ],
+  },
+] as const;
+
+function Checkbox({ checked }: { checked: boolean }) {
+  return (
+    <span
+      className={`mt-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-[4px] border ${
+        checked
+          ? "border-[var(--accent-strong)] bg-[var(--accent-strong)] text-[var(--background)]"
+          : "border-[var(--border-strong)]"
+      }`}
+    >
+      {checked ? (
+        <svg
+          viewBox="0 0 16 16"
+          className="size-3 fill-none stroke-current"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="m4 8.5 2.5 2.5L12 5.5" />
+        </svg>
+      ) : null}
+    </span>
+  );
+}
+
+function PlannerPreview() {
   return (
     <div
       aria-hidden="true"
@@ -30,32 +73,53 @@ function EditorPreview() {
         <span className="size-2.5 rounded-full bg-[var(--border-strong)]" />
         <span className="size-2.5 rounded-full bg-[var(--border-strong)]" />
         <span className="size-2.5 rounded-full bg-[var(--border-strong)]" />
-        <span className="ml-3 text-xs text-[var(--muted-soft)]">
-          Team update, March
-        </span>
+        <span className="ml-3 text-xs text-[var(--muted-soft)]">My plan</span>
       </div>
-      <div className="grid gap-6 p-6 sm:grid-cols-[1fr_14rem] sm:p-8">
-        <div className="space-y-3">
-          <div className="h-5 w-2/3 rounded bg-[var(--foreground)] opacity-80" />
-          <div className="h-3 w-full rounded bg-[var(--surface-subtle)]" />
-          <div className="h-3 w-11/12 rounded bg-[var(--surface-subtle)]" />
-          <div className="h-3 w-full rounded bg-[var(--surface-subtle)]" />
-          <div className="h-3 w-4/5 rounded bg-[var(--surface-subtle)]" />
-          <div className="my-4 h-4 w-1/3 rounded bg-[var(--foreground)] opacity-60" />
-          <div className="h-3 w-full rounded bg-[var(--surface-subtle)]" />
-          <div className="h-3 w-full rounded bg-[color-mix(in_srgb,var(--warm)_28%,transparent)]" />
-          <div className="h-3 w-3/4 rounded bg-[var(--surface-subtle)]" />
-        </div>
-        <div className="hidden space-y-3 border-l border-[var(--border)] pl-5 sm:block">
-          <p className="text-[11px] font-semibold tracking-[0.12em] text-[var(--muted)] uppercase">
-            Thido
-          </p>
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] p-3">
-            <div className="h-2.5 w-full rounded bg-[var(--surface-subtle)]" />
-            <div className="mt-1.5 h-2.5 w-5/6 rounded bg-[var(--surface-subtle)]" />
-            <div className="mt-3 h-6 w-24 rounded bg-[var(--accent-strong)] opacity-80" />
+      <div className="p-5 sm:p-7">
+        <div className="flex items-center gap-2">
+          <div className="app-input min-w-0 flex-1 truncate rounded-md px-3 py-2 text-sm text-[var(--muted-soft)]">
+            Dinner with Ana Wednesday 6pm
           </div>
+          <span className="primary-button shrink-0 rounded-md px-3 py-2 text-sm font-semibold">
+            Add
+          </span>
         </div>
+
+        <div className="mt-2 border-l-2 border-[var(--accent-strong)] px-3 py-2 text-sm leading-6">
+          <p className="text-xs font-medium text-[var(--muted)]">
+            Thido&rsquo;s take on Nov 10 Tue
+          </p>
+          <p className="mt-1 text-[var(--foreground)]">
+            A light day. If the dentist runs long, the dry cleaning can move to
+            Wednesday morning.
+          </p>
+        </div>
+
+        {PREVIEW_DAYS.map((day) => (
+          <div key={day.date} className="mt-5">
+            <p className="font-serif text-sm text-[var(--muted)] italic">
+              <time dateTime={day.date} className="font-medium">
+                {day.label}
+              </time>
+            </p>
+            <ul className="mt-2 space-y-2">
+              {day.tasks.map((task) => (
+                <li key={task.text} className="flex items-start gap-2.5 text-sm">
+                  <Checkbox checked={task.done} />
+                  <span
+                    className={
+                      task.done
+                        ? "text-[var(--muted)] line-through"
+                        : "text-[var(--foreground)]"
+                    }
+                  >
+                    {task.text}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -75,52 +139,53 @@ export function MarketingLanding() {
             Sign in
           </Link>
           <Link
-            href="/try"
+            href="/register"
             className="primary-button rounded-md px-3.5 py-2 text-sm font-semibold"
           >
-            Try Thido
+            Get started
           </Link>
         </div>
       </header>
 
       <section className="grid gap-12 py-14 sm:py-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-center lg:gap-16">
         <div>
-          <p className="page-kicker mb-3">AI document companion</p>
+          <p className="page-kicker mb-3">AI day planner</p>
           <h1 className="page-title max-w-xl">
-            Think clearly. Draft confidently.
+            Plan your days in plain language.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-[var(--muted)]">
-            Thido turns rough thinking into a focused document you can edit,
-            question, and make your own. Bring notes, a draft, or just an idea,
-            and leave with something worth sending.
+            Type &ldquo;Dentist next Tuesday 3pm&rdquo; and Thido puts it under
+            Tuesday at 15:00, in order with the rest of that day. Ask for a
+            short review of any day&rsquo;s plan, or let Thido check in a few
+            times a day.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
-              href="/try"
+              href="/register"
               className="primary-button rounded-md px-5 py-2.5 text-sm font-semibold"
             >
-              Try Thido free
+              Get started free
             </Link>
             <Link
-              href="/register"
+              href="/login"
               className="secondary-button rounded-md px-5 py-2.5 text-sm font-semibold"
             >
-              Create an account
+              Sign in
             </Link>
           </div>
           <p className="mt-3 text-xs text-[var(--muted-soft)]">
             No card required. Free while Thido is in beta.
           </p>
         </div>
-        <EditorPreview />
+        <PlannerPreview />
       </section>
 
       <section className="border-t border-[var(--border-strong)] py-14">
         <p className="mx-auto max-w-2xl text-center font-serif text-2xl leading-snug font-medium tracking-[-0.02em] sm:text-3xl">
-          Let&rsquo;s face it: AI almost never gets it right on the first try.
+          A plan only helps if it is quick to keep up.
           <span className="mt-1 block text-[var(--muted)]">
-            Thido makes it easier than any tool out there to fix what&rsquo;s
-            wrong, keep what&rsquo;s right, and get to a polished draft faster.
+            Thido takes a task in one line and puts it where it belongs, so the
+            page stays current without the busywork.
           </span>
         </p>
       </section>
@@ -142,33 +207,6 @@ export function MarketingLanding() {
                 {prop.body}
               </p>
             </div>
-          ))}
-        </div>
-      </section>
-
-      <section
-        className="border-t border-[var(--border-strong)] py-14"
-        aria-labelledby="stories-heading"
-      >
-        <p id="stories-heading" className="page-kicker mb-8">
-          How people use Thido
-        </p>
-        <div className="grid gap-5 md:grid-cols-3">
-          {LANDING_STORIES.map((story) => (
-            <article
-              key={story.persona}
-              className="app-panel flex flex-col gap-3 rounded-xl p-5"
-            >
-              <h3 className="font-serif text-lg font-medium tracking-[-0.02em]">
-                {story.persona}
-              </h3>
-              <p className="text-sm leading-6 text-[var(--muted)]">
-                {story.situation} In Thido, they {story.withThido}
-              </p>
-              <p className="mt-auto border-t border-[var(--border)] pt-3 text-sm font-medium text-[var(--foreground)]">
-                {story.outcome}
-              </p>
-            </article>
           ))}
         </div>
       </section>
@@ -200,28 +238,44 @@ export function MarketingLanding() {
         </ol>
       </section>
 
+      <section
+        className="border-t border-[var(--border-strong)] py-14"
+        aria-labelledby="coming-soon-heading"
+      >
+        <p className="page-kicker mb-3">Coming soon</p>
+        <h2
+          id="coming-soon-heading"
+          className="max-w-2xl font-serif text-2xl font-medium tracking-[-0.02em]"
+        >
+          Telegram, Google Calendar and Microsoft Outlook
+        </h2>
+        <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--muted)]">
+          Thido will connect to the apps you already use, so tasks and events
+          from each one land on the right day.
+        </p>
+      </section>
+
       <section className="border-t border-[var(--border-strong)] py-16 text-center">
         <h2 className="page-title mx-auto max-w-2xl text-[clamp(1.9rem,4.5vw,2.75rem)]">
-          Start with what you know.
+          Add your first task.
         </h2>
         <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
           <Link
-            href="/try"
+            href="/register"
             className="primary-button rounded-md px-5 py-2.5 text-sm font-semibold"
           >
-            Try Thido free
+            Get started free
           </Link>
           <Link
-            href="/register"
+            href="/login"
             className="secondary-button rounded-md px-5 py-2.5 text-sm font-semibold"
           >
-            Create an account
+            Sign in
           </Link>
         </div>
       </section>
 
-      <footer className="flex flex-col gap-4 border-t border-[var(--border)] py-8 text-xs text-[var(--muted)] sm:flex-row sm:items-center sm:justify-between">
-        <p>From rough notes to a working draft.</p>
+      <footer className="flex justify-end border-t border-[var(--border)] py-8 text-xs text-[var(--muted)]">
         <nav
           aria-label="Legal and account links"
           className="flex items-center gap-5"

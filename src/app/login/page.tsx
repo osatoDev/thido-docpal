@@ -24,9 +24,7 @@ export default async function LoginPage({
       ? "The first 100 beta places are full. If you tried to create an account with Google, you’ve been added to the waitlist and we’ll email you after review."
       : authError === "OAuthAccountNotLinked"
         ? "Google could not be connected to the existing Thido account for this email. Try your original sign-in method or contact support."
-      : notice === "draft-ready"
-        ? "Your document brief is ready. Sign in to generate it and save it to your account."
-        : notice === "session-expired"
+      : notice === "session-expired"
           ? "Your previous session is no longer valid. Please sign in again."
           : notice === "sign-in-required"
             ? "Please sign in to continue."
@@ -53,21 +51,15 @@ export default async function LoginPage({
         <div className="flex flex-col items-start p-7 sm:p-10 lg:p-14">
           <Brand href="/login" />
           <div className="my-12 max-w-2xl lg:my-auto">
-            <p className="page-kicker mb-4">AI document companion</p>
+            <p className="page-kicker mb-4">AI day planner</p>
             <h1 className="page-title max-w-2xl" id="login-heading">
-              Think clearly. Draft confidently.
+              Plan your days in plain language.
             </h1>
             <p className="mt-6 max-w-xl text-base leading-7 text-[var(--muted)]">
-              Turn early thoughts into a focused document, then refine every
-              line with clear, contextual feedback.
+              Add tasks the way you would say them, and get a short review of
+              your day when you want one.
             </p>
           </div>
-          <Link
-            href="/documents/new"
-            className="text-link text-sm font-medium"
-          >
-            Start without an account →
-          </Link>
         </div>
 
         <div className="flex items-center border-t border-[var(--border)] bg-[var(--surface-raised)] lg:border-t-0 lg:border-l">
