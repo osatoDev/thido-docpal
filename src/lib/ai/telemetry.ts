@@ -8,6 +8,8 @@ export const AI_FEATURE_LABELS = {
   DOCUMENT_FOLLOWUPS: "Planning follow-ups",
   DOCUMENT_GENERATE: "Document generation",
   COMMENT_RESPOND: "Comment responses",
+  TASK_SCHEDULE: "Scheduling tasks",
+  PLAN_FEEDBACK: "Plan feedback",
 } as const;
 
 export type AiFeatureKey = keyof typeof AI_FEATURE_LABELS;

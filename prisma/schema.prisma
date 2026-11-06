@@ -86,6 +86,7 @@ model User {
   documentRevisions        DocumentRevision[]     @relation("DocumentRevisionActor")
   documentLinkAccesses     DocumentLinkAccess[]
   documentFolders          DocumentFolder[]
+  planFeedback             PlanFeedback[]
   waitlistReviews          WaitlistEntry[]        @relation("WaitlistReviewer")
   waitlistAdmission        WaitlistEntry?         @relation("WaitlistApprovedUser")
 }
@@ -217,6 +218,7 @@ model UserSettings {
   applicationStyle       String            @default("classic")
   autosaveDelaySeconds   Int               @default(120)
   checklistMoveControls  Boolean           @default(true)
+  planFeedbackDailyLimit Int               @default(3)
   createdAt              DateTime          @default(now())
   updatedAt              DateTime          @updatedAt
 }
@@ -269,6 +271,7 @@ model Document {
   revisions        DocumentRevision[]
   historyRetention DocumentHistoryRetention?
   linkAccesses     DocumentLinkAccess[]
+  planFeedback     PlanFeedback[]
 
   @@index([ownerId])
   @@index([folderId])
@@ -503,6 +506,31 @@ enum AiFeature {
   DOCUMENT_FOLLOWUPS
   DOCUMENT_GENERATE
   COMMENT_RESPOND
+  TASK_SCHEDULE
+  PLAN_FEEDBACK
+}
+
+enum PlanFeedbackTrigger {
+  MANUAL
+  AUTO
+}
+
+/// AI feedback on one day's plan. `localDate` is the user's calendar day when
+/// it was given, so automatic feedback can be capped per day in their timezone.
+model PlanFeedback {
+  id         String              @id @default(cuid())
+  userId     String
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentId String
+  document   Document            @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  day        String
+  localDate  String
+  trigger    PlanFeedbackTrigger
+  feedback   String
+  createdAt  DateTime            @default(now())
+
+  @@index([userId, localDate, trigger])
+  @@index([documentId, day])
 }
 
 enum AiGenerationStatus {

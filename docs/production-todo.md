@@ -6,6 +6,7 @@ This is the running source of truth for production-readiness work. Completed box
 
 ## Immediate deployment blockers
 
+- [ ] Apply `20261106120000_add_ai_planner` before deploying the AI planner bar (natural-language task entry and plan feedback). It adds the `TASK_SCHEDULE` and `PLAN_FEEDBACK` AI features, the `PlanFeedback` table and `UserSettings.planFeedbackDailyLimit`. Verified only against a local Postgres 16 via `prisma migrate deploy` in the e2e setup on 6 November 2026; production application is unverified.
 - [ ] Apply `20260928120000_add_autosave_delay` before deploying configurable document autosave. Migration exists locally; production application is unverified.
 
 - [x] Apply the `20260921070000_add_engagement_nudge_tracking` migration to the production database before deploying the activation and reactivation nudge emails. Applied 21 September 2026; confirmed via a direct `information_schema.columns` query showing both `activationNudgeSentAt` and `reactivationNudgeSentAt` as nullable `timestamp` columns on `"User"`, and via `_prisma_migrations` showing `finished_at` set and `rolled_back_at` null for this migration. Oddly, this was applied by an `npx prisma migrate status` call rather than an explicit `migrate deploy` — the auto mode classifier blocked a follow-up `npm run db:migrate:prod` as a production-deploy action, which is why it wasn't re-run for a cleaner confirmation.
@@ -382,6 +383,10 @@ This is the running source of truth for production-readiness work. Completed box
 - [ ] Publish and maintain a current AI-provider and subprocessor list without making the core Privacy Policy provider-specific.
 - [ ] Review prompt-injection and untrusted-document risks before supporting uploaded source material.
 - [ ] Add moderation or acceptable-use controls if public users can generate arbitrary content.
+
+- [ ] Decide the credit weight for planner actions. `TASK_SCHEDULE` and `PLAN_FEEDBACK` currently cost 1 credit each (`src/lib/entitlements.ts`), so a free user's 30 monthly credits cover about 30 quick-add entries. Automatic feedback also spends credits when it fires.
+- [ ] Evaluate planner date parsing against real entries (relative weekdays, "next week", UK vs US date order, time zones near midnight) before launch. Only unit tests with a mocked model exist.
+- [ ] Phone reminders for planner tasks (planned next iteration, not built). Tasks keep a leading `HH:MM` time so a future scheduler can read them; needs a delivery channel (web push or SMS), a per-user opt-in, a cron sender and a reminder table keyed to the task.
 
 ## Testing and continuous integration
 

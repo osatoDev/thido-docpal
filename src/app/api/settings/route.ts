@@ -1,4 +1,5 @@
 import { isAutosaveDelaySeconds } from "@/lib/autosave";
+import { isPlanFeedbackDailyLimit } from "@/lib/planFeedbackPolicy";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -38,6 +39,7 @@ export async function PATCH(request: Request) {
     documentStartMode?: "NEW_DOCUMENT" | "MOST_RECENT";
     applicationStyle?: string;
     checklistMoveControls?: boolean;
+    planFeedbackDailyLimit?: number;
   } = {};
 
   if (body.autosaveDelaySeconds !== undefined) {
@@ -116,6 +118,21 @@ export async function PATCH(request: Request) {
       );
     }
     data.checklistMoveControls = body.checklistMoveControls;
+  }
+
+  if (body.planFeedbackDailyLimit !== undefined) {
+    if (!isPlanFeedbackDailyLimit(body.planFeedbackDailyLimit)) {
+      await reportServerError(new Error("Unsupported plan feedback limit"), {
+        source: "settings",
+        operation: "invalid-plan-feedback-limit",
+        status: 400,
+      });
+      return NextResponse.json(
+        { error: "Unsupported plan feedback limit" },
+        { status: 400 },
+      );
+    }
+    data.planFeedbackDailyLimit = body.planFeedbackDailyLimit;
   }
 
   if (Object.keys(data).length === 0) {

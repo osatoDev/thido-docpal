@@ -9,6 +9,7 @@ import {
 } from "@/lib/applicationStyle";
 
 import { AUTOSAVE_DELAY_OPTIONS } from "@/lib/autosave";
+import { PLAN_FEEDBACK_DAILY_LIMIT_OPTIONS } from "@/lib/planFeedbackPolicy";
 
 type Props = {
   initialAutosaveDelaySeconds: number;
@@ -16,6 +17,7 @@ type Props = {
   initialApplicationStyle: ApplicationStyle;
   initialDocumentStartMode: "NEW_DOCUMENT" | "MOST_RECENT";
   initialChecklistMoveControls: boolean;
+  initialPlanFeedbackDailyLimit: number;
 };
 
 export function SettingsForm({
@@ -24,6 +26,7 @@ export function SettingsForm({
   initialApplicationStyle,
   initialDocumentStartMode,
   initialChecklistMoveControls,
+  initialPlanFeedbackDailyLimit,
 }: Props) {
   const router = useRouter();
   const [autosaveDelaySeconds, setAutosaveDelaySeconds] = useState(initialAutosaveDelaySeconds);
@@ -36,6 +39,9 @@ export function SettingsForm({
   );
   const [checklistMoveControls, setChecklistMoveControls] = useState(
     initialChecklistMoveControls,
+  );
+  const [planFeedbackDailyLimit, setPlanFeedbackDailyLimit] = useState(
+    initialPlanFeedbackDailyLimit,
   );
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
@@ -196,6 +202,37 @@ export function SettingsForm({
           >
             <option value="true">Show reorder arrows (default)</option>
             <option value="false">Hide reorder arrows</option>
+          </select>
+        </div>
+      </section>
+
+      <section className="border-b border-[var(--border)] py-7">
+        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
+          <div>
+            <h2 className="font-semibold">Automatic plan feedback</h2>
+            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+              After you add a task with the planner bar, Thido sometimes
+              reviews that day&apos;s plan. This caps how often it happens each
+              day. Review my day always works on request.
+            </p>
+          </div>
+          <select
+            aria-label="Automatic plan feedback"
+            value={planFeedbackDailyLimit}
+            onChange={(event) => {
+              const next = Number(event.target.value);
+              setPlanFeedbackDailyLimit(next);
+              void save({ planFeedbackDailyLimit: next });
+            }}
+            className="app-input rounded-md px-3 py-2.5 text-sm outline-none"
+          >
+            {PLAN_FEEDBACK_DAILY_LIMIT_OPTIONS.map((limit) => (
+              <option key={limit} value={limit}>
+                {limit === 0
+                  ? "Off"
+                  : `Up to ${limit} time${limit === 1 ? "" : "s"} a day${limit === 3 ? " (default)" : ""}`}
+              </option>
+            ))}
           </select>
         </div>
       </section>
