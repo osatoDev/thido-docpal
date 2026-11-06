@@ -1,6 +1,6 @@
 # Thido 2.0 feature audit
 
-Thido is pivoting from an AI document companion to an AI day planner. This file records what the pivot removed, what stays, and what is still open. Status as of 7 November 2026 on the `ai-planner` branch.
+Thido is pivoting from an AI document companion to an AI day planner. This file records what the pivot removed, what stays, and what is still open. Status as of 6 November 2026 on the `ai-planner` branch.
 
 ## Removed
 
@@ -43,8 +43,7 @@ Versions from the current day are never pruned, so a restore or import can be un
 ## Still to do
 
 1. **One continuous page per person** (decided 6 November 2026). Signing in should open the plan directly. That removes the dashboard, folders, the "New document" button, the `documentStartMode` setting, per-document URLs and the admin "created a document" email. It also needs a decision on existing users' documents: merge their days into the plan, keep the others as a read-only archive, or offer an export first.
-2. **Privacy Policy and Terms.** Both still describe comments, sharing, drafting and spreadsheets. The Privacy Policy's retention section promises a 14-day notice and a "Keep all versions" choice, which no longer exist. Update it before deploying this change.
-3. **A way to try the planner before signing up.** The planner API needs an account, so the homepage now sends visitors to sign-up.
-4. **Integrations listed as coming soon:** Telegram, Google Calendar and Microsoft Outlook.
-5. **Phone reminders** (see `docs/ai-planner.md`).
-6. **Customer quotes.** Add a testimonials section only with real quotes and permission to publish them.
+2. **A way to try the planner before signing up.** The planner API needs an account, so the homepage now sends visitors to sign-up.
+3. **Integrations listed as coming soon:** Telegram, Google Calendar and Microsoft Outlook.
+4. **Phone reminders** (see `docs/ai-planner.md`).
+5. **Customer quotes.** Add a testimonials section only with real quotes and permission to publish them.

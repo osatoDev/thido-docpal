@@ -27,8 +27,8 @@ export function AccountDataPanel() {
             Your data
           </h2>
           <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-            Download a copy of your documents, spreadsheets, and account
-            details, or permanently delete your account.
+            Download a copy of your plans, documents, and account details, or
+            permanently delete your account.
           </p>
         </div>
 
