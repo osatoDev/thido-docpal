@@ -19,7 +19,7 @@ Thido is pivoting from an AI document companion to an AI day planner. This file 
 
 Old links to `/try` redirect to `/register`, and links to `/documents/new` redirect to `/`.
 
-The migration that drops the removed tables and columns, and **deletes their data**, is parked in `prisma/deferred/` until the legacy site is retired. See `prisma/deferred/README.md`.
+The migration `20261107120000_thido_2_remove_document_features` drops the removed tables and columns and **deletes their data**. Run it with `npm run db:migrate:prod` right after the new code is live (the old code still reads those tables), and back up the database first. No legacy site is planned: the only outside users of the removed features were two people testing comments, and their documents carry over.
 
 Documents saved with comment highlights keep loading. The comment mark stays in the editor schema as a plain span, because Tiptap replaces content it cannot parse with an empty document.
 
