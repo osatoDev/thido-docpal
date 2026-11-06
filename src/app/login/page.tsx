@@ -53,7 +53,7 @@ export default async function LoginPage({
           <div className="my-12 max-w-2xl lg:my-auto">
             <p className="page-kicker mb-4">AI day planner</p>
             <h1 className="page-title max-w-2xl" id="login-heading">
-              Plan your days in plain language.
+              Your days are where you left them.
             </h1>
             <p className="mt-6 max-w-xl text-base leading-7 text-[var(--muted)]">
               Add tasks the way you would say them, and get a short review of

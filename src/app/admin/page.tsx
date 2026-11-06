@@ -215,7 +215,7 @@ export default async function AdminPage() {
       <section className="app-panel overflow-hidden rounded-2xl" aria-labelledby="waitlist-heading">
         <div className="border-b border-[var(--border)] p-5 sm:p-7">
           <p className="page-kicker">Beta access</p>
-          <h2 id="waitlist-heading" className="mt-1 font-serif text-2xl">
+          <h2 id="waitlist-heading" className="mt-1 font-display text-2xl">
             Approval waitlist
           </h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
@@ -278,7 +278,7 @@ export default async function AdminPage() {
           <p className="page-kicker">AI operations</p>
           <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 id="ai-operations-heading" className="font-serif text-2xl">
+              <h2 id="ai-operations-heading" className="font-display text-2xl">
                 Last seven days
               </h2>
               <p className="mt-1 text-sm text-[var(--muted)]">
@@ -427,7 +427,7 @@ export default async function AdminPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="page-kicker">Audience</p>
-            <h2 className="mt-1 font-serif text-2xl">Last seven days</h2>
+            <h2 className="mt-1 font-display text-2xl">Last seven days</h2>
           </div>
           <a
             href="https://vercel.com/dashboard"

@@ -281,15 +281,15 @@ export async function sendAdminNewDocumentNotification({
 function emailShell(title: string, body: string, action: string, url: string) {
   return `<!doctype html>
 <html lang="en">
-  <body style="margin:0;background:#f4f2ed;color:#222622;font-family:Arial,sans-serif">
+  <body style="margin:0;background:#eef2f5;color:#18232b;font-family:Inter,Arial,sans-serif">
     <div style="max-width:560px;margin:0 auto;padding:48px 24px">
-      <p style="margin:0 0 28px;font-family:Georgia,serif;font-size:26px;font-weight:700">Thido</p>
-      <div style="border:1px solid #d8d5ce;background:#fff;padding:32px">
-        <h1 style="margin:0 0 16px;font-family:Georgia,serif;font-size:28px;font-weight:500">${escapeHtml(title)}</h1>
-        <p style="margin:0 0 28px;color:#646963;font-size:15px;line-height:1.6">${body}</p>
-        <a href="${escapeHtml(url)}" style="display:inline-block;background:#222622;color:#fff;padding:12px 18px;text-decoration:none;font-size:14px;font-weight:600">${escapeHtml(action)}</a>
+      <p style="margin:0 0 28px;font-size:26px;font-weight:700;letter-spacing:-0.5px">thido</p>
+      <div style="border:1px solid #d5dee5;border-radius:14px;background:#fff;padding:32px">
+        <h1 style="margin:0 0 16px;font-size:26px;font-weight:600;letter-spacing:-0.3px">${escapeHtml(title)}</h1>
+        <p style="margin:0 0 28px;color:#55636e;font-size:15px;line-height:1.6">${body}</p>
+        <a href="${escapeHtml(url)}" style="display:inline-block;border-radius:10px;background:#245e80;color:#fff;padding:12px 18px;text-decoration:none;font-size:14px;font-weight:600">${escapeHtml(action)}</a>
       </div>
-      <p style="margin:20px 0 0;color:#8c918b;font-size:12px;line-height:1.5">If you did not request this, you can ignore this email.</p>
+      <p style="margin:20px 0 0;color:#66737d;font-size:12px;line-height:1.5">If you did not request this, you can ignore this email.</p>
     </div>
   </body>
 </html>`;

@@ -632,7 +632,7 @@ export function TiptapEditor({
         <DocumentTabs editor={editor} />
         </div>
 
-        <h1 className="print-document-title editor-title hidden font-serif text-4xl font-normal tracking-[-0.035em]">
+        <h1 className="print-document-title editor-title hidden font-display text-4xl font-normal tracking-[-0.035em]">
           {title}
         </h1>
 

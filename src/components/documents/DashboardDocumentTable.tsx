@@ -191,7 +191,7 @@ function DeleteFolderDialog({
     >
       <div className="p-6 sm:p-7">
         <p className="page-kicker mb-3">Delete folder</p>
-        <h2 id={titleId} className="font-serif text-2xl font-medium tracking-[-0.025em]">
+        <h2 id={titleId} className="font-display text-2xl font-medium tracking-[-0.025em]">
           Delete “{folder?.name}”?
         </h2>
         <p id={descriptionId} className="mt-3 text-sm leading-6 text-[var(--muted)]">

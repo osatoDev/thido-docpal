@@ -6,16 +6,16 @@ import { HOW_IT_WORKS_STEPS } from "@/lib/howItWorks";
 
 const VALUE_PROPS = [
   {
-    title: "Type it the way you'd say it",
-    body: "“Dentist next Tuesday 3pm” or “Pay rent on the 1st”. Thido finds the day, adds the time, and puts the task in order.",
+    title: "One line in, right day out",
+    body: "Type a task the way it came to you. Thido reads the date and time and slots it into place.",
   },
   {
-    title: "One page, day by day",
-    body: "Tasks are checklists under date headers. Add a day with /day or the calendar button, and move between days by year, month and week.",
+    title: "Your days on one page",
+    body: "Every day is a checklist under its date. Jump around by year, month and week.",
   },
   {
-    title: "Feedback when you want it",
-    body: "Review my day gives two to four sentences on a day's plan. Thido can also check in a few times a day after you add tasks. Set how often in Settings, or turn it off.",
+    title: "A second look, when you want it",
+    body: "Review my day gives two to four sentences on how a day is shaping up. Thido can also check in on its own a few times a day, or never, if you prefer.",
   },
 ] as const;
 
@@ -85,8 +85,8 @@ function PlannerPreview() {
           </span>
         </div>
 
-        <div className="mt-2 border-l-2 border-[var(--accent-strong)] px-3 py-2 text-sm leading-6">
-          <p className="text-xs font-medium text-[var(--muted)]">
+        <div className="mt-2 rounded-lg bg-[var(--accent-tint)] px-3.5 py-3 text-sm leading-6">
+          <p className="text-xs font-semibold text-[var(--accent-strong)]">
             Thido&rsquo;s take on Nov 10 Tue
           </p>
           <p className="mt-1 text-[var(--foreground)]">
@@ -97,7 +97,7 @@ function PlannerPreview() {
 
         {PREVIEW_DAYS.map((day) => (
           <div key={day.date} className="mt-5">
-            <p className="font-serif text-sm text-[var(--muted)] italic">
+            <p className="font-display text-base font-semibold text-[var(--foreground)]">
               <time dateTime={day.date} className="font-medium">
                 {day.label}
               </time>
@@ -151,13 +151,12 @@ export function MarketingLanding() {
         <div>
           <p className="page-kicker mb-3">AI day planner</p>
           <h1 className="page-title max-w-xl">
-            Plan your days in plain language.
+            Write it like you&rsquo;d say it. Thido finds the day.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-[var(--muted)]">
-            Type &ldquo;Dentist next Tuesday 3pm&rdquo; and Thido puts it under
-            Tuesday at 15:00, in order with the rest of that day. Ask for a
-            short review of any day&rsquo;s plan, or let Thido check in a few
-            times a day.
+            &ldquo;Dentist next Tuesday 3pm&rdquo; lands under Tuesday at
+            15:00, in order with everything else that day. When a day looks
+            full, ask Thido for a second look.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
@@ -181,11 +180,10 @@ export function MarketingLanding() {
       </section>
 
       <section className="border-t border-[var(--border-strong)] py-14">
-        <p className="mx-auto max-w-2xl text-center font-serif text-2xl leading-snug font-medium tracking-[-0.02em] sm:text-3xl">
-          A plan only helps if it is quick to keep up.
+        <p className="mx-auto max-w-2xl text-center font-display text-2xl leading-snug font-medium tracking-[-0.02em] sm:text-3xl">
+          Most tasks arrive as a sentence.
           <span className="mt-1 block text-[var(--muted)]">
-            Thido takes a task in one line and puts it where it belongs, so the
-            page stays current without the busywork.
+            Thido keeps them that way and does the filing for you.
           </span>
         </p>
       </section>
@@ -200,7 +198,7 @@ export function MarketingLanding() {
         <div className="grid gap-8 sm:grid-cols-3 sm:gap-10">
           {VALUE_PROPS.map((prop) => (
             <div key={prop.title}>
-              <h2 className="font-serif text-xl font-medium tracking-[-0.02em]">
+              <h2 className="font-display text-xl font-medium tracking-[-0.02em]">
                 {prop.title}
               </h2>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
@@ -245,7 +243,7 @@ export function MarketingLanding() {
         <p className="page-kicker mb-3">Coming soon</p>
         <h2
           id="coming-soon-heading"
-          className="max-w-2xl font-serif text-2xl font-medium tracking-[-0.02em]"
+          className="max-w-2xl font-display text-2xl font-medium tracking-[-0.02em]"
         >
           Telegram, Google Calendar and Microsoft Outlook
         </h2>
@@ -257,7 +255,7 @@ export function MarketingLanding() {
 
       <section className="border-t border-[var(--border-strong)] py-16 text-center">
         <h2 className="page-title mx-auto max-w-2xl text-[clamp(1.9rem,4.5vw,2.75rem)]">
-          Add your first task.
+          What&rsquo;s on tomorrow?
         </h2>
         <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
           <Link

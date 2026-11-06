@@ -8,7 +8,7 @@ test.describe("marketing landing and onboarding", () => {
     await page.goto("/");
 
     await expect(
-      page.getByRole("heading", { name: "Plan your days in plain language." }),
+      page.getByRole("heading", { name: "Write it like you’d say it. Thido finds the day." }),
     ).toBeVisible();
     await expect(page.getByText("What Thido does")).toBeVisible();
     await expect(
@@ -24,7 +24,7 @@ test.describe("marketing landing and onboarding", () => {
 
     await expect(page).toHaveURL(/\/register/);
     await expect(
-      page.getByRole("heading", { name: "Start planning with Thido." }),
+      page.getByRole("heading", { name: "Start your first plan." }),
     ).toBeVisible();
   });
 

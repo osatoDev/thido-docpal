@@ -329,7 +329,7 @@ export function DocumentFileMenu({
             <p className="page-kicker mb-3">Confirm import</p>
             <h2
               id={importConfirmTitleId}
-              className="font-serif text-2xl font-medium tracking-[-0.025em]"
+              className="font-display text-2xl font-medium tracking-[-0.025em]"
             >
               Replace this document?
             </h2>

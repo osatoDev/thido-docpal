@@ -73,7 +73,7 @@ export function ConflictRecovery({ getText, onReload }: {
       <dialog ref={dialog} aria-labelledby={headingId} aria-describedby={descriptionId}
         onCancel={(event) => { if (busyRef.current) event.preventDefault(); }}
         className="m-auto max-h-[90dvh] w-[min(32rem,calc(100%-2rem))] overflow-auto rounded-xl border border-[var(--border-strong)] bg-[var(--surface-raised)] p-6 text-[var(--foreground)] shadow-2xl backdrop:bg-black/55">
-        <h2 id={headingId} className="font-serif text-2xl">Keep your unsaved work</h2>
+        <h2 id={headingId} className="font-display text-2xl">Keep your unsaved work</h2>
         <p id={descriptionId} className="mt-3 text-sm text-[var(--muted)]">Loading the latest version replaces this copy, including its title. Save your text first, then reapply the changes you want to keep.</p>
         <div className="mt-4 flex flex-wrap gap-3">
           <button type="button" disabled={busy} onClick={() => void copy()} className="secondary-button rounded-md px-3 py-2 text-sm">Copy my text</button>

@@ -1,20 +1,20 @@
 export const HOW_IT_WORKS_STEPS = [
   {
     number: "01",
-    title: "Type a task",
+    title: "Type it",
     description:
-      "Write it the way you would say it, like “Dentist next Tuesday 3pm”. Thido puts it under that day, with the time, in order.",
+      "Write a task the way it came to you, like “Dentist next Tuesday 3pm”.",
   },
   {
     number: "02",
-    title: "See your days",
+    title: "Find it",
     description:
-      "Each day is a checklist under a date header. Add days with /day or the calendar button, and browse them by year, month and week.",
+      "Thido files it under the right day, in time order. Browse your days by year, month and week.",
   },
   {
     number: "03",
-    title: "Get a second look",
+    title: "Check it",
     description:
-      "Ask Thido to review a day's plan, or let it check in a few times a day. Change how often in Settings.",
+      "Ask Thido to review a day, or let it check in a few times a day. Change how often in Settings.",
   },
 ] as const;

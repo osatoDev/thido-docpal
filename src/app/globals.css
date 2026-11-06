@@ -3,27 +3,29 @@
 
 :root {
   color-scheme: light dark;
-  --background: light-dark(#f4f2ed, #141615);
-  --foreground: light-dark(#222622, #e9ebe8);
-  --surface: light-dark(#faf9f6, #1a1d1b);
-  --surface-raised: light-dark(#ffffff, #202421);
-  --surface-subtle: light-dark(#eceae4, #252925);
-  --muted: light-dark(#646963, #a7aca6);
-  --muted-soft: light-dark(#8c918b, #7d847e);
-  --border: light-dark(#d8d5ce, #353a36);
-  --border-strong: light-dark(#bcb9b1, #505651);
-  --accent: light-dark(#8fb3a3, #7eaa96);
-  --accent-strong: light-dark(#315f4e, #a0c8b5);
-  --accent-contrast: #f7faf8;
-  --warm: light-dark(#9a6737, #d0a06e);
-  --danger: light-dark(#bd3f42, #ff8588);
-  --ring: light-dark(#315f4e, #a0c8b5);
-  --shadow: light-dark(0 1px 2px rgb(20 24 21 / 0.05), 0 1px 2px rgb(0 0 0 / 0.22));
-  --app-font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --app-display-font-family: Iowan Old Style, Baskerville, "Times New Roman", serif;
-  --document-font-family: Iowan Old Style, Baskerville, "Times New Roman", serif;
-  --document-font-size: 1.08rem;
-  --document-line-height: 1.75;
+  /* Light is "Clear Morning" (morning blue), dark is "Evening Ledger" (lamp amber). */
+  --background: light-dark(#eef2f5, #0e131b);
+  --foreground: light-dark(#18232b, #e8ecf2);
+  --surface: light-dark(#ffffff, #161d28);
+  --surface-raised: light-dark(#ffffff, #1c2532);
+  --surface-subtle: light-dark(#e9eef2, #232c3a);
+  --muted: light-dark(#55636e, #9aa6b5);
+  --muted-soft: light-dark(#66737d, #8592a2);
+  --border: light-dark(#d5dee5, #263142);
+  --border-strong: light-dark(#b9c6d0, #3a475b);
+  --accent: light-dark(#9cc3da, #8c6a2c);
+  --accent-strong: light-dark(#245e80, #f0b44c);
+  --accent-tint: light-dark(#e6f0f6, #2a2416);
+  --accent-contrast: light-dark(#ffffff, #1a1305);
+  --warm: light-dark(#a1561a, #f59e6b);
+  --danger: light-dark(#b4383c, #ff8588);
+  --ring: light-dark(#245e80, #f0b44c);
+  --shadow: light-dark(0 1px 2px rgb(24 35 43 / 0.06), 0 1px 2px rgb(0 0 0 / 0.3));
+  --app-font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --app-display-font-family: var(--font-space-grotesk), var(--font-inter), ui-sans-serif, sans-serif;
+  --document-font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --document-font-size: 1rem;
+  --document-line-height: 1.65;
 }
 
 @theme inline {
@@ -32,8 +34,9 @@
   --color-surface: var(--surface);
   --color-muted: var(--muted);
   --color-border: var(--border);
-  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), var(--font-inter), ui-sans-serif, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 }
 
 :root[data-theme="light"] {
@@ -85,17 +88,32 @@ h1,
 .page-title {
   font-family: var(--app-display-font-family);
   font-size: clamp(2.25rem, 6vw, 3.75rem);
-  font-weight: 400;
-  letter-spacing: -0.035em;
-  line-height: 1.02;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.04;
 }
 
 .brand-wordmark {
   font-family: var(--app-display-font-family);
-  font-size: 1.55rem;
+  font-size: 1.5rem;
   font-weight: 600;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.03em;
   line-height: 1;
+}
+
+.brand-wordmark-i {
+  position: relative;
+}
+
+.brand-wordmark-sun {
+  position: absolute;
+  top: 0.15em;
+  left: 50%;
+  width: 0.24em;
+  height: 0.24em;
+  border-radius: 999px;
+  background: var(--accent-strong);
+  transform: translateX(-50%);
 }
 
 button,
@@ -153,20 +171,46 @@ select {
 }
 
 .primary-button {
-  border: 1px solid var(--foreground);
-  background: var(--foreground);
-  color: var(--surface);
-}
-
-.primary-button:hover {
+  border: 1px solid var(--accent-strong);
   background: var(--accent-strong);
   color: var(--accent-contrast);
 }
 
+.primary-button:hover {
+  background: color-mix(in srgb, var(--accent-strong) 86%, var(--foreground));
+}
+
 .secondary-button {
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   background: var(--surface);
-  color: var(--muted);
+  color: var(--foreground);
+}
+
+/* Editor dialogs use these; padding and size come from utility classes. */
+.app-button-primary,
+.app-button-secondary {
+  border-radius: 0.5rem;
+  font-weight: 500;
+}
+
+.app-button-primary {
+  border: 1px solid var(--accent-strong);
+  background: var(--accent-strong);
+  color: var(--accent-contrast);
+}
+
+.app-button-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-strong) 86%, var(--foreground));
+}
+
+.app-button-secondary {
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--foreground);
+}
+
+.app-button-secondary:hover:not(:disabled) {
+  background: var(--surface-subtle);
 }
 
 .text-link {
@@ -185,7 +229,7 @@ select {
 
 .legal-document h2 {
   margin-bottom: 0.9rem;
-  font-family: Iowan Old Style, Baskerville, "Times New Roman", serif;
+  font-family: var(--app-display-font-family);
   font-size: 1.6rem;
   font-weight: 600;
   letter-spacing: -0.025em;
@@ -860,13 +904,14 @@ select {
 
 /* Day sections are independent of the document heading hierarchy. */
 .document-day-header {
-  margin-block: 1.4em 0.6em;
+  margin-block: 1.5em 0.5em;
   padding-block: 0.2em;
-  font-family: Georgia, "Times New Roman", serif;
-  font-style: italic;
-  font-size: 0.95em;
-  color: var(--muted);
+  font-family: var(--app-display-font-family);
+  font-size: 1.2em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
   break-after: avoid;
 }
-.document-day-header > time { font-weight: 500; }
+.document-day-header > time { font-weight: 600; }
 .document-day-header > [data-day-content]:not(:empty)::before { content: " \2014 "; }

@@ -113,12 +113,12 @@ export function PlannerBar({ editor, documentId }: { editor: Editor; documentId:
           onChange={event => setText(event.target.value)}
           placeholder="Add a task… e.g. “Dentist next Tuesday 3pm”"
           disabled={adding}
-          className="app-input min-w-0 flex-1 rounded-md px-3 py-2 text-sm outline-none"
+          className="app-input h-11 min-w-0 flex-1 rounded-lg px-3.5 text-sm outline-none"
         />
-        <button type="submit" disabled={adding || !text.trim()} className="app-button-primary px-3 py-2 text-sm disabled:opacity-50">
+        <button type="submit" disabled={adding || !text.trim()} className="primary-button h-11 rounded-lg px-4 text-sm font-semibold disabled:opacity-50">
           {adding ? "Adding…" : "Add"}
         </button>
-        <button type="button" onClick={reviewDay} disabled={reviewing} className="app-button-secondary px-3 py-2 text-sm disabled:opacity-50">
+        <button type="button" onClick={reviewDay} disabled={reviewing} className="secondary-button h-11 rounded-lg px-4 text-sm font-medium disabled:opacity-50">
           {reviewing ? "Reviewing…" : "Review my day"}
         </button>
       </form>
@@ -129,14 +129,14 @@ export function PlannerBar({ editor, documentId }: { editor: Editor; documentId:
         {status?.text}
       </p>
       {feedback ? (
-        <aside aria-label="Plan feedback" className="mt-1 flex items-start gap-3 border-l-2 border-[var(--accent-strong)] px-3 py-2 text-sm leading-6">
+        <aside aria-label="Plan feedback" className="mt-1 flex items-start gap-3 rounded-lg bg-[var(--accent-tint)] px-3.5 py-3 text-sm leading-6">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-[var(--muted)]">
+            <p className="text-xs font-semibold text-[var(--accent-strong)]">
               {feedback.trigger === "AUTO" ? "Thido's take on" : "Review of"} {formatDay(feedback.day)}
             </p>
             <p>{feedback.feedback}</p>
           </div>
-          <button type="button" aria-label="Dismiss feedback" onClick={() => setFeedback(null)} className="rounded-sm px-2 text-[var(--muted)] hover:bg-[var(--surface-subtle)]">
+          <button type="button" aria-label="Dismiss feedback" onClick={() => setFeedback(null)} className="inline-flex size-8 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--surface)]">
             ×
           </button>
         </aside>

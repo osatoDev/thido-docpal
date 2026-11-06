@@ -66,7 +66,7 @@ export default async function FounderConversationPage({
       <section className="flex flex-wrap items-end justify-between gap-5">
         <div>
           <p className="page-kicker mb-2">{thread.category.toLowerCase()}</p>
-          <h1 className="font-serif text-4xl tracking-[-0.035em]">
+          <h1 className="font-display text-4xl tracking-[-0.035em]">
             {thread.user.name || thread.user.email || "Thido user"}
           </h1>
           <p className="mt-2 text-sm text-[var(--muted)]">

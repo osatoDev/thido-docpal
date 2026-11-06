@@ -253,7 +253,7 @@ export function VersionHistoryDialog({
             <div className="min-h-0 overflow-y-auto p-6 sm:p-8">
               {selected ? (
                 <>
-                  <h3 className="editor-title border-b border-[var(--border)] pb-5 font-serif text-3xl">
+                  <h3 className="editor-title border-b border-[var(--border)] pb-5 font-display text-3xl">
                     {selected.title}
                   </h3>
                   <div className="mt-6">

@@ -78,7 +78,7 @@ export function DeleteDocumentDialog({
           <p className="page-kicker mb-3">Confirm deletion</p>
           <h2
             id={titleId}
-            className="font-serif text-2xl font-medium tracking-[-0.025em]"
+            className="font-display text-2xl font-medium tracking-[-0.025em]"
           >
             Delete “{documentTitle}”?
           </h2>

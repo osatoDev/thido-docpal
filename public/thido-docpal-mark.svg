@@ -1,7 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
   <title id="title">Thido</title>
-  <desc id="desc">A T formed from an editorial margin and lines of text.</desc>
-  <rect width="128" height="128" rx="24" fill="#F4F2ED"/>
-  <path d="M20 28h88M46 28v76" fill="none" stroke="#222622" stroke-width="8" stroke-linecap="square"/>
-  <path d="M64 54h44M64 78h32M64 102h20" fill="none" stroke="#315F4E" stroke-width="7" stroke-linecap="square"/>
+  <desc id="desc">A day page with a check.</desc>
+  <rect width="128" height="128" rx="28" fill="#EEF2F5"/>
+  <g transform="translate(16 16)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="16" y="22" width="64" height="60" rx="14" stroke="#18232B" stroke-width="7"/>
+    <path d="M34 14v16M62 14v16" stroke="#18232B" stroke-width="7"/>
+    <path d="M34 54l10 10 18-20" stroke="#245E80" stroke-width="8"/>
+  </g>
 </svg>
