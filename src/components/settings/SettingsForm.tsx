@@ -9,7 +9,6 @@ import { PLAN_FEEDBACK_DAILY_LIMIT_OPTIONS } from "@/lib/planFeedbackPolicy";
 type Props = {
   initialAutosaveDelaySeconds: number;
   initialAiModel: AiModelId;
-  initialDocumentStartMode: "NEW_DOCUMENT" | "MOST_RECENT";
   initialChecklistMoveControls: boolean;
   initialPlanFeedbackDailyLimit: number;
 };
@@ -17,16 +16,12 @@ type Props = {
 export function SettingsForm({
   initialAutosaveDelaySeconds,
   initialAiModel,
-  initialDocumentStartMode,
   initialChecklistMoveControls,
   initialPlanFeedbackDailyLimit,
 }: Props) {
   const router = useRouter();
   const [autosaveDelaySeconds, setAutosaveDelaySeconds] = useState(initialAutosaveDelaySeconds);
   const [aiModel, setAiModel] = useState(initialAiModel);
-  const [documentStartMode, setDocumentStartMode] = useState(
-    initialDocumentStartMode,
-  );
   const [checklistMoveControls, setChecklistMoveControls] = useState(
     initialChecklistMoveControls,
   );
@@ -79,33 +74,6 @@ export function SettingsForm({
                 {seconds === 120 ? " (default)" : ""}
               </option>
             ))}
-          </select>
-        </div>
-      </section>
-
-      <section className="border-b border-[var(--border)] py-7">
-        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
-          <div>
-            <h2 className="font-semibold">When I open Thido</h2>
-            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-              A blank document is the default. Choose the other option if you
-              prefer to return to the document you used most recently.
-            </p>
-          </div>
-          <select
-            aria-label="When I open Thido"
-            value={documentStartMode}
-            onChange={(event) => {
-              const next = event.target.value as
-                | "NEW_DOCUMENT"
-                | "MOST_RECENT";
-              setDocumentStartMode(next);
-              void save({ documentStartMode: next });
-            }}
-            className="app-input rounded-md px-3 py-2.5 text-sm outline-none"
-          >
-            <option value="NEW_DOCUMENT">Open a blank document (default)</option>
-            <option value="MOST_RECENT">Open my most recent document</option>
           </select>
         </div>
       </section>

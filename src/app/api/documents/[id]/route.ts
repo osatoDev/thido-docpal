@@ -10,7 +10,6 @@ import {
 import { shouldPromotePlaceholder } from "@/lib/documentPersistence";
 import { unauthorizedResponse } from "@/lib/apiResponses";
 import { reportServerError } from "@/lib/rollbar/server";
-import { sendAdminNewDocumentNotification } from "@/lib/email";
 import { recordDocumentRevision } from "@/lib/documentRevisions";
 import { DocumentRevisionSource } from "@prisma/client";
 
@@ -179,26 +178,6 @@ export async function PATCH(request: Request, { params }: Params) {
     );
   }
   const document = updateResult.document;
-
-  if (editableDocument.isPlaceholder && data.isPlaceholder === false) {
-    if (session.user.email) {
-      try {
-        await sendAdminNewDocumentNotification({
-          documentId: document.id,
-          title: document.title,
-          ownerName: session.user.name ?? null,
-          ownerEmail: session.user.email,
-        });
-      } catch (error) {
-        console.error("Unable to send new document notification", error);
-        await reportServerError(error, {
-          source: "document",
-          operation: "notify-new-document",
-          documentId: id,
-        });
-      }
-    }
-  }
 
   return NextResponse.json({
     document: { id: document.id, revision: document.revision, title: document.title },

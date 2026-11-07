@@ -10,7 +10,7 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  const [user, settings, documents, folders, planFeedback, feedbackThread] =
+  const [user, settings, documents, planFeedback, feedbackThread] =
     await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
@@ -34,7 +34,6 @@ export async function GET() {
         where: { userId },
         select: {
           aiModel: true,
-          documentStartMode: true,
           checklistMoveControls: true,
           planFeedbackDailyLimit: true,
         },
@@ -48,13 +47,7 @@ export async function GET() {
           content: true,
           createdAt: true,
           updatedAt: true,
-          folder: { select: { name: true } },
         },
-        orderBy: { createdAt: "asc" },
-      }),
-      prisma.documentFolder.findMany({
-        where: { ownerId: userId },
-        select: { id: true, name: true, createdAt: true },
         orderBy: { createdAt: "asc" },
       }),
       prisma.planFeedback.findMany({
@@ -109,12 +102,7 @@ export async function GET() {
       stripeCurrentPeriodEnd: user.stripeCurrentPeriodEnd,
     },
     settings,
-    folders,
-    documents: documents.map((document) => ({
-      ...document,
-      folderName: document.folder?.name ?? null,
-      folder: undefined,
-    })),
+    documents,
     planFeedback,
     feedback: feedbackThread,
   };

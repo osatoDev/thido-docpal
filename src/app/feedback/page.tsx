@@ -58,7 +58,7 @@ export default async function FeedbackPage({
           aria-label="Feedback navigation"
           className="flex items-center gap-4 text-sm text-[var(--muted)]"
         >
-          <Link href="/dashboard" className="hover:text-[var(--foreground)]">
+          <Link href="/plan" className="hover:text-[var(--foreground)]">
             All documents
           </Link>
           <UserMenu user={session.user} />

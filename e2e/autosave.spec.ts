@@ -140,7 +140,7 @@ test("failed saves stay unsaved, guard navigation, and can be retried", async ({
   await status.getByRole("button", { name: "Save now" }).click();
   await expect(status).toContainText("Changes not saved");
   const dialog = page.waitForEvent("dialog");
-  const navigation = page.locator('header a[href="/dashboard"]').first().click();
+  const navigation = page.locator('header a[href="/plan"]').first().click();
   await (await dialog).dismiss();
   await navigation;
   await expect(status).toContainText("Changes not saved");

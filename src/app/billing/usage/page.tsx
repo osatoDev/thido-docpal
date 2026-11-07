@@ -50,7 +50,7 @@ export default async function UsageHistoryPage({
           <Link href="/billing" className="hover:text-[var(--foreground)]">
             Plan and billing
           </Link>
-          <Link href="/dashboard" className="hover:text-[var(--foreground)]">
+          <Link href="/plan" className="hover:text-[var(--foreground)]">
             All documents
           </Link>
           <UserMenu user={session.user} />

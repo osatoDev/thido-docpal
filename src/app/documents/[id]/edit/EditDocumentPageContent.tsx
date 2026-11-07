@@ -9,6 +9,13 @@ import { documentAccessWhere } from "@/lib/documentAuth";
 import { documentEditPath } from "@/lib/documentUrls";
 import { prisma } from "@/lib/prisma";
 
+export function getEditorSettings(userId: string) {
+  return prisma.userSettings.findUnique({
+    where: { userId },
+    select: { checklistMoveControls: true, autosaveDelaySeconds: true },
+  });
+}
+
 export type EditDocumentSearchParams = Record<
   string,
   string | string[] | undefined
@@ -59,16 +66,20 @@ export async function EditDocumentPageContent({
     );
   }
 
-  const [document, settings] = await Promise.all([
+  const [document, settings, user] = await Promise.all([
     getAccessibleEditDocument(id, session.user.id),
-    prisma.userSettings.findUnique({
-      where: { userId: session.user.id },
-      select: { checklistMoveControls: true, autosaveDelaySeconds: true },
+    getEditorSettings(session.user.id),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { planDocumentId: true },
     }),
   ]);
 
   if (!document) {
     notFound();
+  }
+  if (document.id === user?.planDocumentId) {
+    redirect("/plan");
   }
 
   const canonicalPath = documentEditPath(document.id, document.title);

@@ -51,7 +51,7 @@ export default async function BillingPage({
           <Link href="/settings" className="hover:text-[var(--foreground)]">
             Settings
           </Link>
-          <Link href="/dashboard" className="hover:text-[var(--foreground)]">
+          <Link href="/plan" className="hover:text-[var(--foreground)]">
             All documents
           </Link>
           <UserMenu user={session.user} />

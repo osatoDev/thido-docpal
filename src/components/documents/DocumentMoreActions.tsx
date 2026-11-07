@@ -530,10 +530,10 @@ export function DocumentFileMenu({
             </div>
             <div className="flex justify-end border-t border-[var(--border)] px-5 py-4">
               <Link
-                href="/dashboard"
+                href="/documents"
                 className="secondary-button rounded-sm px-3 py-2 text-sm font-medium"
               >
-                View all documents
+                Older documents
               </Link>
             </div>
           </section>

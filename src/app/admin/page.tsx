@@ -156,7 +156,7 @@ export default async function AdminPage() {
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-6">
         <Brand href="/admin" />
         <nav className="flex items-center gap-4 text-sm text-[var(--muted)]" aria-label="Admin navigation">
-          <Link href="/dashboard" className="hover:text-[var(--foreground)]">
+          <Link href="/plan" className="hover:text-[var(--foreground)]">
             Documents
           </Link>
           <Link

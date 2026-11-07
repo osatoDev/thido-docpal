@@ -54,7 +54,7 @@ export default async function FounderInboxPage({
           <Link href="/admin" className="hover:text-[var(--foreground)]">
             Operations
           </Link>
-          <Link href="/dashboard" className="hover:text-[var(--foreground)]">
+          <Link href="/plan" className="hover:text-[var(--foreground)]">
             Documents
           </Link>
           <UserMenu user={session.user} />

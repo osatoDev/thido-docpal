@@ -5,7 +5,6 @@ import { Analytics } from "@vercel/analytics/next";
 import { Suspense } from "react";
 import { GoogleAdsTag } from "@/components/GoogleAdsTag";
 import { RedditPixel } from "@/components/RedditPixel";
-import { SignedInPageActions } from "@/components/SignedInPageActions";
 import { SignupConversions } from "@/components/SignupConversions";
 import { getCurrentSession } from "@/lib/currentSession";
 import { isTheme, THEME_COOKIE_NAME } from "@/lib/theme";
@@ -35,12 +34,6 @@ export const metadata: Metadata = {
   icons: { icon: "/thido-docpal-mark.svg" },
 };
 
-async function SessionPageActions() {
-  const session = await getCurrentSession();
-
-  return <SignedInPageActions signedIn={Boolean(session?.user?.id)} />;
-}
-
 async function SessionRedditPixel() {
   const session = await getCurrentSession();
 
@@ -68,9 +61,6 @@ export default async function RootLayout({
       data-theme={theme}
     >
       <body className="flex min-h-full flex-col">
-        <Suspense fallback={null}>
-          <SessionPageActions />
-        </Suspense>
         {children}
         <Analytics />
         <GoogleAdsTag />

@@ -244,40 +244,6 @@ export async function sendAdminNewSignupNotification({
   });
 }
 
-export async function sendAdminNewDocumentNotification({
-  documentId,
-  title,
-  ownerName,
-  ownerEmail,
-}: {
-  documentId: string;
-  title: string;
-  ownerName: string | null;
-  ownerEmail: string;
-}) {
-  const recipients = founderFeedbackRecipients();
-  if (recipients.length === 0) return;
-
-  const label = ownerName?.trim() || ownerEmail;
-  const url = appUrl(adminDetailHref("documents"));
-  const safeLabel = escapeHtml(label);
-  const safeTitle = escapeHtml(title);
-
-  await sendEmail({
-    to: recipients,
-    subject: `${label} created a document`,
-    text: `${label} (${ownerEmail}) created a document: "${title}".\n\nView documents: ${url}`,
-    html: emailShell(
-      "New document",
-      `<strong>${safeLabel}</strong> (${escapeHtml(ownerEmail)}) created a document: <strong>${safeTitle}</strong>.`,
-      "View documents",
-      url,
-    ),
-    previewUrl: url,
-    idempotencyKey: `admin-new-document-${documentId}`,
-  });
-}
-
 function emailShell(title: string, body: string, action: string, url: string) {
   return `<!doctype html>
 <html lang="en">
