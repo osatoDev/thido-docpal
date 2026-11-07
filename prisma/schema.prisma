@@ -284,6 +284,7 @@ enum AiFeature {
   COMMENT_RESPOND
   TASK_SCHEDULE
   PLAN_FEEDBACK
+  PLAN_REQUEST
 }
 
 enum PlanFeedbackTrigger {

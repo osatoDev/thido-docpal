@@ -48,6 +48,21 @@ test.describe("AI planner", () => {
     await expect(editor.locator("li", { hasText: "10:30 Oatmeal" })).toHaveCount(7);
   });
 
+  test("answers a request with options and adds only the one picked", async ({ page }) => {
+    await openPlan(page);
+    const editor = page.locator(".ProseMirror");
+    const planner = page.getByTestId("planner-bar");
+    await planner.getByLabel("Add a task to a day").fill("Find 2 cinemas near lunch, I'm driving");
+    await planner.getByRole("button", { name: "Add", exact: true }).click();
+    const answer = page.getByRole("region", { name: "Thido's answer" });
+    await expect(answer).toContainText("Two cinemas fit the gap");
+    await expect(answer.getByRole("listitem")).toHaveCount(2);
+    await expect(editor).not.toContainText("Find 2 cinemas");
+    await answer.getByRole("listitem").first().getByRole("button", { name: "Add to plan" }).click();
+    await expect(editor.locator("li", { hasText: "16:00 Movie at Kino Nord" })).toHaveCount(1);
+    await expect(editor).not.toContainText("Lichtspiele");
+  });
+
   test("asks for a day when the entry has none it can place", async ({ page }) => {
     await openPlan(page);
     const planner = page.getByTestId("planner-bar");

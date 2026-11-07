@@ -17,6 +17,17 @@ Because the edit happens in the editor, it autosaves, undoes and resolves confli
 
 Each entry uses one AI credit. If Claude fails, the credit is refunded.
 
+## Requests: "find me…", "list 10…"
+
+When an entry asks Thido itself to find, research, suggest or list something ("List 10 cinemas near Berlin Naija Foodie, I'm driving"), the reading step labels it a **request** instead of a task, and that credit is refunded.
+
+1. The planner bar sends the request, its day and that day's tasks to `POST /api/documents/[id]/request`.
+2. `answerPlanRequest` (`src/lib/ai/planner.ts`) runs Claude with the web search tool (at most 3 searches, located by the user's time zone) and a structured answer: a summary and up to 10 options, each with details, an optional start time, a task line and a source URL. A paused server-tool turn is sent back so the search resumes, up to 4 times.
+3. A source URL is kept only if the web search actually returned it.
+4. The answer appears under the bar. **Add to plan** writes that option as a task under the day; nothing is added otherwise.
+
+A request costs 3 credits, refunded on failure. It uses the basic `web_search_20250305` tool: in a live test the dynamic-filtering `web_search_20260209` found better sources but read about 4 times the input tokens (around $0.85 per request on Sonnet 5, against $0.22).
+
 ## Feedback on a day's plan
 
 - **Review my day** reviews the day where the cursor is, or today if the cursor is not under a day. It always runs.

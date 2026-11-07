@@ -914,4 +914,5 @@ select {
   break-after: avoid;
 }
 .document-day-header > time { font-weight: 600; }
-.document-day-header > [data-day-content]:not(:empty)::before { content: " \2014 "; }
+/* An empty note still holds the editor's placeholder <br>, which is not :empty. */
+.document-day-header > [data-day-content]:not(:empty):not(:has(> br.ProseMirror-trailingBreak:only-child))::before { content: " \2014 "; }

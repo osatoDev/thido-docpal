@@ -17,11 +17,13 @@ import type { AiModelId } from "@/lib/ai/models";
  * Every consumption also writes an `AiCreditCharge` ledger row so a user can
  * audit what their allowance was spent on (see docs/ai-credit-balance-and-audit.md).
  */
-export type AiActionKind = "TASK_SCHEDULE" | "PLAN_FEEDBACK";
+export type AiActionKind = "TASK_SCHEDULE" | "PLAN_FEEDBACK" | "PLAN_REQUEST";
 
 const BASE_ACTION_WEIGHT: Record<AiActionKind, number> = {
   TASK_SCHEDULE: 1,
   PLAN_FEEDBACK: 1,
+  // A request runs several model steps plus web searches.
+  PLAN_REQUEST: 3,
 };
 
 /**
@@ -32,6 +34,7 @@ const BASE_ACTION_WEIGHT: Record<AiActionKind, number> = {
  */
 const ACTION_FEATURE: Record<AiActionKind, AiFeature> = {
   TASK_SCHEDULE: "TASK_SCHEDULE",
+  PLAN_REQUEST: "PLAN_REQUEST",
   PLAN_FEEDBACK: "PLAN_FEEDBACK",
 };
 
