@@ -3,9 +3,17 @@
 import { useEffect, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import { formatDay, readDays } from "@/lib/documentDays";
+import { fixRolledOverYears } from "@/lib/scheduleInsert";
 
-export function DayOutline({ editor }: { editor: Editor }) {
+export function DayOutline({ editor, canEdit }: { editor: Editor; canEdit: boolean }) {
   const [days, setDays] = useState(() => readDays(editor.state.doc));
+  const [fixed, setFixed] = useState<string | null>(null);
+  // Temporary: moves pasted days that ran past New Year into the right year.
+  const fixYears = () => {
+    const result = fixRolledOverYears(editor.state);
+    if (result) editor.view.dispatch(result.tr);
+    setFixed(result ? `Moved ${result.count} ${result.count === 1 ? "day" : "days"} to the next year.` : "No days needed moving.");
+  };
   useEffect(() => {
     const refresh = () => setDays(readDays(editor.state.doc));
     editor.on("update", refresh);
@@ -13,6 +21,10 @@ export function DayOutline({ editor }: { editor: Editor }) {
   }, [editor]);
   return <nav aria-label="Document days" className="mt-4 border-b border-[var(--border)] pb-3 text-xs">
     <h3 className="mb-2 font-semibold uppercase tracking-wide text-[var(--muted)]">Days</h3>
+    {canEdit ? <div className="mb-3">
+      <button type="button" onClick={fixYears} className="secondary-button h-8 w-full rounded-md px-2 text-xs font-medium">Fix years after New Year</button>
+      {fixed ? <p role="status" className="mt-1 text-[var(--muted)]">{fixed}</p> : null}
+    </div> : null}
     {days.length === 0 ? <p className="text-[var(--muted)]">Use the calendar button beside the heading options to add a date.</p> : null}
     {[...new Set(days.map(day => day.year))].map(year => <details open key={year}>
       <summary className="cursor-pointer py-1 font-semibold">{year}</summary>

@@ -3,7 +3,7 @@ import { Editor } from "@tiptap/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { readDays } from "@/lib/documentDays";
-import { dayPlanText, insertScheduledTask, scheduledTaskText, taskTime } from "@/lib/scheduleInsert";
+import { dayPlanText, fixRolledOverYears, insertScheduledTask, scheduledTaskText, taskTime } from "@/lib/scheduleInsert";
 
 const editors: Editor[] = [];
 function make(content: string) {
@@ -109,3 +109,19 @@ describe("dayAtPosition", () => {
   });
 });
 
+describe("fixing pasted days filed under the wrong year", () => {
+  it("moves past days that sit below later days into the next year", () => {
+    const editor = make(day("2026-11-07") + tasks("Dinner") + day("2026-12-31") + day("2026-01-02", "Note") + tasks("Gym") + day("2026-01-10") + day("2026-02-10"));
+    const result = fixRolledOverYears(editor.state, "2026-11-07");
+    expect(result?.count).toBe(3);
+    editor.view.dispatch(result!.tr);
+    expect(readDays(editor.state.doc).map(day => day.date)).toEqual(["2026-11-07", "2026-12-31", "2027-01-02", "2027-01-10", "2027-02-10"]);
+    expect(dayPlanText(editor.state.doc, "2027-01-02")).toBe("Day note: Note\n[ ] Gym");
+    expect(fixRolledOverYears(editor.state, "2026-11-07")).toBeNull();
+  });
+
+  it("leaves past days alone when they come first", () => {
+    const editor = make(day("2026-01-02") + day("2026-11-07"));
+    expect(fixRolledOverYears(editor.state, "2026-11-07")).toBeNull();
+  });
+});
