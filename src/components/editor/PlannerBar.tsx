@@ -71,16 +71,27 @@ export function PlannerBar({ editor, documentId }: { editor: Editor; documentId:
         setStatus({ kind: "error", text: "This document can't be edited right now." });
         return;
       }
-      const tr = insertScheduledTask(editor.state, parsed);
-      if (!tr) {
+      const dates: string[] = parsed.dates;
+      // A repeating entry ("every day for the next week") goes under each of its days.
+      const added = dates.filter((date) => {
+        const tr = insertScheduledTask(editor.state, { date, time: parsed.time, task: parsed.task });
+        if (tr) editor.view.dispatch(tr);
+        return Boolean(tr);
+      });
+      if (added.length === 0) {
         setStatus({ kind: "error", text: "Thido couldn't add that task here." });
         return;
       }
-      editor.view.dispatch(tr);
+      const taskText = scheduledTaskText(parsed);
       setText("");
-      setStatus({ kind: "info", text: `Added “${scheduledTaskText(parsed)}” to ${formatDay(parsed.date)}.` });
+      setStatus({
+        kind: "info",
+        text: added.length === 1
+          ? `Added “${taskText}” to ${formatDay(added[0])}.`
+          : `Added “${taskText}” to ${added.length} days, ${formatDay(added[0])} to ${formatDay(added[added.length - 1])}.`,
+      });
       // Automatic feedback is decided (and capped) by the server; failures stay silent.
-      void requestFeedback(parsed.date, "AUTO", scheduledTaskText(parsed)).catch(() => undefined);
+      void requestFeedback(added[0], "AUTO", taskText).catch(() => undefined);
     } catch {
       setStatus({ kind: "error", text: "Thido couldn't reach the server. Try again." });
     } finally {

@@ -8,6 +8,9 @@ const savePath = `/api/documents/${SEED.documentId}`;
 for (const modifier of ["Meta", "Control"]) {
   test(`${modifier}+S immediately saves edits and does nothing when already saved`, async ({ page }) => {
     await openSeedDocument(page);
+    // Paused timers keep the edit pending, so the shortcut (not autosave) saves it.
+    await page.clock.install();
+    await page.clock.pauseAt(new Date(Date.now() + 1000));
     let saves = 0;
     page.on("request", request => {
       if (new URL(request.url()).pathname === savePath && request.method() === "PATCH") saves += 1;
@@ -32,6 +35,7 @@ for (const modifier of ["Meta", "Control"]) {
     expect(saves).toBe(1);
     await page.keyboard.press(`${modifier}+s`);
     await expect(status).toHaveText("Saved");
+    await page.clock.resume();
     await page.reload();
     await expect(page.locator(".ProseMirror")).toContainText(`${modifier} save shortcut.`);
     expect(saves).toBe(1);
@@ -50,18 +54,18 @@ test("opening and focusing a document stays idle until an actual edit", async ({
   await expect(status).toHaveText("All changes save automatically");
   await page.locator(".ProseMirror p").first().click();
   await page.keyboard.press("ArrowRight");
-  await page.clock.fastForward(121_000);
+  await page.clock.fastForward(4_000);
   await expect(status).toHaveText("All changes save automatically");
   await expect(status.getByRole("button", { name: "Save now" })).toHaveCount(0);
   expect(saves).toBe(0);
   await page.keyboard.type(" Actual change.");
-  await expect(status).toContainText("Autosaving in 120s");
+  await expect(status).toContainText("Autosaving in 3s");
   await status.getByRole("button", { name: "Save now" }).click();
   await expect(status.getByText("Saved", { exact: true })).toBeVisible();
   expect(saves).toBe(1);
 });
 
-test("waits 120 seconds after the last edit and shows acknowledged save status", async ({ page }) => {
+test("waits 3 seconds after the last edit and shows acknowledged save status", async ({ page }) => {
   await openSeedDocument(page);
   await page.clock.install();
   await page.clock.pauseAt(new Date(Date.now() + 1000));
@@ -73,13 +77,13 @@ test("waits 120 seconds after the last edit and shows acknowledged save status",
   await page.locator(".ProseMirror p").first().click();
   await page.keyboard.press("End");
   await page.keyboard.type(" Autosave countdown");
-  await expect(status).toContainText("Autosaving in 120s");
+  await expect(status).toContainText("Autosaving in 3s");
   await expect(page.getByRole("progressbar", { name: "Time until autosave" })).toBeVisible();
-  await page.clock.fastForward(60_000);
+  await page.clock.fastForward(2_000);
   expect(saves).toBe(0);
   await page.keyboard.type(" reset.");
-  await expect(status).toContainText("Autosaving in 120s");
-  await page.clock.fastForward(119_000);
+  await expect(status).toContainText("Autosaving in 3s");
+  await page.clock.fastForward(2_000);
   expect(saves).toBe(0);
   const response = page.waitForResponse(r => new URL(r.url()).pathname === savePath && r.request().method() === "PATCH");
   await page.clock.fastForward(1000);
@@ -93,6 +97,8 @@ test("waits 120 seconds after the last edit and shows acknowledged save status",
 
 test("an older response cannot mark newer edits saved", async ({ page }) => {
   await openSeedDocument(page);
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
   let release!: () => void;
   const held = new Promise<void>(resolve => { release = resolve; });
   let saves = 0;
@@ -120,6 +126,7 @@ test("an older response cannot mark newer edits saved", async ({ page }) => {
   await status.getByRole("button", { name: "Save now" }).click();
   await expect(status.getByText("Saved", { exact: true })).toBeVisible();
   expect(saves).toBe(2);
+  await page.clock.resume();
   await page.reload();
   await expect(page.locator(".ProseMirror")).toContainText("Newer pending edit.");
 });
@@ -200,33 +207,3 @@ test("stale saves require conflict resolution instead of claiming success", asyn
   await expect(status.getByText("Saved", { exact: true })).toBeVisible();
 });
 
-test("settings persist a custom autosave countdown", async ({ page }) => {
-  try {
-    await page.goto("/settings");
-    const delay = page.getByRole("combobox", { name: "Document autosave delay" });
-    await delay.selectOption("5");
-    await expect(page.getByRole("status")).toContainText("Settings saved");
-    await page.reload();
-    await expect(delay).toHaveValue("5");
-    await openSeedDocument(page);
-    await page.clock.install();
-    await page.clock.pauseAt(new Date(Date.now() + 1000));
-    await page.getByRole("textbox", { name: "Document title" }).fill("Custom autosave delay");
-    const status = page.getByTestId("autosave-status");
-    await expect(status).toContainText("Autosaving in 5s");
-    await page.clock.fastForward(4000);
-    await expect(status).toContainText("Autosaving in 1s");
-    await page.clock.fastForward(1000);
-    await expect(status.getByText("Saved", { exact: true })).toBeVisible();
-    await page.clock.resume();
-    await page.reload();
-    await expect(page.getByRole("textbox", { name: "Document title" })).toHaveValue("Custom autosave delay");
-  } finally {
-    await page.request.patch("/api/settings", { data: { autosaveDelaySeconds: 120 } });
-    // Later specs open the seed document by its original title.
-    const current = await (await page.request.get(savePath)).json();
-    await page.request.patch(savePath, {
-      data: { title: SEED.documentTitle, titleUpdateSource: "USER", baseRevision: current.document.revision },
-    });
-  }
-});

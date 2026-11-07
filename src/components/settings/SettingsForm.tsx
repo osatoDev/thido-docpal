@@ -3,24 +3,20 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AI_MODELS, type AiModelId } from "@/lib/ai/models";
-import { AUTOSAVE_DELAY_OPTIONS } from "@/lib/autosave";
 import { PLAN_FEEDBACK_DAILY_LIMIT_OPTIONS } from "@/lib/planFeedbackPolicy";
 
 type Props = {
-  initialAutosaveDelaySeconds: number;
   initialAiModel: AiModelId;
   initialChecklistMoveControls: boolean;
   initialPlanFeedbackDailyLimit: number;
 };
 
 export function SettingsForm({
-  initialAutosaveDelaySeconds,
   initialAiModel,
   initialChecklistMoveControls,
   initialPlanFeedbackDailyLimit,
 }: Props) {
   const router = useRouter();
-  const [autosaveDelaySeconds, setAutosaveDelaySeconds] = useState(initialAutosaveDelaySeconds);
   const [aiModel, setAiModel] = useState(initialAiModel);
   const [checklistMoveControls, setChecklistMoveControls] = useState(
     initialChecklistMoveControls,
@@ -47,37 +43,6 @@ export function SettingsForm({
 
   return (
     <div className="flex flex-col border-t border-[var(--border-strong)]">
-      <section className="border-b border-[var(--border)] py-7">
-        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
-          <div>
-            <h2 className="font-semibold">Document autosave delay</h2>
-            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-              Save after this much time without editing. Each edit restarts the
-              countdown. You can always choose Save now in the editor.
-              Reopen an already open document to use the new delay.
-            </p>
-          </div>
-          <select
-            aria-label="Document autosave delay"
-            value={autosaveDelaySeconds}
-            disabled={saveState === "saving"}
-            onChange={(event) => {
-              const next = Number(event.target.value);
-              setAutosaveDelaySeconds(next);
-              void save({ autosaveDelaySeconds: next });
-            }}
-            className="app-input rounded-md px-3 py-2.5 text-sm outline-none"
-          >
-            {AUTOSAVE_DELAY_OPTIONS.map(seconds => (
-              <option key={seconds} value={seconds}>
-                {seconds < 60 ? `${seconds} seconds` : `${seconds / 60} minute${seconds === 60 ? "" : "s"}`}
-                {seconds === 120 ? " (default)" : ""}
-              </option>
-            ))}
-          </select>
-        </div>
-      </section>
-
       <section className="border-b border-[var(--border)] py-7">
         <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
           <div>

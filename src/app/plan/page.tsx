@@ -38,7 +38,6 @@ export default async function PlanPage() {
       }
       initialRevision={document.revision}
       currentUser={session.user}
-      autosaveDelaySeconds={settings?.autosaveDelaySeconds}
       checklistMoveControls={settings?.checklistMoveControls ?? true}
     />
   );

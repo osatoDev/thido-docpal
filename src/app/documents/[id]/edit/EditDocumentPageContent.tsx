@@ -12,7 +12,7 @@ import { prisma } from "@/lib/prisma";
 export function getEditorSettings(userId: string) {
   return prisma.userSettings.findUnique({
     where: { userId },
-    select: { checklistMoveControls: true, autosaveDelaySeconds: true },
+    select: { checklistMoveControls: true },
   });
 }
 
@@ -103,7 +103,6 @@ export async function EditDocumentPageContent({
       initialContent={content}
       initialRevision={document.revision}
       currentUser={session.user}
-      autosaveDelaySeconds={settings?.autosaveDelaySeconds}
       checklistMoveControls={settings?.checklistMoveControls ?? true}
     />
   );

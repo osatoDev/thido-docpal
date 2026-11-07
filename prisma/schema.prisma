@@ -199,7 +199,6 @@ model UserSettings {
   userId                 String   @unique
   user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   aiModel                String   @default("claude-sonnet-5")
-  autosaveDelaySeconds   Int      @default(120)
   checklistMoveControls  Boolean  @default(true)
   planFeedbackDailyLimit Int      @default(3)
   createdAt              DateTime @default(now())

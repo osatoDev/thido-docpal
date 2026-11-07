@@ -7,12 +7,12 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { EditorContent, useEditor, useEditorState, type JSONContent } from "@tiptap/react";
+import { EditorContent, useEditor, type JSONContent } from "@tiptap/react";
 import { hasDayHeaders, todayDay } from "@/lib/documentDays";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { ConflictRecovery } from "@/components/conflicts/ConflictRecovery";
 import { Toolbar } from "./Toolbar";
-import { DEFAULT_AUTOSAVE_DELAY_SECONDS } from "@/lib/autosave";
+import { AUTOSAVE_DELAY_SECONDS } from "@/lib/autosave";
 import { AutosaveStatus, type SaveState } from "./AutosaveStatus";
 import { applyDocumentPreferencesToDom } from "./extensions/DocumentPreferences";
 import { DocumentOutline } from "./DocumentOutline";
@@ -59,7 +59,6 @@ type Props = {
   /** The person's one plan: fixed title, planner bar, today's day on first open. */
   isPlan?: boolean;
   checklistMoveControls?: boolean;
-  autosaveDelaySeconds?: number;
 };
 
 type DocumentSave = {
@@ -75,6 +74,17 @@ type PendingTablePaste = {
 };
 
 const subscribeToHydration = () => () => undefined;
+const OUTLINE_EXPANDED_KEY = "thido-outline-expanded";
+
+function readOutlineExpanded() {
+  try {
+    return typeof window === "undefined" ||
+      window.localStorage.getItem(OUTLINE_EXPANDED_KEY) !== "false";
+  } catch {
+    // Storage can be unavailable (private mode); stay expanded.
+    return true;
+  }
+}
 
 export function TiptapEditor({
   documentId,
@@ -86,9 +96,8 @@ export function TiptapEditor({
   currentUser,
   isPlan = false,
   checklistMoveControls = true,
-  autosaveDelaySeconds = DEFAULT_AUTOSAVE_DELAY_SECONDS,
 }: Props) {
-  const autosaveDelayMs = autosaveDelaySeconds * 1000;
+  const autosaveDelayMs = AUTOSAVE_DELAY_SECONDS * 1000;
   const [title, setTitle] = useState(initialTitle);
   const hasHydrated = useSyncExternalStore(
     subscribeToHydration,
@@ -106,7 +115,20 @@ export function TiptapEditor({
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveDeadline, setSaveDeadline] = useState<number | null>(null);
   const [documentConflict, setDocumentConflict] = useState<string | null>(null);
-  const [documentOutlineOpen, setDocumentOutlineOpen] = useState(true);
+  // The outline is always shown; whether it is expanded is a per-browser
+  // preference. It renders only after the editor mounts, so reading storage
+  // here cannot cause a hydration mismatch.
+  const [documentOutlineOpen, setDocumentOutlineOpen] = useState(readOutlineExpanded);
+  const toggleDocumentOutline = useCallback(() => {
+    setDocumentOutlineOpen((open) => {
+      try {
+        window.localStorage.setItem(OUTLINE_EXPANDED_KEY, String(!open));
+      } catch {
+        // Not remembering the choice is fine.
+      }
+      return !open;
+    });
+  }, []);
   const [editorZoom, setEditorZoom] = useState(100);
   const [pendingTablePaste, setPendingTablePaste] =
     useState<PendingTablePaste | null>(null);
@@ -239,10 +261,6 @@ export function TiptapEditor({
       }
       scheduleSave({ content });
     },
-  });
-  const hasDays = useEditorState({
-    editor,
-    selector: ({ editor }) => editor ? hasDayHeaders(editor.state.doc) : false,
   });
   const editorRef = useRef(editor);
   useEditorHashNavigation(editor);
@@ -651,11 +669,9 @@ export function TiptapEditor({
             currentRevision={revision}
             canEdit={canEditNow}
             canViewHistory
-            outlineOpen={Boolean(hasDays && documentOutlineOpen)}
+            outlineOpen={documentOutlineOpen}
             zoom={editorZoom}
-            onToggleOutline={() =>
-              setDocumentOutlineOpen((open) => hasDays ? !open : true)
-            }
+            onToggleOutline={toggleDocumentOutline}
             onZoomChange={setEditorZoom}
             onImport={handleDocumentRestored}
             onConflict={handleDocumentConflict}
@@ -729,11 +745,12 @@ export function TiptapEditor({
             </div>
           ) : null}
           <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-            {hasDays && documentOutlineOpen && editor ? (
+            {editor ? (
               <DocumentOutline
                 editor={editor}
                 canEdit={canEditNow}
-                onClose={() => setDocumentOutlineOpen(false)}
+                expanded={documentOutlineOpen}
+                onToggle={toggleDocumentOutline}
               />
             ) : null}
             <div className="print-document-content min-w-0 flex-1 overflow-y-auto py-6 sm:py-8">
