@@ -389,12 +389,9 @@ export function Toolbar({
   currentRevision,
   canEdit,
   canViewHistory,
-  commentsOpen,
   outlineOpen,
   zoom,
-  onToggleComments,
   onToggleOutline,
-  onEditWithAi,
   onZoomChange,
   onImport,
   onConflict,
@@ -404,12 +401,9 @@ export function Toolbar({
   currentRevision: number;
   canEdit: boolean;
   canViewHistory: boolean;
-  commentsOpen: boolean;
   outlineOpen: boolean;
   zoom: number;
-  onToggleComments: () => void;
   onToggleOutline: () => void;
-  onEditWithAi: () => void;
   onZoomChange: (zoom: number) => void;
   onImport: (document: RestoredDocument) => void;
   onConflict: (message: string) => void;
@@ -1074,11 +1068,6 @@ export function Toolbar({
                 label: "Panels",
                 children: [
                   {
-                    label: commentsOpen ? "Hide comments" : "Show comments",
-                    shortcut: "Ctrl/⌘ + Alt + Shift + A",
-                    onSelect: onToggleComments,
-                  },
-                  {
                     label: outlineOpen
                       ? "Hide document outline"
                       : "Show document outline",
@@ -1159,22 +1148,9 @@ export function Toolbar({
         {editor ? (
           <EditorMenu
             label="Tools"
-            tooltip="Thido, document statistics, spelling, and text cleanup"
+            tooltip="Document statistics, spelling, and text cleanup"
             groups={[
               [
-                ...(canEdit
-                  ? [
-                      {
-                        label: "Thido",
-                        children: [
-                          {
-                            label: "Add comment",
-                            onSelect: onEditWithAi,
-                          },
-                        ],
-                      },
-                    ]
-                  : []),
                 {
                   label: "Document insights",
                   children: [
@@ -1254,29 +1230,6 @@ export function Toolbar({
           aria-label="Formatting toolbar"
           className="flex flex-wrap items-center gap-0.5 px-2 py-1.5"
         >
-          <Tooltip
-            label="Queue a comment for Thido on the selected text, or the whole document when nothing is selected"
-            className="mr-1 inline-flex shrink-0"
-          >
-            <button
-              type="button"
-              onClick={onEditWithAi}
-              className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-[var(--foreground)] text-[var(--background)] transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-strong)]"
-              aria-label="Add comment"
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                className="size-4"
-              >
-                <path d="m12 3 1.4 4.1L17.5 8.5l-4.1 1.4L12 14l-1.4-4.1-4.1-1.4 4.1-1.4L12 3Z" />
-                <path d="m18.5 14 .8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z" />
-              </svg>
-            </button>
-          </Tooltip>
           <ToolbarButton
             label="Undo"
             onClick={() => editor.chain().focus().undo().run()}

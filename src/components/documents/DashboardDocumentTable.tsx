@@ -22,7 +22,7 @@ const lastAccessedFormatter = new Intl.DateTimeFormat("en", {
 
 type SortKey = "title" | "lastAccessedAt";
 type SortDirection = "asc" | "desc";
-type FolderSelection = "all" | "unfiled" | "shared" | `folder:${string}`;
+type FolderSelection = "all" | "unfiled" | `folder:${string}`;
 
 type DashboardSort = {
   direction: SortDirection;
@@ -46,12 +46,7 @@ export type DashboardDocumentRow = {
   href: string;
   folderId: string | null;
   lastAccessedAt: string;
-  ownerName: string | null;
-  isOwner: boolean;
-  permission: "VIEW" | "COMMENT" | "EDIT" | "FULL";
-  status: "DRAFTING" | "GENERATING" | "READY";
-  kind: "DOCUMENT" | "SPREADSHEET";
-  wordCount: number | null;
+  wordCount: number;
 };
 
 function sortDocuments(
@@ -126,24 +121,6 @@ function CollectionIcon() {
   );
 }
 
-function SharedIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      className="h-4 w-4 shrink-0"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="9" cy="8" r="3" />
-      <path d="M3.75 18.5c.35-3 2.1-4.5 5.25-4.5s4.9 1.5 5.25 4.5M15 6.25a2.5 2.5 0 0 1 0 4.9M16 14c2.5.2 3.85 1.7 4.1 4.1" />
-    </svg>
-  );
-}
-
 function SortableHeader({
   activeSort,
   label,
@@ -214,7 +191,7 @@ function DeleteFolderDialog({
     >
       <div className="p-6 sm:p-7">
         <p className="page-kicker mb-3">Delete folder</p>
-        <h2 id={titleId} className="font-serif text-2xl font-medium tracking-[-0.025em]">
+        <h2 id={titleId} className="font-display text-2xl font-medium tracking-[-0.025em]">
           Delete “{folder?.name}”?
         </h2>
         <p id={descriptionId} className="mt-3 text-sm leading-6 text-[var(--muted)]">
@@ -263,16 +240,12 @@ export function DashboardDocumentTable({
 }: {
   documents: DashboardDocumentRow[];
   folders: DashboardFolderRow[];
-  deleteAction: (
-    documentId: string,
-    itemKind: "DOCUMENT" | "SPREADSHEET",
-  ) => Promise<boolean>;
+  deleteAction: (documentId: string) => Promise<boolean>;
   createFolderAction: (name: string) => Promise<FolderResult>;
   renameFolderAction: (folderId: string, name: string) => Promise<FolderResult>;
   deleteFolderAction: (folderId: string) => Promise<BasicActionResult>;
   moveDocumentAction: (
     documentId: string,
-    itemKind: "DOCUMENT" | "SPREADSHEET",
     folderId: string | null,
   ) => Promise<BasicActionResult>;
 }) {
@@ -293,13 +266,12 @@ export function DashboardDocumentTable({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const sharedCount = documentRows.filter((document) => !document.isOwner).length;
   const unfiledCount = documentRows.filter(
-    (document) => document.isOwner && !document.folderId,
+    (document) => !document.folderId,
   ).length;
   const folderCounts = new Map<string, number>();
   for (const document of documentRows) {
-    if (document.isOwner && document.folderId) {
+    if (document.folderId) {
       folderCounts.set(
         document.folderId,
         (folderCounts.get(document.folderId) ?? 0) + 1,
@@ -318,16 +290,13 @@ export function DashboardDocumentTable({
       ? "All files"
       : selection === "unfiled"
         ? "Unfiled"
-        : selection === "shared"
-          ? "Shared with me"
-          : selectedFolder?.name ?? "Folder";
+        : selectedFolder?.name ?? "Folder";
 
   const visibleDocuments = useMemo(() => {
     const filtered = documentRows.filter((document) => {
       if (selection === "all") return true;
-      if (selection === "unfiled") return document.isOwner && !document.folderId;
-      if (selection === "shared") return !document.isOwner;
-      return document.isOwner && document.folderId === selectedFolderId;
+      if (selection === "unfiled") return !document.folderId;
+      return document.folderId === selectedFolderId;
     });
     return sortDocuments(filtered, sort);
   }, [documentRows, selectedFolderId, selection, sort]);
@@ -426,16 +395,12 @@ export function DashboardDocumentTable({
     });
   }
 
-  function moveDocument(
-    documentId: string,
-    itemKind: "DOCUMENT" | "SPREADSHEET",
-    folderId: string | null,
-  ) {
+  function moveDocument(documentId: string, folderId: string | null) {
     clearMessages();
     setPendingTarget(`move:${documentId}`);
     startTransition(async () => {
       try {
-        const result = await moveDocumentAction(documentId, itemKind, folderId);
+        const result = await moveDocumentAction(documentId, folderId);
         if (!result.ok) {
           setError(result.error);
           return;
@@ -483,20 +448,6 @@ export function DashboardDocumentTable({
               {unfiledCount}
             </span>
           </button>
-          {sharedCount > 0 ? (
-            <button
-              type="button"
-              aria-current={selection === "shared" ? "page" : undefined}
-              onClick={() => setSelection("shared")}
-              className={libraryButtonClass(selection === "shared")}
-            >
-              <SharedIcon />
-              <span className="min-w-0 flex-1 truncate">Shared with me</span>
-              <span className="text-xs tabular-nums text-[var(--muted)]">
-                {sharedCount}
-              </span>
-            </button>
-          ) : null}
         </nav>
 
         <div className="mt-5 flex items-center justify-between border-t border-[var(--border)] px-2.5 pt-4">
@@ -692,10 +643,8 @@ export function DashboardDocumentTable({
             </p>
             <p className="mt-2 max-w-sm text-sm leading-6 text-[var(--muted)]">
               {selection === "all"
-                ? "Create a document or spreadsheet, then use its folder menu to keep related work together."
-                : selection === "shared"
-                  ? "Documents other people share with you will appear here."
-                  : "Move a file here from the folder menu in All files or Unfiled."}
+                ? "Create a document, then use its folder menu to keep related work together."
+                : "Move a file here from the folder menu in All files or Unfiled."}
             </p>
           </div>
         ) : (
@@ -725,27 +674,11 @@ export function DashboardDocumentTable({
                           <DocumentNavigationLink href={document.href}>
                             {document.title}
                           </DocumentNavigationLink>
-                          {document.kind === "SPREADSHEET" ? (
-                            <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-[var(--accent-strong)]">
-                              Spreadsheet
-                            </span>
-                          ) : null}
-                          {document.status !== "READY" ? (
-                            <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
-                              {document.status === "DRAFTING" ? "Drafting" : "Generating"}
-                            </span>
-                          ) : null}
                         </div>
-                        {!document.isOwner ? (
-                          <p className="mt-1 truncate text-xs text-[var(--muted)]">
-                            Shared by {document.ownerName || "the document owner"}
-                          </p>
-                        ) : null}
                       </div>
                     </td>
                     <td className="px-4 py-4 align-top">
-                      {document.isOwner ? (
-                        <>
+                      <>
                           <label htmlFor={`document-folder-${document.id}`} className="sr-only">
                             Move {document.title} to folder
                           </label>
@@ -754,11 +687,7 @@ export function DashboardDocumentTable({
                             value={document.folderId ?? ""}
                             disabled={isPending && pendingTarget === `move:${document.id}`}
                             onChange={(event) =>
-                              moveDocument(
-                                document.id,
-                                document.kind,
-                                event.target.value || null,
-                              )
+                              moveDocument(document.id, event.target.value || null)
                             }
                             className="max-w-44 rounded-md border border-[var(--border)] bg-[var(--surface-raised)] px-2.5 py-2 text-xs text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--ring)] disabled:cursor-wait disabled:opacity-60"
                           >
@@ -769,15 +698,10 @@ export function DashboardDocumentTable({
                               </option>
                             ))}
                           </select>
-                        </>
-                      ) : (
-                        <span className="text-xs text-[var(--muted)]">Shared with me</span>
-                      )}
+                      </>
                     </td>
                     <td className="whitespace-nowrap px-4 py-5 text-right align-top text-xs tabular-nums text-[var(--muted)]">
-                      {document.wordCount === null
-                        ? "Not applicable"
-                        : document.wordCount.toLocaleString()}
+                      {document.wordCount.toLocaleString()}
                     </td>
                     <td className="whitespace-nowrap px-4 py-5 align-top text-xs text-[var(--muted)]">
                       <time dateTime={document.lastAccessedAt}>
@@ -785,23 +709,16 @@ export function DashboardDocumentTable({
                       </time>
                     </td>
                     <td className="px-4 py-5 align-top text-right">
-                      {document.permission === "FULL" ? (
-                        <DeleteDocumentDialog
-                          documentId={document.id}
-                          documentTitle={document.title}
-                          itemKind={document.kind}
-                          deleteAction={deleteAction}
-                          onDeleted={(documentId) =>
-                            setDocumentRows((current) =>
-                              current.filter((row) => row.id !== documentId),
-                            )
-                          }
-                        />
-                      ) : (
-                        <span className="text-xs capitalize text-[var(--muted)]">
-                          {document.permission.toLowerCase()}
-                        </span>
-                      )}
+                      <DeleteDocumentDialog
+                        documentId={document.id}
+                        documentTitle={document.title}
+                        deleteAction={deleteAction}
+                        onDeleted={(documentId) =>
+                          setDocumentRows((current) =>
+                            current.filter((row) => row.id !== documentId),
+                          )
+                        }
+                      />
                     </td>
                   </tr>
                 ))}

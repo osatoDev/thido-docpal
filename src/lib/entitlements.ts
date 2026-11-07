@@ -11,31 +11,28 @@ import type { AiModelId } from "@/lib/ai/models";
  * credits-not-tokens hybrid model recommended in docs/paid-plan-pricing.md:
  * customers never see raw token counts, only a monthly action allowance.
  * These specific numbers are a functional default pending final approval of
- * paid-plan entitlements (see docs/production-todo.md); the
- * mechanism, not the exact figures, is the part this module is responsible for.
+ * paid-plan entitlements; the mechanism, not the exact figures, is the part
+ * this module is responsible for.
  *
  * Every consumption also writes an `AiCreditCharge` ledger row so a user can
  * audit what their allowance was spent on (see docs/ai-credit-balance-and-audit.md).
  */
-export type AiActionKind =
-  | "DOCUMENT_FOLLOWUPS"
-  | "DOCUMENT_GENERATE"
-  | "COMMENT_RESPOND_DOCUMENT";
+export type AiActionKind = "TASK_SCHEDULE" | "PLAN_FEEDBACK";
 
 const BASE_ACTION_WEIGHT: Record<AiActionKind, number> = {
-  DOCUMENT_FOLLOWUPS: 1,
-  DOCUMENT_GENERATE: 5,
-  COMMENT_RESPOND_DOCUMENT: 5,
+  TASK_SCHEDULE: 1,
+  PLAN_FEEDBACK: 1,
 };
 
 /**
  * Maps the internal action kind onto the persisted `AiFeature` enum, reused
  * from AI telemetry so the ledger and `AiGeneration` speak the same vocabulary.
+ * The enum also keeps retired document features so older ledger rows still
+ * read correctly.
  */
 const ACTION_FEATURE: Record<AiActionKind, AiFeature> = {
-  DOCUMENT_FOLLOWUPS: "DOCUMENT_FOLLOWUPS",
-  DOCUMENT_GENERATE: "DOCUMENT_GENERATE",
-  COMMENT_RESPOND_DOCUMENT: "COMMENT_RESPOND",
+  TASK_SCHEDULE: "TASK_SCHEDULE",
+  PLAN_FEEDBACK: "PLAN_FEEDBACK",
 };
 
 const PREMIUM_MODEL_MULTIPLIER = 2;

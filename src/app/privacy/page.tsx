@@ -12,7 +12,7 @@ export default function PrivacyPage() {
     <LegalDocument
       title="Privacy Policy"
       description="This Policy explains what information Thido handles, why we use it, which service providers help us operate the product, and the choices available to you."
-      effectiveDate="28 September 2026"
+      effectiveDate="6 November 2026"
     >
       <section>
         <h2>1. Who is responsible for your data</h2>
@@ -34,54 +34,32 @@ export default function PrivacyPage() {
           identifiers and tokens needed to maintain the connection.
         </p>
 
-        <h3>Documents and prompts</h3>
+        <h3>Plans and documents</h3>
         <p>
-          We store the documents you create, titles, prompt questions and
-          answers, comments, suggestions, document status, AI preferences, and
-          associated timestamps. Thido currently stores this editable content
-          in its PostgreSQL database; it does not currently store documents as
-          uploaded files in object storage.
+          We store the plans and documents you create, their titles, saved
+          versions, the AI feedback Thido gives on your plans, your settings, and
+          associated timestamps. Thido stores this content in its PostgreSQL
+          database. Images you add to a document are stored in Vercel Blob
+          object storage.
         </p>
         <p>
-          You may begin an outline before signing in. During that guest flow,
-          the answers are kept temporarily in your browser and are not sent to
-          Thido&apos;s servers until you authenticate and ask us to create the
-          document.
-        </p>
-        <p>
-          If someone shares a document directly, we store the recipient&apos;s
-          normalised email address, the permission selected by the sharer, who
-          sent the invitation, and invitation timestamps. We use the address to
-          deliver the invitation and to grant access when the recipient signs in
-          with that address. Depending on the selected permission, the recipient
-          may view, comment on, edit, delete, or manage sharing for the document.
-        </p>
-        <p>
-          If you enable link sharing, we store a random share-link token and the
-          permission you select. Anyone who receives the link can view the
-          document title, body, and your profile name without an account until
-          you revoke the link. When a protected link action is selected, we
-          check the person&apos;s account and store the account and access time
-          so the document owner or a full-access manager can review link access.
-          Depending on the link permission, a signed-in holder may comment,
-          edit, delete, or manage sharing. The shared view does not expose your
-          email address or other account details. Recipients may still copy or
-          retain content they can view.
+          Your plans and documents are private to your account. Thido does not
+          offer share links or collaborators.
         </p>
 
         <h3>Communications</h3>
         <p>
           We process your email address and the content needed to send account
-          verification, password-reset, and document-invitation messages. If you
-          contact us, we may retain your message and related support
+          verification, password-reset, and service messages, such as a
+          reminder shortly after sign-up if you have not added anything yet. If
+          you contact us, we may retain your message and related support
           correspondence.
         </p>
         <p>
           Signed-in users may send private messages to the Thido founding team.
           We store the message, its category, replies, response timestamps, and
           the page path the user chose to include. We do not automatically add
-          document text, comments, prompts, editor selections, or public
-          share-link tokens to founder conversations.
+          plan or document text or editor selections to founder conversations.
         </p>
 
         <h3>Beta access and billing</h3>
@@ -108,9 +86,9 @@ export default function PrivacyPage() {
         <h2>3. How and why we use information</h2>
         <ul>
           <li>to create and secure your account and keep you signed in;</li>
-          <li>to save, display, edit, organise, and share your documents;</li>
-          <li>to generate drafts, follow-up questions, comments, and revisions;</li>
-          <li>to send verification, password-reset, invitation, and service messages;</li>
+          <li>to save, display, edit, and organise your plans and documents;</li>
+          <li>to place tasks you type on the right day and time, and to give feedback on your plans;</li>
+          <li>to send verification, password-reset, and service messages;</li>
           <li>to receive, answer, and monitor response times for founder messages;</li>
           <li>to provide beta access and administer optional paid plans;</li>
           <li>to understand aggregate product usage and improve reliability;</li>
@@ -129,13 +107,19 @@ export default function PrivacyPage() {
       <section>
         <h2>4. AI processing</h2>
         <p>
-          When you request an AI feature, Thido sends the text and instructions
-          needed to fulfil that request to one or more third-party AI model
-          providers. Depending on the feature, this may include document text,
-          prompt answers, selected text, comments, and nearby context. The
-          provider may vary based on feature availability, performance, safety,
-          or product configuration. Do not include personal or confidential
-          information that is unnecessary for your request.
+          Thido sends the text and instructions needed for its AI features to
+          one or more third-party AI model providers. When you add a task in
+          plain language, this is the text you typed, your local date, and your
+          time zone. When Thido reviews a day, this is that day&apos;s tasks.
+          The provider may vary based on feature availability, performance,
+          safety, or product configuration. Do not include personal or
+          confidential information that is unnecessary for your request.
+        </p>
+        <p>
+          Besides reviews you ask for, Thido may automatically review a
+          day&apos;s plan a few times a day after you add a task. You can lower
+          how often this happens, or turn it off, under Automatic plan feedback
+          in Settings.
         </p>
         <p>
           We select provider accounts and commercial services intended for API
@@ -147,7 +131,7 @@ export default function PrivacyPage() {
           your information is handled.
         </p>
         <p>
-          Thido&apos;s AI features assist with writing; they do not make decisions
+          Thido&apos;s AI features help you plan; they do not make decisions
           that produce legal or similarly significant effects about you.
         </p>
       </section>
@@ -175,8 +159,8 @@ export default function PrivacyPage() {
                     Vercel
                   </a>
                 </td>
-                <td>Application hosting and web analytics</td>
-                <td>Requests, technical data, and analytics events</td>
+                <td>Application hosting, image storage, and web analytics</td>
+                <td>Requests, technical data, document images, and analytics events</td>
               </tr>
               <tr>
                 <td>
@@ -185,12 +169,12 @@ export default function PrivacyPage() {
                   </a>
                 </td>
                 <td>Managed PostgreSQL database infrastructure</td>
-                <td>Account, document, prompt, comment, and settings data</td>
+                <td>Account, plan, document, plan feedback, and settings data</td>
               </tr>
               <tr>
                 <td>AI model providers</td>
                 <td>AI generation and text processing</td>
-                <td>Prompts, relevant document content, and generated output</td>
+                <td>Task text, the tasks for the day being reviewed, and generated output</td>
               </tr>
               <tr>
                 <td>
@@ -199,7 +183,7 @@ export default function PrivacyPage() {
                   </a>
                 </td>
                 <td>Transactional email delivery</td>
-                <td>Email address and verification, reset, or invitation email content</td>
+                <td>Email address and verification, reset, or service email content</td>
               </tr>
               <tr>
                 <td>
@@ -255,22 +239,13 @@ export default function PrivacyPage() {
           working.
         </p>
         <p>
-          The guest drafting flow uses your browser&apos;s session storage to
-          preserve unfinished outline answers during navigation, refreshes, and
-          the sign-in redirect. Thido treats a stored guest outline as expired
-          after 24 hours and removes it after the authenticated document is
-          created. Session storage is local to the browser tab or session and may
-          disappear sooner if you close the tab, clear site data, or use browser
-          privacy controls.
-        </p>
-        <p>
           We use Vercel Web Analytics to measure page visits and product usage.
           Vercel states that this service does not use third-party cookies. It
           derives an anonymous visitor identifier from request data, discards the
           identifier after 24 hours, and records information such as route,
           referrer, coarse location, browser, operating system, and device type.
-          We do not intentionally send document text, prompts, email addresses,
-          or authentication secrets as analytics events. See Vercel&apos;s{" "}
+          We do not intentionally send plan or document text, email addresses, or
+          authentication secrets as analytics events. See Vercel&apos;s{" "}
           <a
             href="https://vercel.com/docs/analytics/privacy-policy"
             rel="noreferrer"
@@ -282,9 +257,9 @@ export default function PrivacyPage() {
         </p>
         <p>
           We use Rollbar to group application errors and alert us when Thido
-          fails. The integration is configured to exclude document text,
-          prompts, comments, form input, email addresses, authentication
-          secrets, request bodies, and public share-link tokens. Session replay
+          fails. The integration is configured to exclude plan and document
+          text, form input, email addresses, authentication secrets, and
+          request bodies. Session replay
           and automatic browser activity recording are disabled. Rollbar may
           receive an error message, stack trace, sanitised route pattern,
           deployment identifier, provider request identifier, and other
@@ -307,16 +282,16 @@ export default function PrivacyPage() {
           security, dispute resolution, backup integrity, or legal compliance.
         </p>
         <p>
-          For documents with more than 100 saved versions, we may remove older
-          versions after emailing the document owner and allowing at least 14
-          days after delivery is confirmed to choose to keep them. The current
-          document and at least the newest 100 versions are retained. Owners can
-          choose Keep all versions in version history or from the email link to
-          stop automatic history cleanup for that document, including future
-          versions. Removed versions cannot be restored through version history.
+          Version history keeps one saved version of each document per day,
+          and every version from the current day. Versions older than 30 days
+          are reduced to one per week, and versions older than six months to
+          one per month. This happens automatically, without notice, when a
+          new version is saved. Removed versions cannot be restored through
+          version history. The current document is not affected.
         </p>
         <p>
-          You may request deletion by contacting{" "}
+          You can delete your account and its data from Settings, or request
+          deletion by contacting{" "}
           <a href="mailto:privacy@thido.ai">privacy@thido.ai</a>. Some data may
           remain temporarily in backups or where retention is legally required.
           Our providers apply their own documented deletion and backup cycles to
@@ -356,7 +331,9 @@ export default function PrivacyPage() {
           need to verify your identity before completing a request.
         </p>
         <p>
-          Send requests to <a href="mailto:privacy@thido.ai">privacy@thido.ai</a>.
+          You can download a copy of your plans, documents, and account data
+          from Settings. Send other requests to{" "}
+          <a href="mailto:privacy@thido.ai">privacy@thido.ai</a>.
           You can disconnect Thido from your Google Account through Google&apos;s
           account security settings, but doing so does not by itself delete your
           Thido account or stored documents.

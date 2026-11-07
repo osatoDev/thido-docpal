@@ -10,7 +10,7 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  const [user, settings, documents, spreadsheets, folders, comments, feedbackThread] =
+  const [user, settings, documents, folders, planFeedback, feedbackThread] =
     await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
@@ -33,11 +33,10 @@ export async function GET() {
       prisma.userSettings.findUnique({
         where: { userId },
         select: {
-          aiCommentMode: true,
           aiModel: true,
           documentStartMode: true,
-          applicationStyle: true,
           checklistMoveControls: true,
+          planFeedbackDailyLimit: true,
         },
       }),
       prisma.document.findMany({
@@ -53,31 +52,19 @@ export async function GET() {
         },
         orderBy: { createdAt: "asc" },
       }),
-      prisma.spreadsheet.findMany({
-        where: { ownerId: userId },
-        select: {
-          id: true,
-          title: true,
-          content: true,
-          createdAt: true,
-          updatedAt: true,
-          folder: { select: { name: true } },
-        },
-        orderBy: { createdAt: "asc" },
-      }),
       prisma.documentFolder.findMany({
         where: { ownerId: userId },
         select: { id: true, name: true, createdAt: true },
         orderBy: { createdAt: "asc" },
       }),
-      prisma.comment.findMany({
-        where: { authorId: userId },
+      prisma.planFeedback.findMany({
+        where: { userId },
         select: {
           id: true,
           documentId: true,
-          body: true,
-          scope: true,
-          quotedText: true,
+          day: true,
+          trigger: true,
+          feedback: true,
           createdAt: true,
         },
         orderBy: { createdAt: "asc" },
@@ -128,12 +115,7 @@ export async function GET() {
       folderName: document.folder?.name ?? null,
       folder: undefined,
     })),
-    spreadsheets: spreadsheets.map((spreadsheet) => ({
-      ...spreadsheet,
-      folderName: spreadsheet.folder?.name ?? null,
-      folder: undefined,
-    })),
-    commentsAuthored: comments,
+    planFeedback,
     feedback: feedbackThread,
   };
 

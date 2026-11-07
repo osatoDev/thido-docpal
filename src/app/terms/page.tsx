@@ -11,7 +11,8 @@ export default function TermsPage() {
   return (
     <LegalDocument
       title="Terms of Service"
-      description="These Terms govern your access to and use of Thido, including its document drafting, editing, commenting, and AI-assisted features."
+      description="These Terms govern your access to and use of Thido, including its day planning, editing, and AI-assisted features."
+      effectiveDate="6 November 2026"
     >
       <section>
         <h2>1. Agreement to these Terms</h2>
@@ -46,8 +47,9 @@ export default function TermsPage() {
       <section>
         <h2>3. The service</h2>
         <p>
-          Thido helps you create and refine documents. Features may change as we
-          improve the service, and some features may be experimental. We may
+          Thido helps you plan your days and keep notes. Features may change as
+          we improve the service, and some features may be experimental, or
+          announced as coming soon before they are available. We may
           modify, suspend, or discontinue a feature, but will try to give
           reasonable notice when a material change would significantly affect
           your use.
@@ -71,7 +73,7 @@ export default function TermsPage() {
       <section>
         <h2>4. Your content</h2>
         <p>
-          You retain your rights in the documents, prompts, comments, and other
+          You retain your rights in the plans, tasks, documents, and other
           material you submit to Thido (&quot;User Content&quot;). You grant us a
           limited, non-exclusive licence to host, copy, transmit, process, and
           display User Content only as needed to operate, secure, maintain, and
@@ -84,34 +86,20 @@ export default function TermsPage() {
           service providers are appropriate for that information.
         </p>
         <p>
-          If you create a share link, anyone who obtains that link can view the
-          shared document until you revoke it. You may also choose a link
-          permission that lets signed-in link holders comment, edit, or receive
-          full access. You are responsible for choosing appropriate content,
-          recipients, and permissions. Revoking a link prevents future
-          link-derived access through Thido but cannot retrieve copies already
-          made by a recipient.
-        </p>
-        <p>
-          You may also invite a person by email and choose their access level.
-          View access permits reading, comment access permits feedback, edit
-          access permits changes to document content, and full access also
-          permits deletion and management of sharing. You are responsible for
-          choosing the intended recipient and permission. A full-access
-          collaborator can permanently delete the document, although inviting
-          them does not transfer ownership.
-          The same authority applies to a signed-in person using a full-access
-          link, and the link may be forwarded to other people.
+          Your plans and documents are private to your account. Thido does not
+          offer share links or collaborators.
         </p>
       </section>
 
       <section>
         <h2>5. AI-generated material</h2>
         <p>
-          Thido uses artificial intelligence to draft, revise, and comment on
-          text. AI output may be inaccurate, incomplete, offensive, or similar
-          to material generated for another user. You are responsible for
-          reviewing output before relying on, publishing, or sharing it.
+          Thido uses artificial intelligence to place the tasks you type on a
+          day and time, and to give feedback on your plans. AI output may be
+          inaccurate, incomplete, offensive, or similar to material generated
+          for another user. It may put a task on the wrong day or time, so check
+          important dates and appointments yourself. You are responsible for
+          reviewing output before relying on it.
         </p>
         <p>
           Thido does not provide legal, medical, financial, or other professional
@@ -166,8 +154,9 @@ export default function TermsPage() {
       <section>
         <h2>9. Suspension and termination</h2>
         <p>
-          You may stop using Thido at any time. You may request account deletion
-          by contacting <a href="mailto:support@thido.ai">support@thido.ai</a>.
+          You may stop using Thido at any time. You can delete your account from
+          Settings, or request deletion by contacting{" "}
+          <a href="mailto:support@thido.ai">support@thido.ai</a>.
           We may suspend or terminate access when we reasonably believe you have
           materially breached these Terms, created a security or legal risk, or
           used the service abusively. Where appropriate, we will give notice and

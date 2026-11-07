@@ -53,6 +53,24 @@ function cannedPayload(body) {
     };
   }
 
+  if (system.includes("dated task for a day-by-day planner")) {
+    const text = body?.messages?.map((m) => m.content).join("\n") ?? "";
+    const today = /Current date: (\d{4}-\d{2}-\d{2})/.exec(text)?.[1];
+    const entry = /<entry>\n([\s\S]*?)\n<\/entry>/.exec(text)?.[1] ?? "";
+    const date = new Date(`${today}T12:00:00Z`);
+    if (/tomorrow/i.test(entry)) date.setUTCDate(date.getUTCDate() + 1);
+    return {
+      date: /someday/i.test(entry) ? null : date.toISOString().slice(0, 10),
+      time: /3pm/i.test(entry) ? "15:00" : null,
+      task: entry.replace(/\b(tomorrow|3pm|someday)\b/gi, "").trim(),
+      clarification: /someday/i.test(entry) ? "Which day do you mean?" : null,
+    };
+  }
+
+  if (system.includes("planning coach")) {
+    return { feedback: "A light day: book the dentist slot first, then batch the rest." };
+  }
+
   // Planning follow-up questions.
   return {
     questions: [

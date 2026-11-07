@@ -23,12 +23,7 @@ export async function POST(request: Request, { params }: Params) {
   if (!session?.user?.id) return await unauthorizedResponse();
 
   const { id: documentId } = await params;
-  const document = await getDocumentForUser(
-    documentId,
-    session.user.id,
-    session.user.email,
-    "EDIT",
-  );
+  const document = await getDocumentForUser(documentId, session.user.id);
   if (!document) {
     await reportServerError(new Error("Document not found"), {
       source: "document-image",

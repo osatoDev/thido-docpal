@@ -24,8 +24,6 @@ const viewLabels: Record<AdminDetailView, string> = {
   users: "Users",
   "beta-users": "Free beta seats",
   documents: "Documents",
-  comments: "Comments",
-  "pending-suggestions": "Pending suggestions",
   waitlist: "Waitlist",
 };
 
@@ -139,7 +137,7 @@ async function loadDetail(view: AdminDetailView, page: number) {
           stripeSubscriptionStatus: true,
           createdAt: true,
           accounts: { select: { provider: true } },
-          _count: { select: { documents: true, comments: true } },
+          _count: { select: { documents: true } },
         },
       }),
     ]);
@@ -160,7 +158,6 @@ async function loadDetail(view: AdminDetailView, page: number) {
             "Email",
             "Subscription",
             "Documents",
-            "Comments",
             view === "beta-users" ? "Seat granted" : "Joined",
           ]}
           emptyMessage={
@@ -196,7 +193,6 @@ async function loadDetail(view: AdminDetailView, page: number) {
                 </Cell>
                 <Cell>{humanize(user.stripeSubscriptionStatus)}</Cell>
                 <Cell>{user._count.documents.toLocaleString()}</Cell>
-                <Cell>{user._count.comments.toLocaleString()}</Cell>
                 <Cell>
                   {formatDate(
                     view === "beta-users"
@@ -224,13 +220,10 @@ async function loadDetail(view: AdminDetailView, page: number) {
           id: true,
           title: true,
           status: true,
-          shareToken: true,
-          sharePermission: true,
           revision: true,
           updatedAt: true,
           lastAccessedAt: true,
           owner: { select: { name: true, email: true } },
-          _count: { select: { comments: true, collaborators: true } },
         },
       }),
     ]);
@@ -246,10 +239,7 @@ async function loadDetail(view: AdminDetailView, page: number) {
             "Document",
             "Owner",
             "Status",
-            "Sharing",
             "Revision",
-            "Comments",
-            "Collaborators",
             "Updated",
             "Last accessed",
           ]}
@@ -272,189 +262,9 @@ async function loadDetail(view: AdminDetailView, page: number) {
               <Cell>
                 <Status>{humanize(document.status)}</Status>
               </Cell>
-              <Cell>
-                {document.shareToken
-                  ? `Link: ${humanize(document.sharePermission)}`
-                  : "Private"}
-              </Cell>
               <Cell>{document.revision.toLocaleString()}</Cell>
-              <Cell>{document._count.comments.toLocaleString()}</Cell>
-              <Cell>{document._count.collaborators.toLocaleString()}</Cell>
               <Cell>{formatDate(document.updatedAt)}</Cell>
               <Cell>{formatDate(document.lastAccessedAt)}</Cell>
-            </tr>
-          ))}
-        </TableShell>
-      ),
-    };
-  }
-
-  if (view === "comments") {
-    const [total, comments] = await Promise.all([
-      prisma.comment.count(),
-      prisma.comment.findMany({
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: PAGE_SIZE,
-        select: {
-          id: true,
-          authorType: true,
-          parentId: true,
-          scope: true,
-          intent: true,
-          status: true,
-          aiStatus: true,
-          createdAt: true,
-          updatedAt: true,
-          author: { select: { name: true, email: true } },
-          document: {
-            select: {
-              title: true,
-              owner: { select: { name: true, email: true } },
-            },
-          },
-          suggestion: { select: { status: true } },
-        },
-      }),
-    ]);
-
-    return {
-      title: viewLabels[view],
-      description:
-        "Comment workflow metadata across documents. Comment text and quoted document text are excluded.",
-      total,
-      table: (
-        <TableShell
-          headings={[
-            "Document",
-            "Document owner",
-            "Author",
-            "Type",
-            "Intent",
-            "Status",
-            "AI status",
-            "Suggestion",
-            "Created",
-          ]}
-          emptyMessage="No comments exist."
-          isEmpty={comments.length === 0}
-        >
-          {comments.map((comment) => (
-            <tr key={comment.id}>
-              <Cell>
-                <p className="max-w-72 font-medium text-[var(--foreground)]">
-                  {comment.document.title}
-                </p>
-              </Cell>
-              <Cell>
-                <Account
-                  name={comment.document.owner.name}
-                  email={comment.document.owner.email}
-                />
-              </Cell>
-              <Cell>
-                {comment.author ? (
-                  <Account
-                    name={comment.author.name}
-                    email={comment.author.email}
-                  />
-                ) : (
-                  humanize(comment.authorType)
-                )}
-              </Cell>
-              <Cell>
-                {comment.parentId ? "Reply" : humanize(comment.scope)}
-              </Cell>
-              <Cell>{humanize(comment.intent)}</Cell>
-              <Cell>
-                <Status>{humanize(comment.status)}</Status>
-              </Cell>
-              <Cell>{humanize(comment.aiStatus)}</Cell>
-              <Cell>{humanize(comment.suggestion?.status ?? null)}</Cell>
-              <Cell>{formatDate(comment.createdAt)}</Cell>
-            </tr>
-          ))}
-        </TableShell>
-      ),
-    };
-  }
-
-  if (view === "pending-suggestions") {
-    const [total, suggestions] = await Promise.all([
-      prisma.suggestion.count({ where: { status: "PENDING" } }),
-      prisma.suggestion.findMany({
-        where: { status: "PENDING" },
-        orderBy: { createdAt: "asc" },
-        skip,
-        take: PAGE_SIZE,
-        select: {
-          id: true,
-          scope: true,
-          createdAt: true,
-          comment: {
-            select: {
-              intent: true,
-              aiStatus: true,
-              authorType: true,
-              author: { select: { name: true, email: true } },
-              document: {
-                select: {
-                  title: true,
-                  owner: { select: { name: true, email: true } },
-                },
-              },
-            },
-          },
-        },
-      }),
-    ]);
-
-    return {
-      title: viewLabels[view],
-      description:
-        "Open proposed edits awaiting a user decision, oldest first. Proposed and original text are excluded.",
-      total,
-      table: (
-        <TableShell
-          headings={[
-            "Document",
-            "Document owner",
-            "Requested by",
-            "Scope",
-            "Intent",
-            "AI status",
-            "Waiting since",
-          ]}
-          emptyMessage="No suggestions are awaiting a decision."
-          isEmpty={suggestions.length === 0}
-        >
-          {suggestions.map((suggestion) => (
-            <tr key={suggestion.id}>
-              <Cell>
-                <p className="max-w-72 font-medium text-[var(--foreground)]">
-                  {suggestion.comment.document.title}
-                </p>
-              </Cell>
-              <Cell>
-                <Account
-                  name={suggestion.comment.document.owner.name}
-                  email={suggestion.comment.document.owner.email}
-                />
-              </Cell>
-              <Cell>
-                {suggestion.comment.author ? (
-                  <Account
-                    name={suggestion.comment.author.name}
-                    email={suggestion.comment.author.email}
-                  />
-                ) : (
-                  humanize(suggestion.comment.authorType)
-                )}
-              </Cell>
-              <Cell>{humanize(suggestion.scope)}</Cell>
-              <Cell>{humanize(suggestion.comment.intent)}</Cell>
-              <Cell>{humanize(suggestion.comment.aiStatus)}</Cell>
-              <Cell>{formatDate(suggestion.createdAt)}</Cell>
             </tr>
           ))}
         </TableShell>

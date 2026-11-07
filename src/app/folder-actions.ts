@@ -105,9 +105,8 @@ export async function deleteDocumentFolder(folderId: string) {
   return { ok: true as const };
 }
 
-export async function moveLibraryItemToFolder(
-  itemId: string,
-  itemKind: "DOCUMENT" | "SPREADSHEET",
+export async function moveDocumentToFolder(
+  documentId: string,
   folderId: string | null,
 ) {
   const session = await auth();
@@ -115,8 +114,7 @@ export async function moveLibraryItemToFolder(
     return { ok: false as const, error: "Sign in to move this file." };
   }
   if (
-    !isValidRecordId(itemId) ||
-    (itemKind !== "DOCUMENT" && itemKind !== "SPREADSHEET") ||
+    !isValidRecordId(documentId) ||
     (folderId !== null && !isValidRecordId(folderId))
   ) {
     return { ok: false as const, error: "Choose a valid file and folder." };
@@ -131,16 +129,10 @@ export async function moveLibraryItemToFolder(
       if (!folder) return { ok: false as const, error: "Choose one of your folders." };
     }
 
-    const updated =
-      itemKind === "SPREADSHEET"
-        ? await transaction.spreadsheet.updateMany({
-            where: { id: itemId, ownerId: session.user.id },
-            data: { folderId },
-          })
-        : await transaction.document.updateMany({
-            where: { id: itemId, ownerId: session.user.id },
-            data: { folderId },
-          });
+    const updated = await transaction.document.updateMany({
+      where: { id: documentId, ownerId: session.user.id },
+      data: { folderId },
+    });
     if (updated.count === 0) {
       return { ok: false as const, error: "Only the owner can file this item." };
     }

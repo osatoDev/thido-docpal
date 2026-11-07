@@ -1,17 +1,13 @@
 import { DocumentRevisionSource, Prisma } from "@prisma/client";
-import type { JSONContent } from "@tiptap/react";
 import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { unauthorizedResponse } from "@/lib/apiResponses";
-import { reconcileOrphanedComments } from "@/lib/documentComments";
-import { documentAccessWhere, getDocumentForUser } from "@/lib/documentAuth";
 import {
-  expireStaleCommentAiJobs,
-  hasActiveCommentAiJob,
-  lockDocumentForCommentAi,
-  DOCUMENT_AI_LOCK_MESSAGE,
-} from "@/lib/documentAiJobs";
+  documentAccessWhere,
+  getDocumentForUser,
+  lockDocumentRow,
+} from "@/lib/documentAuth";
 import { recordDocumentRevision } from "@/lib/documentRevisions";
 import { prisma } from "@/lib/prisma";
 import { reportServerError } from "@/lib/rollbar/server";
@@ -32,12 +28,8 @@ export async function GET(request: Request, { params }: Params) {
   }
   const { id } = await params;
   const document = await prisma.document.findFirst({
-    where: { id, AND: documentAccessWhere(session.user.id, session.user.email, "EDIT") },
-    select: {
-      revision: true,
-      ownerId: true,
-      historyRetention: { select: { keepAll: true, deleteAfter: true } },
-    },
+    where: { id, AND: documentAccessWhere(session.user.id) },
+    select: { revision: true },
   });
   if (!document) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -70,11 +62,6 @@ export async function GET(request: Request, { params }: Params) {
     revisions,
     nextCursor: page.length > 10 ? revisions[revisions.length - 1].revision : null,
     currentRevision: document.revision,
-    retention: {
-      canManage: document.ownerId === session.user.id,
-      keepAll: document.historyRetention?.keepAll ?? false,
-      deleteAfter: document.historyRetention?.deleteAfter ?? null,
-    },
   });
 }
 
@@ -83,12 +70,7 @@ export async function POST(request: Request, { params }: Params) {
   if (!session?.user?.id) return await unauthorizedResponse();
 
   const { id } = await params;
-  const editableDocument = await getDocumentForUser(
-    id,
-    session.user.id,
-    session.user.email,
-    "EDIT",
-  );
+  const editableDocument = await getDocumentForUser(id, session.user.id);
   if (!editableDocument) {
     await reportServerError(new Error("Document not found"), {
       source: "document-revisions",
@@ -118,7 +100,7 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const result = await prisma.$transaction(async (transaction) => {
-    if (!(await lockDocumentForCommentAi(transaction, id))) {
+    if (!(await lockDocumentRow(transaction, id))) {
       return { kind: "missing" as const };
     }
     const current = await transaction.document.findUnique({
@@ -131,11 +113,6 @@ export async function POST(request: Request, { params }: Params) {
         kind: "conflict" as const,
         currentRevision: current.revision,
       };
-    }
-
-    await expireStaleCommentAiJobs(transaction, id);
-    if (await hasActiveCommentAiJob(transaction, id)) {
-      return { kind: "locked" as const };
     }
 
     const target = await transaction.documentRevision.findUnique({
@@ -175,18 +152,6 @@ export async function POST(request: Request, { params }: Params) {
     });
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  if (result.kind === "locked") {
-    await reportServerError(new Error("Document AI locked"), {
-      source: "document-revisions",
-      operation: "restore-locked",
-      status: 409,
-      documentId: id,
-    });
-    return NextResponse.json(
-      { error: DOCUMENT_AI_LOCK_MESSAGE },
-      { status: 409 },
-    );
-  }
   if (result.kind === "conflict") {
     await reportServerError(new Error("Document revision conflict"), {
       source: "document-revisions",
@@ -201,14 +166,6 @@ export async function POST(request: Request, { params }: Params) {
         currentRevision: result.currentRevision,
       },
       { status: 409 },
-    );
-  }
-
-  if (result.document.content && typeof result.document.content === "object") {
-    await reconcileOrphanedComments(
-      prisma,
-      id,
-      result.document.content as JSONContent,
     );
   }
 

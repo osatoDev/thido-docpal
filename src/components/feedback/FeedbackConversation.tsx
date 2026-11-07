@@ -78,7 +78,7 @@ export function FeedbackConversation({
         <div className="flex max-h-[34rem] flex-1 flex-col gap-4 overflow-y-auto p-5 sm:p-6">
           {messages.length === 0 ? (
             <div className="my-auto max-w-md">
-              <p className="font-serif text-2xl">Start a conversation.</p>
+              <p className="font-display text-2xl">Start a conversation.</p>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                 Share a problem, an idea, or a question. A founder will read it
                 and reply here.

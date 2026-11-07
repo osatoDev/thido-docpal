@@ -277,25 +277,6 @@ export function DocumentFileMenu({
           ],
         ]
       : []),
-    [
-      {
-        label: "Download",
-        children: [
-          {
-            label: "Microsoft Word (.docx)",
-            onSelect: () => {
-              window.location.href = `/api/documents/${documentId}/export/docx`;
-            },
-          },
-          {
-            label: "PDF document (.pdf)",
-            onSelect: () => {
-              window.location.href = `/api/documents/${documentId}/export/pdf`;
-            },
-          },
-        ],
-      },
-    ],
     [{ label: "Print", onSelect: () => window.print() }],
   ];
 
@@ -304,7 +285,7 @@ export function DocumentFileMenu({
       <div className="relative">
         <EditorMenu
           label="File"
-          tooltip="Open, import, download, print, and more"
+          tooltip="Open, import, print, and more"
           groups={fileMenuGroups}
         />
 
@@ -348,7 +329,7 @@ export function DocumentFileMenu({
             <p className="page-kicker mb-3">Confirm import</p>
             <h2
               id={importConfirmTitleId}
-              className="font-serif text-2xl font-medium tracking-[-0.025em]"
+              className="font-display text-2xl font-medium tracking-[-0.025em]"
             >
               Replace this document?
             </h2>
@@ -519,11 +500,7 @@ export function DocumentFileMenu({
                   {filteredOpenDocuments.map((document) => (
                       <li key={document.id}>
                         <Link
-                          href={
-                            document.status === "READY"
-                              ? documentEditPath(document.id, document.title)
-                              : `/documents/${document.id}/wizard`
-                          }
+                          href={documentEditPath(document.id, document.title)}
                           className="flex items-center justify-between gap-4 rounded-md px-3 py-3 hover:bg-[var(--surface-subtle)]"
                         >
                           <span className="min-w-0">
@@ -533,9 +510,7 @@ export function DocumentFileMenu({
                             <span className="mt-0.5 block text-xs text-[var(--muted)]">
                               {document.id === documentId
                                 ? "Current document"
-                                : document.status === "READY"
-                                  ? "Thido document"
-                                  : "Draft in progress"}
+                                : "Thido document"}
                             </span>
                           </span>
                           <span className="shrink-0 text-xs text-[var(--muted)]">

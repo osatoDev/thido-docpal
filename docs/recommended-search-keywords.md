@@ -62,6 +62,6 @@ Treat irrelevant phrases as negative-keyword candidates only after reviewing act
 
 Paste the eight shortlisted terms into Keyword Planner using the intended country and language. Compare monthly searches, suggested alternatives, and bid estimates. Google provides [keyword research and forecasts](https://support.google.com/google-ads/answer/7337243/use-keyword-planner); its [historical search metrics](https://support.google.com/google-ads/answer/3022575?hl=en-AU) depend on the selected location, period, and network. No numeric demand or CPC forecast is claimed here.
 
-Select terms that combine sufficient local demand with the right task, then judge them by verified signup cost and product use. Live signup attribution remains an open item in the [production checklist](./production-todo.md). The [September review](./search-keyword-review-2026-09.md) explains why its zero conversions cannot reliably identify losing keywords.
+Select terms that combine sufficient local demand with the right task, then judge them by verified signup cost and product use. Live signup attribution is still unverified. The [September review](./search-keyword-review-2026-09.md) explains why its zero conversions cannot reliably identify losing keywords.
 
 No Google Ads settings were changed.

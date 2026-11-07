@@ -49,19 +49,13 @@ beforeEach(() => {
 });
 
 describe("AI action credit weights", () => {
-  it("weighs a short planning action as one credit on a non-premium model", () => {
-    expect(actionCreditWeight("DOCUMENT_FOLLOWUPS", "claude-haiku-4-5")).toBe(1);
-  });
-
-  it("weighs whole-document actions higher than short actions", () => {
-    expect(actionCreditWeight("DOCUMENT_GENERATE", "claude-sonnet-5")).toBe(5);
-    expect(
-      actionCreditWeight("COMMENT_RESPOND_DOCUMENT", "claude-sonnet-5"),
-    ).toBe(5);
+  it("weighs planner actions as one credit on a non-premium model", () => {
+    expect(actionCreditWeight("TASK_SCHEDULE", "claude-haiku-4-5")).toBe(1);
+    expect(actionCreditWeight("PLAN_FEEDBACK", "claude-sonnet-5")).toBe(1);
   });
 
   it("doubles the weight for the premium Opus model", () => {
-    expect(actionCreditWeight("DOCUMENT_GENERATE", "claude-opus-4-8")).toBe(10);
+    expect(actionCreditWeight("TASK_SCHEDULE", "claude-opus-4-8")).toBe(2);
   });
 });
 
@@ -113,21 +107,21 @@ describe("checkAndConsumeAiAllowance", () => {
 
     const result = await checkAndConsumeAiAllowance(
       "user-1",
-      "DOCUMENT_GENERATE",
+      "TASK_SCHEDULE",
       "claude-sonnet-5",
     );
 
     expect(result).toEqual({
       plan: "free",
       limit: MONTHLY_AI_ALLOWANCE.free,
-      used: 10,
-      remaining: MONTHLY_AI_ALLOWANCE.free - 10,
+      used: 6,
+      remaining: MONTHLY_AI_ALLOWANCE.free - 6,
       chargeId: "charge-1",
     });
     expect(mocks.user.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "user-1" },
-        data: expect.objectContaining({ aiCreditsUsed: 10 }),
+        data: expect.objectContaining({ aiCreditsUsed: 6 }),
       }),
     );
   });
@@ -142,7 +136,7 @@ describe("checkAndConsumeAiAllowance", () => {
 
     await checkAndConsumeAiAllowance(
       "user-1",
-      "COMMENT_RESPOND_DOCUMENT",
+      "PLAN_FEEDBACK",
       "claude-opus-4-8",
       { documentId: "doc-1" },
     );
@@ -151,12 +145,12 @@ describe("checkAndConsumeAiAllowance", () => {
       expect.objectContaining({
         data: expect.objectContaining({
           userId: "user-1",
-          action: "COMMENT_RESPOND",
+          action: "PLAN_FEEDBACK",
           model: "claude-opus-4-8",
-          credits: 10,
+          credits: 2,
           plan: "free",
           periodStart,
-          balanceAfter: 15,
+          balanceAfter: 7,
           documentId: "doc-1",
         }),
       }),
@@ -172,7 +166,7 @@ describe("checkAndConsumeAiAllowance", () => {
     });
 
     await expect(
-      checkAndConsumeAiAllowance("user-1", "DOCUMENT_FOLLOWUPS", "claude-sonnet-5"),
+      checkAndConsumeAiAllowance("user-1", "TASK_SCHEDULE", "claude-sonnet-5"),
     ).rejects.toBeInstanceOf(AiAllowanceExceededError);
     expect(mocks.user.update).not.toHaveBeenCalled();
     expect(mocks.aiCreditCharge.create).not.toHaveBeenCalled();
@@ -187,7 +181,7 @@ describe("checkAndConsumeAiAllowance", () => {
 
     const result = await checkAndConsumeAiAllowance(
       "user-1",
-      "DOCUMENT_FOLLOWUPS",
+      "TASK_SCHEDULE",
       "claude-sonnet-5",
     );
 
@@ -206,7 +200,7 @@ describe("checkAndConsumeAiAllowance", () => {
 
     const result = await checkAndConsumeAiAllowance(
       "user-1",
-      "DOCUMENT_FOLLOWUPS",
+      "TASK_SCHEDULE",
       "claude-sonnet-5",
     );
 

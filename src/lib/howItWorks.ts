@@ -1,20 +1,20 @@
 export const HOW_IT_WORKS_STEPS = [
   {
     number: "01",
-    title: "Start your way",
+    title: "Type it",
     description:
-      "Open a blank page, bring an existing draft, or give Thido a brief to shape into a first version.",
+      "Write a task the way it came to you, like “Dentist next Tuesday 3pm”.",
   },
   {
     number: "02",
-    title: "Make every word yours",
+    title: "Find it",
     description:
-      "Edit directly with familiar formatting, including headings, links, tables, and checkbox lists.",
+      "Thido files it under the right day, in time order. Browse your days by year, month and week.",
   },
   {
     number: "03",
-    title: "Refine and share",
+    title: "Check it",
     description:
-      "Discuss changes with Thido, invite collaborators, then download or print the finished document.",
+      "Ask Thido to review a day, or let it check in a few times a day. Change how often in Settings.",
   },
 ] as const;

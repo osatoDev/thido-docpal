@@ -29,8 +29,8 @@ export default function GlobalError({
         <main
           style={{
             alignItems: "center",
-            background: "#f4f2ed",
-            color: "#222622",
+            background: "#eef2f5",
+            color: "#18232b",
             display: "flex",
             fontFamily: "system-ui, sans-serif",
             justifyContent: "center",
@@ -43,17 +43,17 @@ export default function GlobalError({
             <h1 style={{ fontSize: "2rem", marginTop: "2rem" }}>
               Something went wrong.
             </h1>
-            <p style={{ color: "#646963", lineHeight: 1.6 }}>
+            <p style={{ color: "#55636e", lineHeight: 1.6 }}>
               The error has been reported. Try loading Thido again.
             </p>
             <button
               type="button"
               onClick={() => unstable_retry()}
               style={{
-                background: "#222622",
+                background: "#245e80",
                 border: 0,
                 borderRadius: "0.4rem",
-                color: "#faf9f6",
+                color: "#ffffff",
                 cursor: "pointer",
                 font: "inherit",
                 marginTop: "1.5rem",

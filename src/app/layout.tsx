@@ -1,55 +1,44 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { Geist, Geist_Mono } from "next/font/google";
+import { IBM_Plex_Mono, Inter, Space_Grotesk } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Suspense } from "react";
-import { ApplicationStyleSync } from "@/components/ApplicationStyleSync";
 import { GoogleAdsTag } from "@/components/GoogleAdsTag";
 import { RedditPixel } from "@/components/RedditPixel";
 import { SignedInPageActions } from "@/components/SignedInPageActions";
 import { SignupConversions } from "@/components/SignupConversions";
-import {
-  APPLICATION_STYLE_COOKIE_NAME,
-  DEFAULT_APPLICATION_STYLE,
-  type ApplicationStyle,
-  isApplicationStyle,
-} from "@/lib/applicationStyle";
 import { getCurrentSession } from "@/lib/currentSession";
 import { isTheme, THEME_COOKIE_NAME } from "@/lib/theme";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
+  weight: ["500", "600"],
+});
+
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
+  subsets: ["latin"],
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
-  title: "Thido | Think clearly. Draft confidently.",
-  description: "An AI document companion for thoughtful first drafts and collaborative refinement.",
+  title: "Thido | Write it like you'd say it",
+  description:
+    "A day planner with AI. Type a task in one line, and Thido puts it on the right day, at the right time, in order. Ask for a quick read on any day.",
   icons: { icon: "/thido-docpal-mark.svg" },
 };
 
-async function SessionPageActions({
-  initialApplicationStyle,
-}: {
-  initialApplicationStyle: ApplicationStyle;
-}) {
+async function SessionPageActions() {
   const session = await getCurrentSession();
-  const applicationStyle = isApplicationStyle(session?.user?.applicationStyle)
-    ? session.user.applicationStyle
-    : initialApplicationStyle;
 
-  return (
-    <>
-      <ApplicationStyleSync applicationStyle={applicationStyle} />
-      <SignedInPageActions signedIn={Boolean(session?.user?.id)} />
-    </>
-  );
+  return <SignedInPageActions signedIn={Boolean(session?.user?.id)} />;
 }
 
 async function SessionRedditPixel() {
@@ -71,23 +60,16 @@ export default async function RootLayout({
   const cookieStore = await cookies();
   const savedTheme = cookieStore.get(THEME_COOKIE_NAME)?.value;
   const theme = isTheme(savedTheme) ? savedTheme : "light";
-  const savedApplicationStyle = cookieStore.get(
-    APPLICATION_STYLE_COOKIE_NAME,
-  )?.value;
-  const applicationStyle = isApplicationStyle(savedApplicationStyle)
-    ? savedApplicationStyle
-    : DEFAULT_APPLICATION_STYLE;
 
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${spaceGrotesk.variable} ${plexMono.variable} h-full antialiased`}
       data-theme={theme}
-      data-app-style={applicationStyle}
     >
       <body className="flex min-h-full flex-col">
         <Suspense fallback={null}>
-          <SessionPageActions initialApplicationStyle={applicationStyle} />
+          <SessionPageActions />
         </Suspense>
         {children}
         <Analytics />

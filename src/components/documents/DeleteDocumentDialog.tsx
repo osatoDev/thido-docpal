@@ -4,7 +4,7 @@ import { useId, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 
-function DeleteSubmitButton({ itemKind }: { itemKind: "DOCUMENT" | "SPREADSHEET" }) {
+function DeleteSubmitButton() {
   const { pending } = useFormStatus();
 
   return (
@@ -13,9 +13,7 @@ function DeleteSubmitButton({ itemKind }: { itemKind: "DOCUMENT" | "SPREADSHEET"
       disabled={pending}
       className="rounded-md bg-[var(--danger)] px-4 py-2.5 text-sm font-medium text-white disabled:cursor-wait disabled:opacity-65"
     >
-      {pending
-        ? "Deleting…"
-        : `Delete ${itemKind === "SPREADSHEET" ? "spreadsheet" : "document"}`}
+      {pending ? "Deleting…" : "Delete document"}
     </button>
   );
 }
@@ -23,17 +21,12 @@ function DeleteSubmitButton({ itemKind }: { itemKind: "DOCUMENT" | "SPREADSHEET"
 export function DeleteDocumentDialog({
   documentId,
   documentTitle,
-  itemKind = "DOCUMENT",
   deleteAction,
   onDeleted,
 }: {
   documentId: string;
   documentTitle: string;
-  itemKind?: "DOCUMENT" | "SPREADSHEET";
-  deleteAction: (
-    documentId: string,
-    itemKind: "DOCUMENT" | "SPREADSHEET",
-  ) => Promise<boolean>;
+  deleteAction: (documentId: string) => Promise<boolean>;
   onDeleted?: (documentId: string) => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -42,7 +35,7 @@ export function DeleteDocumentDialog({
   const router = useRouter();
 
   async function handleDelete() {
-    const deleted = await deleteAction(documentId, itemKind);
+    const deleted = await deleteAction(documentId);
     if (deleted) onDeleted?.(documentId);
     dialogRef.current?.close();
     router.refresh();
@@ -85,7 +78,7 @@ export function DeleteDocumentDialog({
           <p className="page-kicker mb-3">Confirm deletion</p>
           <h2
             id={titleId}
-            className="font-serif text-2xl font-medium tracking-[-0.025em]"
+            className="font-display text-2xl font-medium tracking-[-0.025em]"
           >
             Delete “{documentTitle}”?
           </h2>
@@ -93,9 +86,8 @@ export function DeleteDocumentDialog({
             id={descriptionId}
             className="mt-3 text-sm leading-6 text-[var(--muted)]"
           >
-            {itemKind === "SPREADSHEET"
-              ? "This permanently removes the spreadsheet and all of its cell data. This action cannot be undone."
-              : "This permanently removes the document, its comments, and its drafting history. This action cannot be undone."}
+            This permanently removes the document and its version history.
+            This action cannot be undone.
           </p>
 
           <form
@@ -109,7 +101,7 @@ export function DeleteDocumentDialog({
             >
               Cancel
             </button>
-            <DeleteSubmitButton itemKind={itemKind} />
+            <DeleteSubmitButton />
           </form>
         </div>
       </dialog>

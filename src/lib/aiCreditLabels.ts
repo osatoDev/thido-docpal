@@ -9,6 +9,8 @@ export const AI_CREDIT_ACTION_LABELS: Record<AiFeature, string> = {
   DOCUMENT_FOLLOWUPS: "Planning follow-ups",
   DOCUMENT_GENERATE: "Document generation",
   COMMENT_RESPOND: "Comment responses",
+  TASK_SCHEDULE: "Scheduling tasks",
+  PLAN_FEEDBACK: "Plan feedback",
 };
 
 export function aiCreditActionLabel(action: AiFeature): string {

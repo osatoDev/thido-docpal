@@ -33,7 +33,7 @@ export function daysForExport(node: JSONContent): JSONContent {
   if (node.type === "dayHeader") return {
     ...node, type: "paragraph", content: [
       { type: "text", text: formatDay(node.attrs?.date), marks: [{ type: "bold" }, { type: "italic" }] },
-      ...(node.content?.length ? [{ type: "text", text: " — " }, ...node.content] : []),
+      ...(node.content?.length ? [{ type: "text", text: " \u2014 " }, ...node.content] : []),
     ],
   };
   return { ...node, ...(node.content ? { content: node.content.map(daysForExport) } : {}) };

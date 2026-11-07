@@ -57,11 +57,9 @@ const ExclusiveSubscript = Subscript.extend({
 
 /**
  * Shared extension list used by both the client-side editor and the
- * server-side Markdown -> ProseMirror JSON conversion (AI document
- * generation). They must stay in sync so generated content renders
- * identically to what the editor itself would produce. AI-generated
- * Markdown never contains comment marks, but including CommentMark here
- * keeps the schema identical either way.
+ * server-side Markdown -> ProseMirror JSON conversion (document import).
+ * They must stay in sync so imported content renders identically to what
+ * the editor itself would produce.
  */
 export function getEditorExtensions(
   options: { taskItemControls?: boolean } = {},

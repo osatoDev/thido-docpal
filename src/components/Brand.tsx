@@ -1,29 +1,44 @@
 import Link from "next/link";
 
+/** A day page with a check: one day of the plan, done. */
 function ThidoMark() {
   return (
     <svg
-      viewBox="0 0 32 32"
-      width="32"
-      height="32"
+      viewBox="0 0 48 48"
+      width="30"
+      height="30"
       aria-hidden="true"
       className="shrink-0"
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
     >
-      <path
-        d="M5 6.5h22M11.5 6.5v19"
-        fill="none"
+      <rect
+        x="8"
+        y="11"
+        width="32"
+        height="30"
+        rx="7"
         stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="square"
+        strokeWidth="3.5"
       />
-      <path
-        d="M16 13h11M16 19h8M16 25h5"
-        fill="none"
-        stroke="var(--accent-strong)"
-        strokeWidth="1.75"
-        strokeLinecap="square"
-      />
+      <path d="M17 7v8M31 7v8" stroke="currentColor" strokeWidth="3.5" />
+      <path d="M17 27l5 5 9-10" stroke="var(--accent-strong)" strokeWidth="4" />
     </svg>
+  );
+}
+
+/** The wordmark: lowercase "thido" with a small sun for the dot of the i. */
+function ThidoWordmark() {
+  return (
+    <span aria-hidden="true" className="brand-wordmark">
+      th
+      <span className="brand-wordmark-i">
+        {"\u0131"}
+        <span className="brand-wordmark-sun" />
+      </span>
+      do
+    </span>
   );
 }
 
@@ -41,7 +56,7 @@ export function Brand({
       aria-label="Thido home"
     >
       <ThidoMark />
-      {showWordmark && <span className="brand-wordmark">Thido</span>}
+      {showWordmark && <ThidoWordmark />}
       {/*
         <span
           aria-hidden="true"

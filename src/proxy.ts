@@ -27,9 +27,7 @@ export const config = {
     "/admin/:path*",
     "/dashboard/:path*",
     "/documents/:id/edit/:path*",
-    "/documents/:id/wizard/:path*",
     "/feedback/:path*",
     "/settings/:path*",
-    "/spreadsheets/:path*",
   ],
 };

@@ -12,59 +12,28 @@ import {
 } from "@/components/documents/DashboardDocumentTable";
 import {
   documentAccessWhere,
-  effectiveDocumentPermission,
   getDocumentForUser,
-  normalizeCollaboratorEmail,
+  lockDocumentRow,
 } from "@/lib/documentAuth";
 import { documentEditPath } from "@/lib/documentUrls";
 import { countDocumentWords } from "@/lib/documentWordCount";
 import {
   createDocumentFolder,
   deleteDocumentFolder,
-  moveLibraryItemToFolder,
+  moveDocumentToFolder,
   renameDocumentFolder,
 } from "@/app/folder-actions";
-import {
-  expireStaleCommentAiJobs,
-  hasActiveCommentAiJob,
-  lockDocumentForCommentAi,
-} from "@/lib/documentAiJobs";
 
-async function deleteLibraryItem(
-  documentId: string,
-  itemKind: "DOCUMENT" | "SPREADSHEET",
-) {
+async function deleteDocument(documentId: string) {
   "use server";
   const session = await auth();
   if (!session?.user?.id) return false;
 
-  if (itemKind === "SPREADSHEET") {
-    const result = await prisma.spreadsheet.deleteMany({
-      where: { id: documentId, ownerId: session.user.id },
-    });
-    return result.count > 0;
-  }
-  if (itemKind !== "DOCUMENT") return false;
-
-  const document = await getDocumentForUser(
-    documentId,
-    session.user.id,
-    session.user.email,
-    "FULL",
-  );
+  const document = await getDocumentForUser(documentId, session.user.id);
   if (!document) return false;
 
   return prisma.$transaction(async (transaction) => {
-    const documentExists = await lockDocumentForCommentAi(
-      transaction,
-      document.id,
-    );
-    if (!documentExists) return false;
-
-    await expireStaleCommentAiJobs(transaction, document.id);
-    if (await hasActiveCommentAiJob(transaction, document.id)) {
-      return false;
-    }
+    if (!(await lockDocumentRow(transaction, document.id))) return false;
     await transaction.document.delete({ where: { id: document.id } });
     return true;
   });
@@ -76,39 +45,12 @@ export default async function DashboardPage() {
     redirect("/login?notice=sign-in-required&callbackUrl=/dashboard");
   }
 
-  const [documents, spreadsheets, folders] = await Promise.all([
+  const [documents, folders] = await Promise.all([
     prisma.document.findMany({
       where: {
-        AND: [
-          documentAccessWhere(session.user.id, session.user.email, "VIEW"),
-          { isPlaceholder: false },
-        ],
+        AND: [documentAccessWhere(session.user.id), { isPlaceholder: false }],
       },
       orderBy: { updatedAt: "desc" },
-      include: {
-        owner: { select: { name: true } },
-        collaborators: {
-          where: {
-            email: normalizeCollaboratorEmail(session.user.email ?? ""),
-          },
-          select: { permission: true },
-        },
-        linkAccesses: {
-          where: { userId: session.user.id },
-          select: { id: true },
-          take: 1,
-        },
-      },
-    }),
-    prisma.spreadsheet.findMany({
-      where: { ownerId: session.user.id },
-      orderBy: { updatedAt: "desc" },
-      select: {
-        id: true,
-        title: true,
-        folderId: true,
-        lastAccessedAt: true,
-      },
     }),
     prisma.documentFolder.findMany({
       where: { ownerId: session.user.id },
@@ -119,43 +61,11 @@ export default async function DashboardPage() {
   const documentRows: DashboardDocumentRow[] = documents.map((document) => ({
     id: document.id,
     title: document.title,
-    href:
-      document.status === "READY"
-        ? documentEditPath(document.id, document.title)
-        : `/documents/${document.id}/wizard`,
-    folderId: document.ownerId === session.user.id ? document.folderId : null,
+    href: documentEditPath(document.id, document.title),
+    folderId: document.folderId,
     lastAccessedAt: document.lastAccessedAt.toISOString(),
-    ownerName: document.owner.name,
-    isOwner: document.ownerId === session.user.id,
-    permission: effectiveDocumentPermission({
-      ownerId: document.ownerId,
-      userId: session.user.id,
-      collaboratorPermission: document.collaborators[0]?.permission,
-      linkPermission:
-        document.shareToken && document.linkAccesses.length > 0
-          ? document.sharePermission
-          : null,
-    }),
-    status: document.status,
-    kind: "DOCUMENT",
     wordCount: countDocumentWords(document.content),
   }));
-  const spreadsheetRows: DashboardDocumentRow[] = spreadsheets.map(
-    (spreadsheet) => ({
-      id: spreadsheet.id,
-      title: spreadsheet.title,
-      href: `/spreadsheets/${spreadsheet.id}/edit`,
-      folderId: spreadsheet.folderId,
-      lastAccessedAt: spreadsheet.lastAccessedAt.toISOString(),
-      ownerName: session.user.name ?? null,
-      isOwner: true,
-      permission: "FULL",
-      status: "READY",
-      kind: "SPREADSHEET",
-      wordCount: null,
-    }),
-  );
-  const libraryRows = [...documentRows, ...spreadsheetRows];
   const folderRows: DashboardFolderRow[] = folders;
 
   return (
@@ -181,19 +91,19 @@ export default async function DashboardPage() {
           <p className="page-kicker mb-3">Your work</p>
           <h1 className="page-title">Pick up where you left off.</h1>
           <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
-            Write documents, work with spreadsheet data, and organize related
-            files into folders that make sense to you.
+            Your plans and notes, organized into folders that make sense to
+            you.
           </p>
         </div>
 
         <DashboardDocumentTable
-          documents={libraryRows}
+          documents={documentRows}
           folders={folderRows}
-          deleteAction={deleteLibraryItem}
+          deleteAction={deleteDocument}
           createFolderAction={createDocumentFolder}
           renameFolderAction={renameDocumentFolder}
           deleteFolderAction={deleteDocumentFolder}
-          moveDocumentAction={moveLibraryItemToFolder}
+          moveDocumentAction={moveDocumentToFolder}
         />
       </section>
     </main>

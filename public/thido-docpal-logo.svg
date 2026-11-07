@@ -1,10 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="480" height="144" viewBox="0 0 480 144" role="img" aria-labelledby="title desc">
   <title id="title">Thido</title>
-  <desc id="desc">An editorial T mark beside the Thido wordmark.</desc>
-  <g transform="translate(18 18)">
-    <rect width="108" height="108" rx="20" fill="#F4F2ED"/>
-    <path d="M17 24h74M39 24v64" fill="none" stroke="#222622" stroke-width="7" stroke-linecap="square"/>
-    <path d="M54 46h37M54 66h27M54 86h17" fill="none" stroke="#315F4E" stroke-width="6" stroke-linecap="square"/>
+  <desc id="desc">A day page with a check beside the thido wordmark, whose i is dotted with a small sun.</desc>
+  <rect width="480" height="144" fill="#EEF2F5"/>
+  <g transform="translate(24 24)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="16" y="22" width="64" height="60" rx="14" stroke="#18232B" stroke-width="7"/>
+    <path d="M34 14v16M62 14v16" stroke="#18232B" stroke-width="7"/>
+    <path d="M34 54l10 10 18-20" stroke="#245E80" stroke-width="8"/>
   </g>
-  <text x="150" y="94" fill="#222622" font-family="Iowan Old Style, Baskerville, Times New Roman, serif" font-size="68" font-weight="600" letter-spacing="-3">Thido</text>
+  <g fill="#18232B" font-family="'Space Grotesk', 'Helvetica Neue', Arial, sans-serif" font-size="76" font-weight="600">
+    <text x="221" y="98" text-anchor="end">th</text>
+    <text x="234" y="98" text-anchor="middle">&#x131;</text>
+    <text x="247" y="98">do</text>
+  </g>
+  <circle cx="234" cy="42" r="9" fill="#245E80"/>
 </svg>

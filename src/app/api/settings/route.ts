@@ -1,12 +1,9 @@
 import { isAutosaveDelaySeconds } from "@/lib/autosave";
+import { isPlanFeedbackDailyLimit } from "@/lib/planFeedbackPolicy";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isAiModelId } from "@/lib/ai/models";
-import {
-  APPLICATION_STYLE_COOKIE_NAME,
-  isApplicationStyle,
-} from "@/lib/applicationStyle";
 import { unauthorizedResponse } from "@/lib/apiResponses";
 import { reportServerError } from "@/lib/rollbar/server";
 
@@ -36,8 +33,8 @@ export async function PATCH(request: Request) {
     autosaveDelaySeconds?: number;
     aiModel?: string;
     documentStartMode?: "NEW_DOCUMENT" | "MOST_RECENT";
-    applicationStyle?: string;
     checklistMoveControls?: boolean;
+    planFeedbackDailyLimit?: number;
   } = {};
 
   if (body.autosaveDelaySeconds !== undefined) {
@@ -85,21 +82,6 @@ export async function PATCH(request: Request) {
     data.documentStartMode = body.documentStartMode;
   }
 
-  if (body.applicationStyle !== undefined) {
-    if (!isApplicationStyle(body.applicationStyle)) {
-      await reportServerError(new Error("Unsupported application style"), {
-        source: "settings",
-        operation: "invalid-application-style",
-        status: 400,
-      });
-      return NextResponse.json(
-        { error: "Unsupported application style" },
-        { status: 400 },
-      );
-    }
-    data.applicationStyle = body.applicationStyle;
-  }
-
   if (body.checklistMoveControls !== undefined) {
     if (typeof body.checklistMoveControls !== "boolean") {
       await reportServerError(
@@ -116,6 +98,21 @@ export async function PATCH(request: Request) {
       );
     }
     data.checklistMoveControls = body.checklistMoveControls;
+  }
+
+  if (body.planFeedbackDailyLimit !== undefined) {
+    if (!isPlanFeedbackDailyLimit(body.planFeedbackDailyLimit)) {
+      await reportServerError(new Error("Unsupported plan feedback limit"), {
+        source: "settings",
+        operation: "invalid-plan-feedback-limit",
+        status: 400,
+      });
+      return NextResponse.json(
+        { error: "Unsupported plan feedback limit" },
+        { status: 400 },
+      );
+    }
+    data.planFeedbackDailyLimit = body.planFeedbackDailyLimit;
   }
 
   if (Object.keys(data).length === 0) {
@@ -136,15 +133,5 @@ export async function PATCH(request: Request) {
     create: { userId: session.user.id, ...data },
   });
 
-  const response = NextResponse.json({ settings });
-  if (data.applicationStyle) {
-    response.cookies.set(APPLICATION_STYLE_COOKIE_NAME, data.applicationStyle, {
-      httpOnly: false,
-      maxAge: 60 * 60 * 24 * 365,
-      path: "/",
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-    });
-  }
-  return response;
+  return NextResponse.json({ settings });
 }

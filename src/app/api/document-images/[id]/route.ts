@@ -5,11 +5,10 @@ import { auth } from "@/lib/auth";
 import { getDocumentForUser } from "@/lib/documentAuth";
 import { prisma } from "@/lib/prisma";
 import { reportServerError } from "@/lib/rollbar/server";
-import { isShareToken } from "@/lib/shareTokens";
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function GET(request: Request, { params }: Params) {
+export async function GET(_request: Request, { params }: Params) {
   const { id } = await params;
   const image = await prisma.documentImage.findUnique({
     where: { id },
@@ -18,7 +17,6 @@ export async function GET(request: Request, { params }: Params) {
       contentType: true,
       size: true,
       documentId: true,
-      document: { select: { shareToken: true } },
     },
   });
   if (!image) {
@@ -32,23 +30,11 @@ export async function GET(request: Request, { params }: Params) {
   }
 
   const session = await auth();
-  const sharedToken = new URL(request.url).searchParams.get("share");
-  const mayViewAsMember = session?.user?.id
-    ? Boolean(
-        await getDocumentForUser(
-          image.documentId,
-          session.user.id,
-          session.user.email,
-          "VIEW",
-        ),
-      )
+  const mayView = session?.user?.id
+    ? Boolean(await getDocumentForUser(image.documentId, session.user.id))
     : false;
-  const mayViewAsGuest =
-    Boolean(sharedToken) &&
-    isShareToken(sharedToken!) &&
-    image.document.shareToken === sharedToken;
 
-  if (!mayViewAsMember && !mayViewAsGuest) {
+  if (!mayView) {
     await reportServerError(new Error("Document image access denied"), {
       source: "document-image",
       operation: "forbidden",

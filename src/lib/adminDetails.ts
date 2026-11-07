@@ -2,8 +2,6 @@ export const adminDetailViews = [
   "users",
   "beta-users",
   "documents",
-  "comments",
-  "pending-suggestions",
   "waitlist",
 ] as const;
 

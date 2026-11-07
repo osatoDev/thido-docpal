@@ -1,47 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AI_MODELS, type AiModelId } from "@/lib/ai/models";
-import {
-  APPLICATION_STYLE_OPTIONS,
-  type ApplicationStyle,
-} from "@/lib/applicationStyle";
-
 import { AUTOSAVE_DELAY_OPTIONS } from "@/lib/autosave";
+import { PLAN_FEEDBACK_DAILY_LIMIT_OPTIONS } from "@/lib/planFeedbackPolicy";
 
 type Props = {
   initialAutosaveDelaySeconds: number;
   initialAiModel: AiModelId;
-  initialApplicationStyle: ApplicationStyle;
   initialDocumentStartMode: "NEW_DOCUMENT" | "MOST_RECENT";
   initialChecklistMoveControls: boolean;
+  initialPlanFeedbackDailyLimit: number;
 };
 
 export function SettingsForm({
   initialAutosaveDelaySeconds,
   initialAiModel,
-  initialApplicationStyle,
   initialDocumentStartMode,
   initialChecklistMoveControls,
+  initialPlanFeedbackDailyLimit,
 }: Props) {
   const router = useRouter();
   const [autosaveDelaySeconds, setAutosaveDelaySeconds] = useState(initialAutosaveDelaySeconds);
   const [aiModel, setAiModel] = useState(initialAiModel);
-  const [applicationStyle, setApplicationStyle] = useState(
-    initialApplicationStyle,
-  );
   const [documentStartMode, setDocumentStartMode] = useState(
     initialDocumentStartMode,
   );
   const [checklistMoveControls, setChecklistMoveControls] = useState(
     initialChecklistMoveControls,
   );
+  const [planFeedbackDailyLimit, setPlanFeedbackDailyLimit] = useState(
+    initialPlanFeedbackDailyLimit,
+  );
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-
-  useEffect(() => {
-    document.documentElement.dataset.appStyle = initialApplicationStyle;
-  }, [initialApplicationStyle]);
 
   async function save(update: Record<string, string | boolean | number>) {
     setSaveState("saving");
@@ -121,39 +113,10 @@ export function SettingsForm({
       <section className="border-b border-[var(--border)] py-7">
         <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
           <div>
-            <h2 className="font-semibold">Application style</h2>
-            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-              Changes the appearance of Thido across navigation, settings,
-              documents, and other application pages.
-            </p>
-          </div>
-          <select
-            aria-label="Application style"
-            value={applicationStyle}
-            onChange={(event) => {
-              const next = event.target.value as ApplicationStyle;
-              setApplicationStyle(next);
-              document.documentElement.dataset.appStyle = next;
-              void save({ applicationStyle: next });
-            }}
-            className="app-input rounded-md px-3 py-2.5 text-sm outline-none"
-          >
-            {APPLICATION_STYLE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}: {option.description}
-              </option>
-            ))}
-          </select>
-        </div>
-      </section>
-
-      <section className="border-b border-[var(--border)] py-7">
-        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
-          <div>
             <h2 className="font-semibold">AI model</h2>
             <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-              Used for drafting, follow-up questions, and batched comment
-              revisions.
+              Used for adding tasks in plain language and for feedback on your
+              plans.
             </p>
           </div>
           <select
@@ -196,6 +159,37 @@ export function SettingsForm({
           >
             <option value="true">Show reorder arrows (default)</option>
             <option value="false">Hide reorder arrows</option>
+          </select>
+        </div>
+      </section>
+
+      <section className="border-b border-[var(--border)] py-7">
+        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
+          <div>
+            <h2 className="font-semibold">Automatic plan feedback</h2>
+            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+              After you add a task with the planner bar, Thido sometimes
+              reviews that day&apos;s plan. This caps how often it happens each
+              day. Review my day always works on request.
+            </p>
+          </div>
+          <select
+            aria-label="Automatic plan feedback"
+            value={planFeedbackDailyLimit}
+            onChange={(event) => {
+              const next = Number(event.target.value);
+              setPlanFeedbackDailyLimit(next);
+              void save({ planFeedbackDailyLimit: next });
+            }}
+            className="app-input rounded-md px-3 py-2.5 text-sm outline-none"
+          >
+            {PLAN_FEEDBACK_DAILY_LIMIT_OPTIONS.map((limit) => (
+              <option key={limit} value={limit}>
+                {limit === 0
+                  ? "Off"
+                  : `Up to ${limit} time${limit === 1 ? "" : "s"} a day${limit === 3 ? " (default)" : ""}`}
+              </option>
+            ))}
           </select>
         </div>
       </section>

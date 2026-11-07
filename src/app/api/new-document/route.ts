@@ -1,11 +1,6 @@
 import { auth } from "@/lib/auth";
 import { getOrCreateBlankDocument } from "@/lib/blankDocument";
-import { prisma } from "@/lib/prisma";
 import { reportServerError } from "@/lib/rollbar/server";
-import {
-  createDefaultSpreadsheetTitle,
-  createEmptySpreadsheetContent,
-} from "@/lib/spreadsheet";
 
 function isSameOrigin(request: Request) {
   const origin = request.headers.get("origin");
@@ -48,18 +43,6 @@ export async function POST(request: Request) {
   if (kind === "document") {
     const document = await getOrCreateBlankDocument(session.user.id);
     return redirectTo(request, `/documents/${document.id}/edit`);
-  }
-
-  if (kind === "spreadsheet") {
-    const spreadsheet = await prisma.spreadsheet.create({
-      data: {
-        ownerId: session.user.id,
-        title: createDefaultSpreadsheetTitle(),
-        content: createEmptySpreadsheetContent(),
-      },
-      select: { id: true },
-    });
-    return redirectTo(request, `/spreadsheets/${spreadsheet.id}/edit`);
   }
 
   await reportServerError(new Error("Unsupported document type"), {

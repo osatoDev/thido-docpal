@@ -1,7 +1,6 @@
 "use server";
 
 import { auth, signOut } from "@/lib/auth";
-import { normalizeCollaboratorEmail } from "@/lib/documentAuth";
 import { prisma } from "@/lib/prisma";
 import { reportServerError } from "@/lib/rollbar/server";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
@@ -27,7 +26,7 @@ export async function deleteAccount(
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, email: true, stripeSubscriptionId: true },
+    select: { id: true, stripeSubscriptionId: true },
   });
   if (!user) return { message: "Your session has expired." };
 
@@ -50,16 +49,7 @@ export async function deleteAccount(
   }
 
   try {
-    await prisma.$transaction(async (transaction) => {
-      // DocumentCollaborator rows are keyed by email, not a user ID foreign
-      // key, so they survive user deletion unless removed explicitly here.
-      if (user.email) {
-        await transaction.documentCollaborator.deleteMany({
-          where: { email: normalizeCollaboratorEmail(user.email) },
-        });
-      }
-      await transaction.user.delete({ where: { id: user.id } });
-    });
+    await prisma.user.delete({ where: { id: user.id } });
   } catch (error) {
     console.error("Unable to delete account", error);
     await reportServerError(error, {

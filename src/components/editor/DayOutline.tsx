@@ -23,7 +23,7 @@ export function DayOutline({ editor }: { editor: Editor }) {
           <ol className="ml-2">
             {days.filter(day => day.month === month && day.week === week).map(day => <li key={day.position}>
               <button type="button" className="w-full rounded-sm px-2 py-1 text-left hover:bg-[var(--surface-subtle)]" onClick={() => editor.chain().focus().setTextSelection(day.position + 1).scrollIntoView().run()}>
-                {formatDay(day.date)}{day.text ? ` — ${day.text}` : ""}
+                {formatDay(day.date)}{day.text ? ` \u2014 ${day.text}` : ""}
               </button>
             </li>)}
           </ol>

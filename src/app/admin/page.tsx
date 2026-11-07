@@ -56,8 +56,6 @@ export default async function AdminPage() {
     users,
     betaUsers,
     documents,
-    comments,
-    pendingSuggestions,
     awaitingFounderReplies,
     recentDocuments,
     analytics,
@@ -67,8 +65,6 @@ export default async function AdminPage() {
       prisma.user.count(),
       prisma.user.count({ where: { betaSeat: { not: null } } }),
       prisma.document.count({ where: { isPlaceholder: false } }),
-      prisma.comment.count(),
-      prisma.suggestion.count({ where: { status: "PENDING" } }),
       prisma.feedbackThread.count({ where: { responseDueAt: { not: null } } }),
       prisma.document.findMany({
         where: { isPlaceholder: false },
@@ -112,16 +108,6 @@ export default async function AdminPage() {
       label: "Documents",
       value: documents,
       href: adminDetailHref("documents"),
-    },
-    {
-      label: "Comments",
-      value: comments,
-      href: adminDetailHref("comments"),
-    },
-    {
-      label: "Pending suggestions",
-      value: pendingSuggestions,
-      href: adminDetailHref("pending-suggestions"),
     },
     {
       label: "Founder replies due",
@@ -229,7 +215,7 @@ export default async function AdminPage() {
       <section className="app-panel overflow-hidden rounded-2xl" aria-labelledby="waitlist-heading">
         <div className="border-b border-[var(--border)] p-5 sm:p-7">
           <p className="page-kicker">Beta access</p>
-          <h2 id="waitlist-heading" className="mt-1 font-serif text-2xl">
+          <h2 id="waitlist-heading" className="mt-1 font-display text-2xl">
             Approval waitlist
           </h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
@@ -292,7 +278,7 @@ export default async function AdminPage() {
           <p className="page-kicker">AI operations</p>
           <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 id="ai-operations-heading" className="font-serif text-2xl">
+              <h2 id="ai-operations-heading" className="font-display text-2xl">
                 Last seven days
               </h2>
               <p className="mt-1 text-sm text-[var(--muted)]">
@@ -441,7 +427,7 @@ export default async function AdminPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="page-kicker">Audience</p>
-            <h2 className="mt-1 font-serif text-2xl">Last seven days</h2>
+            <h2 className="mt-1 font-display text-2xl">Last seven days</h2>
           </div>
           <a
             href="https://vercel.com/dashboard"

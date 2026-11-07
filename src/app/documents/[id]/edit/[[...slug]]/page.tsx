@@ -19,11 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: documentTabTitle() };
   }
 
-  const document = await getAccessibleEditDocument(
-    id,
-    session.user.id,
-    session.user.email,
-  );
+  const document = await getAccessibleEditDocument(id, session.user.id);
   return { title: documentTabTitle(document?.title) };
 }
 

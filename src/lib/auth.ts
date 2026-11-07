@@ -24,10 +24,6 @@ import {
   sendWaitlistConfirmationEmail,
 } from "@/lib/email";
 import { reportServerError } from "@/lib/rollbar/server";
-import {
-  DEFAULT_APPLICATION_STYLE,
-  isApplicationStyle,
-} from "@/lib/applicationStyle";
 
 // Test login lets you sign in as any email with no OAuth round-trip, purely
 // for local/CI testing. Never enabled in production, even if the env var
@@ -192,18 +188,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           select: {
             sessionVersion: true,
             betaSeat: true,
-            settings: { select: { applicationStyle: true } },
           },
         });
         if (!authenticatedUser || authenticatedUser.betaSeat === null) {
           return null;
         }
         token.sessionVersion = authenticatedUser.sessionVersion;
-        token.applicationStyle = isApplicationStyle(
-          authenticatedUser.settings?.applicationStyle,
-        )
-          ? authenticatedUser.settings.applicationStyle
-          : DEFAULT_APPLICATION_STYLE;
         return token;
       }
 
@@ -223,7 +213,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             id: true,
             sessionVersion: true,
             betaSeat: true,
-            settings: { select: { applicationStyle: true } },
           },
         });
 
@@ -235,11 +224,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
         token.id = existingUser.id;
-        token.applicationStyle = isApplicationStyle(
-          existingUser.settings?.applicationStyle,
-        )
-          ? existingUser.settings.applicationStyle
-          : DEFAULT_APPLICATION_STYLE;
       } catch (error) {
         // A temporary database outage should not sign every user out. Keep the
         // token and let the requested operation surface the service failure.
@@ -251,11 +235,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     session({ session, user, token }) {
       if (session.user) {
         session.user.id = user?.id ?? (token.id as string);
-        session.user.applicationStyle = isApplicationStyle(
-          token.applicationStyle,
-        )
-          ? token.applicationStyle
-          : DEFAULT_APPLICATION_STYLE;
       }
       return session;
     },

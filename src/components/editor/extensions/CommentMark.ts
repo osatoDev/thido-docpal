@@ -1,33 +1,14 @@
-import { Mark, mergeAttributes } from "@tiptap/core";
-
-export interface CommentMarkOptions {
-  HTMLAttributes: Record<string, unknown>;
-}
-
-declare module "@tiptap/core" {
-  interface Commands<ReturnType> {
-    comment: {
-      setComment: (commentId: string) => ReturnType;
-      unsetComment: () => ReturnType;
-    };
-  }
-}
+import { Mark } from "@tiptap/core";
 
 /**
- * A ProseMirror mark that anchors a Comment to a span of text. Modeled on
- * the open-source `@tiptap/extension-highlight` mark rather than Tiptap
- * Pro's paid Comments extension. It uses the same mechanism (a mark carrying an
- * attribute), just scoped to what this app needs.
+ * Comments were removed in Thido 2.0, but documents saved before then can
+ * still contain comment marks. Tiptap replaces content it cannot parse with
+ * an empty document, so the mark stays in the schema and renders as a plain
+ * span to keep those documents loading intact.
  */
-export const CommentMark = Mark.create<CommentMarkOptions>({
+export const CommentMark = Mark.create({
   name: "comment",
 
-  addOptions() {
-    return { HTMLAttributes: {} };
-  },
-
-  // Typing at the edge of a commented range extends the mark, matching how
-  // a real comment highlight should behave as the surrounding text is edited.
   inclusive: false,
 
   addAttributes() {
@@ -35,10 +16,7 @@ export const CommentMark = Mark.create<CommentMarkOptions>({
       commentId: {
         default: null,
         parseHTML: (element) => element.getAttribute("data-comment-id"),
-        renderHTML: (attributes) => {
-          if (!attributes.commentId) return {};
-          return { "data-comment-id": attributes.commentId };
-        },
+        renderHTML: () => ({}),
       },
     };
   },
@@ -47,26 +25,7 @@ export const CommentMark = Mark.create<CommentMarkOptions>({
     return [{ tag: "span[data-comment-id]" }];
   },
 
-  renderHTML({ HTMLAttributes }) {
-    return [
-      "span",
-      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
-        class: "comment-highlight",
-      }),
-      0,
-    ];
-  },
-
-  addCommands() {
-    return {
-      setComment:
-        (commentId: string) =>
-        ({ commands }) =>
-          commands.setMark(this.name, { commentId }),
-      unsetComment:
-        () =>
-        ({ commands }) =>
-          commands.unsetMark(this.name),
-    };
+  renderHTML() {
+    return ["span", 0];
   },
 });
