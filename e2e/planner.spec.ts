@@ -48,6 +48,21 @@ test.describe("AI planner", () => {
     await expect(editor.locator("li", { hasText: "10:30 Oatmeal" })).toHaveCount(7);
   });
 
+  test("keeps the outline in place while the plan scrolls", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await openPlan(page);
+    const outline = page.getByRole("complementary", { name: "Document outline" });
+    await expect(outline).toBeVisible();
+    await page.locator(".ProseMirror").evaluate((editor) => {
+      editor.insertAdjacentHTML("beforeend", Array.from({ length: 80 }, (_, line) => `<p>Line ${line}</p>`).join(""));
+    });
+    await page.mouse.wheel(0, 1500);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(1000);
+    const box = await outline.boundingBox();
+    expect(box && box.y).toBeGreaterThanOrEqual(0);
+    expect(box && box.y).toBeLessThan(400);
+  });
+
   test("answers a request with options and adds only the one picked", async ({ page }) => {
     await openPlan(page);
     const editor = page.locator(".ProseMirror");

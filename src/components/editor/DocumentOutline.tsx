@@ -39,9 +39,13 @@ function ChevronIcon({ pointing }: { pointing: "left" | "right" }) {
   );
 }
 
-/** Always on screen: expanded shows the days, collapsed is a slim rail. */
+/**
+ * Always on screen: expanded shows the days, collapsed is a slim rail. On wide
+ * screens it sticks below the editor header and scrolls on its own.
+ */
 export function DocumentOutline({
   editor,
+  canEdit,
   expanded,
   onToggle,
 }: {
@@ -70,7 +74,7 @@ export function DocumentOutline({
       <aside
         id="document-outline"
         aria-label="Document outline"
-        className="print-hidden flex shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2 lg:w-12 lg:flex-col lg:justify-start lg:border-r lg:border-b-0 lg:px-2 lg:py-3"
+        className="print-hidden flex shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2 lg:w-12 lg:flex-col lg:justify-start lg:border-b-0 lg:px-2 lg:py-3 lg:sticky lg:top-[var(--editor-chrome-height,0px)] lg:max-h-[calc(100vh-var(--editor-chrome-height,0px))] lg:self-start lg:overflow-y-auto"
       >
         <span className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)] lg:sr-only">
           Outline
@@ -84,7 +88,7 @@ export function DocumentOutline({
     <aside
       id="document-outline"
       aria-label="Document outline"
-      className="print-hidden w-full shrink-0 border-b border-[var(--border)] bg-[var(--surface)] p-3 lg:w-64 lg:border-r lg:border-b-0"
+      className="print-hidden w-full shrink-0 border-b border-[var(--border)] bg-[var(--surface)] p-3 lg:w-64 lg:border-b-0 lg:sticky lg:top-[var(--editor-chrome-height,0px)] lg:max-h-[calc(100vh-var(--editor-chrome-height,0px))] lg:self-start lg:overflow-y-auto"
     >
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
@@ -93,7 +97,7 @@ export function DocumentOutline({
         {toggle}
       </div>
       <div id="document-outline-days">
-        <DayOutline editor={editor} />
+        <DayOutline editor={editor} canEdit={canEdit} />
       </div>
     </aside>
   );

@@ -3,7 +3,7 @@ import { Editor } from "@tiptap/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { readDays } from "@/lib/documentDays";
-import { dayPlanText, insertScheduledTask, scheduledTaskText, taskTime } from "@/lib/scheduleInsert";
+import { convertDateLines, dateOnlyLine, dayPlanText, insertScheduledTask, scheduledTaskText, taskTime } from "@/lib/scheduleInsert";
 
 const editors: Editor[] = [];
 function make(content: string) {
@@ -106,5 +106,33 @@ describe("dayAtPosition", () => {
     editor.state.doc.descendants((node, pos) => { if (node.isText && node.text === "A") position = pos; });
     expect(dayAtPosition(editor.state.doc, position)).toBe("2026-12-01");
     expect(dayAtPosition(editor.state.doc, editor.state.doc.content.size)).toBe("2026-12-02");
+  });
+});
+
+describe("converting pasted date lines", () => {
+  it("recognises lines that are only a date", () => {
+    expect(dateOnlyLine("11 Nov Wed", "2026-11-07")).toBe("2026-11-11");
+    expect(dateOnlyLine(" 14 Nov Sat ", "2026-11-07")).toBe("2026-11-14");
+    expect(dateOnlyLine("2026-12-01", "2026-11-07")).toBe("2026-12-01");
+    expect(dateOnlyLine("5th rehearsal of CIV presentation", "2026-11-07")).toBeNull();
+    expect(dateOnlyLine("Call mum on 12 Nov", "2026-11-07")).toBeNull();
+    expect(dateOnlyLine("03/04", "2026-11-07")).toBeNull();
+    expect(dateOnlyLine("Wed", "2026-11-07")).toBeNull();
+  });
+
+  it("turns date lines into day headers and leaves the entries under them", () => {
+    const editor = make("<p>11 Nov Wed</p><p></p><p>5th rehearsal of CIV presentation</p><p>French class presentation</p><p>12 Nov Thu</p><p>13 Nov Fri</p><p>Routine vs goals check</p>");
+    const result = convertDateLines(editor.state, "2026-11-07");
+    expect(result?.count).toBe(3);
+    editor.view.dispatch(result!.tr);
+    expect(readDays(editor.state.doc).map(day => day.date)).toEqual(["2026-11-11", "2026-11-12", "2026-11-13"]);
+    expect(dayPlanText(editor.state.doc, "2026-11-11")).toBe("5th rehearsal of CIV presentation\nFrench class presentation");
+    expect(convertDateLines(editor.state, "2026-11-07")).toBeNull();
+  });
+
+  it("gives a date with no year the year of the section it sits in", () => {
+    const editor = make(day("2025-12-30") + "<p>31 Dec Wed</p><p>Party</p><h2>2026</h2><p>2 Jan Fri</p><p>December 2024</p><p>3 Dec Tue</p><p>4 Dec 2023</p><p>5 Dec</p>");
+    editor.view.dispatch(convertDateLines(editor.state, "2026-11-07")!.tr);
+    expect(readDays(editor.state.doc).map(day => day.date).sort()).toEqual(["2023-12-04", "2023-12-05", "2024-12-03", "2025-12-30", "2025-12-31", "2026-01-02"]);
   });
 });
