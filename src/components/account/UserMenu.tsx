@@ -102,6 +102,46 @@ export function UserMenu({ user }: { user: UserMenuProfile }) {
           </div>
           <div className="p-1.5 text-sm">
             <Link
+              href="/plan"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-[var(--foreground)] hover:bg-[var(--surface-subtle)]"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4 text-[var(--muted)]"
+              >
+                <rect x="4" y="5.5" width="16" height="15" rx="3.5" />
+                <path d="M8.5 3.5v4M15.5 3.5v4M8.5 13.5l2.5 2.5 4.5-5" />
+              </svg>
+              My plan
+            </Link>
+            <Link
+              href="/documents"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-[var(--foreground)] hover:bg-[var(--surface-subtle)]"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4 text-[var(--muted)]"
+              >
+                <path d="M7 3.5h7l4 4v13H7z" />
+                <path d="M14 3.5v4h4M10 12.5h5M10 16h5" />
+              </svg>
+              Older documents
+            </Link>
+            <Link
               href="/settings"
               onClick={() => setOpen(false)}
               className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-[var(--foreground)] hover:bg-[var(--surface-subtle)]"

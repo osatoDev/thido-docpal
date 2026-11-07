@@ -32,7 +32,6 @@ export async function PATCH(request: Request) {
   const data: {
     autosaveDelaySeconds?: number;
     aiModel?: string;
-    documentStartMode?: "NEW_DOCUMENT" | "MOST_RECENT";
     checklistMoveControls?: boolean;
     planFeedbackDailyLimit?: number;
   } = {};
@@ -62,24 +61,6 @@ export async function PATCH(request: Request) {
       );
     }
     data.aiModel = body.aiModel;
-  }
-
-  if (body.documentStartMode !== undefined) {
-    if (
-      body.documentStartMode !== "NEW_DOCUMENT" &&
-      body.documentStartMode !== "MOST_RECENT"
-    ) {
-      await reportServerError(new Error("Unsupported document start behavior"), {
-        source: "settings",
-        operation: "invalid-document-start-mode",
-        status: 400,
-      });
-      return NextResponse.json(
-        { error: "Unsupported document start behavior" },
-        { status: 400 },
-      );
-    }
-    data.documentStartMode = body.documentStartMode;
   }
 
   if (body.checklistMoveControls !== undefined) {

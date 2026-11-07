@@ -28,7 +28,7 @@ export default function ErrorPage({
   return (
     <main className="flex flex-1 items-center justify-center p-6 sm:p-8">
       <section className="app-panel flex w-full max-w-lg flex-col items-center rounded-3xl p-8 text-center sm:p-10">
-        <Brand href="/dashboard" />
+        <Brand href="/plan" />
         <p className="page-kicker mt-8">Unexpected error</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-[-0.045em]">
           Something went wrong.
@@ -51,7 +51,7 @@ export default function ErrorPage({
             Try again
           </button>
           <Link
-            href="/dashboard"
+            href="/plan"
             className="secondary-button rounded-md px-4 py-2 text-sm font-medium"
           >
             Return to documents

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { openSeedDocument } from "./helpers";
+import { openPlan, openSeedDocument } from "./helpers";
 
 function localDay(offset = 0) {
   const date = new Date();
@@ -9,8 +9,17 @@ function localDay(offset = 0) {
 }
 
 test.describe("AI planner", () => {
-  test("writes a natural-language entry under its day and reviews the plan", async ({ page }) => {
+  test("signing in opens the plan on today, and older documents have no planner bar", async ({ page }) => {
+    await page.goto("/");
+    await expect(page).toHaveURL(/\/plan$/);
+    await expect(page.getByRole("heading", { name: "My plan", level: 1 })).toBeVisible();
+    await expect(page.locator(`.ProseMirror [data-type="day-header"][data-date="${localDay()}"]`)).toBeVisible();
     await openSeedDocument(page);
+    await expect(page.getByTestId("planner-bar")).toHaveCount(0);
+  });
+
+  test("writes a natural-language entry under its day and reviews the plan", async ({ page }) => {
+    await openPlan(page);
     const editor = page.locator(".ProseMirror");
     const planner = page.getByTestId("planner-bar");
 
@@ -27,7 +36,7 @@ test.describe("AI planner", () => {
   });
 
   test("asks for a day when the entry has none it can place", async ({ page }) => {
-    await openSeedDocument(page);
+    await openPlan(page);
     const planner = page.getByTestId("planner-bar");
     await planner.getByLabel("Add a task to a day").fill("Paint the shed someday");
     await planner.getByRole("button", { name: "Add", exact: true }).click();

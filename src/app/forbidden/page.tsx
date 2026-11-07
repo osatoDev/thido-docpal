@@ -34,7 +34,7 @@ export default async function ForbiddenPage({
           {session?.user ? (
             <>
               <Link
-                href="/dashboard"
+                href="/plan"
                 className="primary-button rounded-md px-4 py-2.5 text-sm font-medium"
               >
                 Return to documents

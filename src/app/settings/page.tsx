@@ -54,7 +54,7 @@ export default async function SettingsPage({
           className="flex items-center gap-4 text-sm text-[var(--muted)]"
           aria-label="Settings navigation"
         >
-          <Link href="/dashboard" className="hover:text-[var(--foreground)]">
+          <Link href="/plan" className="hover:text-[var(--foreground)]">
             All documents
           </Link>
           <Link href="/" className="hover:text-[var(--foreground)]">
@@ -77,7 +77,6 @@ export default async function SettingsPage({
         initialAiModel={
           isAiModelId(settings.aiModel) ? settings.aiModel : DEFAULT_AI_MODEL
         }
-        initialDocumentStartMode={settings.documentStartMode}
         initialChecklistMoveControls={settings.checklistMoveControls}
         initialPlanFeedbackDailyLimit={settings.planFeedbackDailyLimit}
       />

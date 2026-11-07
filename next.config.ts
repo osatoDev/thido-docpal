@@ -40,7 +40,8 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       { source: "/try", destination: "/register", permanent: true },
-      { source: "/documents/new", destination: "/", permanent: true },
+      { source: "/documents/new", destination: "/plan", permanent: true },
+      { source: "/dashboard", destination: "/plan", permanent: true },
     ];
   },
   images: {

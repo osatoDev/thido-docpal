@@ -30,7 +30,8 @@ describe("proxy route scope", () => {
   it.each([
     "/admin",
     "/admin/feedback/123",
-    "/dashboard",
+    "/documents",
+    "/plan",
     "/documents/123/edit",
     "/documents/123/edit/project-plan",
     "/feedback",

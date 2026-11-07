@@ -8,7 +8,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { EditorContent, useEditor, useEditorState, type JSONContent } from "@tiptap/react";
-import { hasDayHeaders } from "@/lib/documentDays";
+import { hasDayHeaders, todayDay } from "@/lib/documentDays";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { ConflictRecovery } from "@/components/conflicts/ConflictRecovery";
 import { Toolbar } from "./Toolbar";
@@ -56,6 +56,8 @@ type Props = {
   initialContent: JSONContent | null;
   initialRevision: number;
   currentUser: UserMenuProfile;
+  /** The person's one plan: fixed title, planner bar, today's day on first open. */
+  isPlan?: boolean;
   checklistMoveControls?: boolean;
   autosaveDelaySeconds?: number;
 };
@@ -82,6 +84,7 @@ export function TiptapEditor({
   initialContent,
   initialRevision,
   currentUser,
+  isPlan = false,
   checklistMoveControls = true,
   autosaveDelaySeconds = DEFAULT_AUTOSAVE_DELAY_SECONDS,
 }: Props) {
@@ -137,6 +140,7 @@ export function TiptapEditor({
   }, []);
 
   function replaceDocumentUrl(savedTitle: string) {
+    if (isPlan) return;
     const path = documentEditPath(documentId, savedTitle);
     const nextUrl = `${path}${window.location.search}${window.location.hash}`;
     const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
@@ -220,7 +224,7 @@ export function TiptapEditor({
       // Editability/selection updates are not unsaved document changes.
       if (!transaction.docChanged && !appendedTransactions.some((tr) => tr.docChanged)) return;
       const content = editor.getJSON();
-      const inferredTitle = titleManuallySetRef.current
+      const inferredTitle = isPlan || titleManuallySetRef.current
         ? null
         : inferDocumentTitle(content);
       if (inferredTitle && inferredTitle !== titleRef.current) {
@@ -330,6 +334,29 @@ export function TiptapEditor({
   useEffect(() => {
     editorRef.current = editor;
   }, [editor]);
+
+  // A new plan opens on today, ready for its first task. Only the browser
+  // knows the person's local date, so this runs here rather than on create.
+  const seededPlanRef = useRef(false);
+  useEffect(() => {
+    if (!isPlan || !editor || seededPlanRef.current) return;
+    seededPlanRef.current = true;
+    const doc = editor.state.doc;
+    if (hasDayHeaders(doc) || hasMeaningfulDocumentContent(doc.toJSON())) return;
+    editor
+      .chain()
+      .insertContentAt(0, [
+        { type: "dayHeader", attrs: { date: todayDay() } },
+        {
+          type: "taskList",
+          content: [{ type: "taskItem", attrs: { checked: false }, content: [{ type: "paragraph" }] }],
+        },
+      ])
+      // Inside the new task: header (0-1), list (2), item (3), paragraph (4).
+      .setTextSelection(5)
+      .focus()
+      .run();
+  }, [editor, isPlan]);
 
   useEffect(() => {
     // Tiptap emits an update by default, even when the content is unchanged.
@@ -574,27 +601,33 @@ export function TiptapEditor({
         <div className="print-hidden sticky top-0 z-30 flex flex-col gap-3 bg-[var(--background)]">
         <header className="mx-auto flex w-full max-w-none flex-col gap-3 border-b border-[var(--border)] pb-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <Brand href="/dashboard" showWordmark={false} />
+            <Brand href="/plan" showWordmark={false} />
             <div className="min-w-0 flex-1">
-              <input
-                value={visibleTitle}
-                readOnly={!canEditNow}
-                onChange={(event) => {
-                  if (!canEditNow) return;
-                  const nextTitle = event.target.value;
-                  titleRef.current = nextTitle;
-                  titleManuallySetRef.current = true;
-                  setTitle(nextTitle);
-                  scheduleSave({
-                    title: nextTitle,
-                    titleUpdateSource: "USER",
-                  });
-                }}
-                aria-label="Document title"
-                className={`w-full truncate rounded-sm border border-transparent bg-transparent px-1 py-0.5 text-lg font-medium tracking-tight outline-none hover:border-[var(--border)] focus:border-[var(--border-strong)] ${
-                  canEditNow ? "" : "cursor-default"
-                }`}
-              />
+              {isPlan ? (
+                <h1 className="truncate px-1 py-0.5 font-display text-lg font-semibold tracking-tight">
+                  {title}
+                </h1>
+              ) : (
+                <input
+                  value={visibleTitle}
+                  readOnly={!canEditNow}
+                  onChange={(event) => {
+                    if (!canEditNow) return;
+                    const nextTitle = event.target.value;
+                    titleRef.current = nextTitle;
+                    titleManuallySetRef.current = true;
+                    setTitle(nextTitle);
+                    scheduleSave({
+                      title: nextTitle,
+                      titleUpdateSource: "USER",
+                    });
+                  }}
+                  aria-label="Document title"
+                  className={`w-full truncate rounded-sm border border-transparent bg-transparent px-1 py-0.5 text-lg font-medium tracking-tight outline-none hover:border-[var(--border)] focus:border-[var(--border-strong)] ${
+                    canEditNow ? "" : "cursor-default"
+                  }`}
+                />
+              )}
               <div className="flex min-h-5 items-center gap-2 px-1">
                 <AutosaveStatus
                   delayMs={autosaveDelayMs}
@@ -662,7 +695,7 @@ export function TiptapEditor({
           </p>
         ) : null}
 
-        {editor && canEditNow ? (
+        {editor && canEditNow && isPlan ? (
           <PlannerBar editor={editor} documentId={documentId} />
         ) : null}
 

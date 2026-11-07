@@ -1,6 +1,6 @@
 # AI planner
 
-Thido documents already group tasks under day headers (`/day`, the calendar button). The AI planner adds a bar above the document that does two things.
+Each person has one plan, at `/plan`: a document linked from `User.planDocumentId` (`src/lib/plan.ts`). Signing in opens it, and the first visit creates it, adding today's day header and an empty checklist in the browser so the date is local. Tasks sit under day headers (`/day`, the calendar button). The planner bar above the plan does two things. Older documents, from before the pivot, open from **Older documents** in the account menu and have no planner bar.
 
 ## Add a task in plain language
 

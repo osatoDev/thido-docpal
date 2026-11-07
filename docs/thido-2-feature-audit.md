@@ -33,6 +33,10 @@ Each document keeps one version per UTC day: the last state saved that day. Olde
 
 Versions from the current day are never pruned, so a restore or import can be undone until the day ends. Pruning runs inside the same transaction whenever a new version is written. A document edited every day keeps about 60 versions after one year and 84 after three. The monthly tier keeps growing by 12 a year, so the count passes 100 after about four and a half years of daily use. Logic and tests: `src/lib/documentRevisions.ts`.
 
+## One plan per person (done)
+
+Signing in opens `/plan`, created on first visit with today's day and an empty checklist. The dashboard, folders, "New document", the document-title box on the plan, the start-mode setting and the admin "created a document" email are gone. Older documents are listed at `/documents` (account menu → Older documents) and stay editable. Migration `20261107140000_one_plan_per_person` adds `User.planDocumentId` and drops folders (names and assignments only; documents are kept).
+
 ## Kept
 
 - The planner: day headers, Days outline, plain-language task entry, Review my day, automatic feedback.
@@ -42,8 +46,7 @@ Versions from the current day are never pruned, so a restore or import can be un
 
 ## Still to do
 
-1. **One continuous page per person** (decided 6 November 2026). Signing in should open the plan directly. That removes the dashboard, folders, the "New document" button, the `documentStartMode` setting, per-document URLs and the admin "created a document" email. It also needs a decision on existing users' documents: merge their days into the plan, keep the others as a read-only archive, or offer an export first.
-2. **A way to try the planner before signing up.** The planner API needs an account, so the homepage now sends visitors to sign-up.
-3. **Integrations listed as coming soon:** Telegram, Google Calendar and Microsoft Outlook.
-4. **Phone reminders** (see `docs/ai-planner.md`).
-5. **Customer quotes.** Add a testimonials section only with real quotes and permission to publish them.
+1. **A way to try the planner before signing up.** The planner API needs an account, so the homepage now sends visitors to sign-up.
+2. **Integrations listed as coming soon:** Telegram, Google Calendar and Microsoft Outlook.
+3. **Phone reminders** (see `docs/ai-planner.md`).
+4. **Customer quotes.** Add a testimonials section only with real quotes and permission to publish them.

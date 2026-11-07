@@ -73,6 +73,9 @@ model User {
   aiCreditCharges          AiCreditCharge[]
   sessions                 Session[]
   documents                Document[]
+  /// The one continuous plan page this person sees after signing in.
+  planDocumentId           String?            @unique
+  planDocument             Document?          @relation("UserPlan", fields: [planDocumentId], references: [id], onDelete: SetNull)
   settings                 UserSettings?
   authTokens               AuthToken[]
   aiGenerations            AiGeneration[]
@@ -80,7 +83,6 @@ model User {
   feedbackMessages         FeedbackMessage[]
   uploadedDocumentImages   DocumentImage[]    @relation("DocumentImageUploader")
   documentRevisions        DocumentRevision[] @relation("DocumentRevisionActor")
-  documentFolders          DocumentFolder[]
   planFeedback             PlanFeedback[]
   waitlistReviews          WaitlistEntry[]    @relation("WaitlistReviewer")
   waitlistAdmission        WaitlistEntry?     @relation("WaitlistApprovedUser")
@@ -192,22 +194,16 @@ model AuthToken {
   @@index([expiresAt])
 }
 
-enum DocumentStartMode {
-  NEW_DOCUMENT
-  MOST_RECENT
-}
-
 model UserSettings {
-  id                     String            @id @default(cuid())
-  userId                 String            @unique
-  user                   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  aiModel                String            @default("claude-sonnet-5")
-  documentStartMode      DocumentStartMode @default(NEW_DOCUMENT)
-  autosaveDelaySeconds   Int               @default(120)
-  checklistMoveControls  Boolean           @default(true)
-  planFeedbackDailyLimit Int               @default(3)
-  createdAt              DateTime          @default(now())
-  updatedAt              DateTime          @updatedAt
+  id                     String   @id @default(cuid())
+  userId                 String   @unique
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiModel                String   @default("claude-sonnet-5")
+  autosaveDelaySeconds   Int      @default(120)
+  checklistMoveControls  Boolean  @default(true)
+  planFeedbackDailyLimit Int      @default(3)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 }
 
 enum DocumentStatus {
@@ -230,8 +226,7 @@ model Document {
   titleManuallySet Boolean            @default(false)
   ownerId          String
   owner            User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  folderId         String?
-  folder           DocumentFolder?    @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  planOwner        User?              @relation("UserPlan")
   status           DocumentStatus     @default(DRAFTING)
   isPlaceholder    Boolean            @default(false)
   content          Json?
@@ -246,22 +241,7 @@ model Document {
   planFeedback     PlanFeedback[]
 
   @@index([ownerId])
-  @@index([folderId])
   @@index([isPlaceholder, updatedAt])
-}
-
-model DocumentFolder {
-  id        String     @id @default(cuid())
-  name      String
-  nameKey   String
-  ownerId   String
-  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  documents Document[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  @@unique([ownerId, nameKey])
-  @@index([ownerId, name])
 }
 
 model DocumentRevision {
