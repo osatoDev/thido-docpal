@@ -622,6 +622,15 @@ select {
   outline-offset: 1px;
 }
 
+.ProseMirror .task-item-day-icon {
+  width: 0.8rem;
+  height: 0.8rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
 .ProseMirror .task-item-move-button:disabled {
   cursor: default;
   opacity: 0.25;

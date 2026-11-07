@@ -3,7 +3,7 @@ import { Editor } from "@tiptap/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { getEditorExtensions } from "@/lib/editorExtensions";
 import { readDays } from "@/lib/documentDays";
-import { dayPlanText, insertScheduledTask, scheduledTaskText, taskTime } from "@/lib/scheduleInsert";
+import { dayPlanText, insertScheduledTask, moveTaskToDay, scheduledTaskText, taskTime } from "@/lib/scheduleInsert";
 
 const editors: Editor[] = [];
 function make(content: string) {
@@ -109,3 +109,39 @@ describe("dayAtPosition", () => {
   });
 });
 
+describe("moving a task to another day", () => {
+  function itemPosition(editor: Editor, text: string) {
+    let found = -1;
+    editor.state.doc.descendants((node, pos) => {
+      if (found === -1 && node.type.name === "taskItem" && node.firstChild?.textContent === text) found = pos;
+    });
+    return found;
+  }
+  function move(editor: Editor, text: string, date: string) {
+    const tr = moveTaskToDay(editor.state, itemPosition(editor, text), date);
+    expect(tr).not.toBeNull();
+    editor.view.dispatch(tr!);
+  }
+
+  it("moves a task into the other day's list in time order, keeping its checked state and subtasks", () => {
+    const editor = make(day("2026-11-07") + `<ul data-type="taskList"><li data-type="taskItem" data-checked="true"><p>12:00 Prep</p>${tasks("Read site")}</li><li data-type="taskItem" data-checked="false"><p>Gym</p></li></ul>` + day("2026-11-08") + tasks("09:00 Oatmeal", "15:00 Match"));
+    move(editor, "12:00 Prep", "2026-11-08");
+    expect(dayPlanText(editor.state.doc, "2026-11-07")).toBe("[ ] Gym");
+    expect(dayPlanText(editor.state.doc, "2026-11-08")).toBe("[ ] 09:00 Oatmeal\n[x] 12:00 Prep\n  [ ] Read site\n[ ] 15:00 Match");
+  });
+
+  it("removes the old list when its last task leaves, and creates a missing day", () => {
+    const editor = make(day("2026-11-07") + tasks("Call mum") + day("2026-11-09"));
+    move(editor, "Call mum", "2026-11-08");
+    expect(dayPlanText(editor.state.doc, "2026-11-07")).toBe("");
+    expect(readDays(editor.state.doc).map(day => day.date)).toEqual(["2026-11-07", "2026-11-08", "2026-11-09"]);
+    expect(dayPlanText(editor.state.doc, "2026-11-08")).toBe("[ ] Call mum");
+    editor.commands.undo();
+    expect(dayPlanText(editor.state.doc, "2026-11-07")).toBe("[ ] Call mum");
+  });
+
+  it("refuses anything that is not a task item", () => {
+    const editor = make(day("2026-11-07") + "<p>Note</p>");
+    expect(moveTaskToDay(editor.state, 0, "2026-11-08")).toBeNull();
+  });
+});

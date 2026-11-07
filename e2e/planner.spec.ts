@@ -48,6 +48,24 @@ test.describe("AI planner", () => {
     await expect(editor.locator("li", { hasText: "10:30 Oatmeal" })).toHaveCount(7);
   });
 
+  test("moves a task to another day from its calendar button", async ({ page }) => {
+    await openPlan(page);
+    const editor = page.locator(".ProseMirror");
+    const planner = page.getByTestId("planner-bar");
+    await planner.getByLabel("Add a task to a day").fill("Water the plants");
+    await planner.getByRole("button", { name: "Add", exact: true }).click();
+    await expect(planner.getByRole("status")).toContainText("Added “Water the plants”");
+
+    await editor.getByRole("button", { name: "Move to another day: Water the plants" }).click();
+    const dialog = page.getByRole("dialog", { name: "Move to another day" });
+    await dialog.getByRole("button", { name: "A week later" }).click();
+    await expect(dialog).toBeHidden();
+
+    const moved = editor.locator(`[data-type="day-header"][data-date="${localDay(7)}"] ~ ul li`, { hasText: "Water the plants" });
+    await expect(moved).toHaveCount(1);
+    await expect(editor.locator("li", { hasText: "Water the plants" })).toHaveCount(1);
+  });
+
   test("keeps the outline in place while the plan scrolls", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await openPlan(page);

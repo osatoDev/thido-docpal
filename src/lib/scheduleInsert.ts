@@ -1,6 +1,5 @@
 import type { Node as ProseMirrorNode, Schema } from "@tiptap/pm/model";
-import type { EditorState, Transaction } from "@tiptap/pm/state";
-import { TextSelection } from "@tiptap/pm/state";
+import { EditorState, TextSelection, type Transaction } from "@tiptap/pm/state";
 import { validDay } from "@/lib/documentDays";
 
 /** Top-level blocks that sit after the writing and must stay last. */
@@ -73,14 +72,20 @@ export function daySection(doc: ProseMirrorNode, date: string) {
  * null when the schema cannot hold tasks or the date is invalid.
  */
 export function insertScheduledTask(state: EditorState, entry: ScheduledTask): Transaction | null {
-  const { schema, doc } = state;
-  if (!validDay(entry.date) || !schema.nodes.taskItem || !schema.nodes.taskList || !schema.nodes.dayHeader) return null;
+  const { schema } = state;
+  if (!schema.nodes.taskItem) return null;
   const text = scheduledTaskText(entry);
   if (!text) return null;
+  return insertTaskItem(state, entry.date, taskItemNode(schema, text));
+}
+
+/** Writes a task item, with any subtasks, under a day, in time order. */
+function insertTaskItem(state: EditorState, date: string, item: ProseMirrorNode): Transaction | null {
+  const { schema, doc } = state;
+  if (!validDay(date) || !schema.nodes.taskList || !schema.nodes.dayHeader) return null;
   const tr = state.tr;
-  const item = taskItemNode(schema, text);
-  const time = taskTime(text);
-  const section = daySection(doc, entry.date);
+  const time = taskTime(item.firstChild?.textContent ?? "");
+  const section = daySection(doc, date);
 
   let cursor: number;
   if (section) {
@@ -109,9 +114,9 @@ export function insertScheduledTask(state: EditorState, entry: ScheduledTask): T
   } else {
     const blocks = topLevelBlocks(doc);
     const end = bodyEnd(blocks, doc);
-    const later = blocks.find(block => block.pos < end && isDay(block) && block.node.attrs.date > entry.date);
+    const later = blocks.find(block => block.pos < end && isDay(block) && block.node.attrs.date > date);
     const insertAt = later ? later.pos : end;
-    const header = schema.nodes.dayHeader.create({ date: entry.date });
+    const header = schema.nodes.dayHeader.create({ date });
     const list = schema.nodes.taskList.create(null, item);
     const spacer = schema.nodes.paragraph.create();
     tr.insert(insertAt, later ? [header, list, spacer] : [header, list]);
@@ -160,3 +165,26 @@ export function dayAtPosition(doc: ProseMirrorNode, position: number): string | 
   return current;
 }
 
+/**
+ * Moves the task item at `position`, with its subtasks and checked state, to
+ * another day as one undoable step. Its old list goes if it was the last item.
+ */
+export function moveTaskToDay(state: EditorState, position: number, date: string): Transaction | null {
+  const item = state.doc.nodeAt(position);
+  if (item?.type.name !== "taskItem" || !validDay(date)) return null;
+  const $item = state.doc.resolve(position);
+  if ($item.parent.type.name !== "taskList") return null;
+  const tr = state.tr;
+  if ($item.parent.childCount === 1) {
+    const listStart = $item.before($item.depth);
+    tr.delete(listStart, listStart + $item.parent.nodeSize);
+  } else {
+    tr.delete(position, position + item.nodeSize);
+  }
+  const removed = EditorState.create({ doc: tr.doc, schema: state.schema });
+  const insert = insertTaskItem(removed, date, item);
+  if (!insert) return null;
+  insert.steps.forEach(step => tr.step(step));
+  tr.setSelection(TextSelection.near(tr.doc.resolve(Math.min(insert.selection.from, tr.doc.content.size))));
+  return tr.scrollIntoView();
+}
