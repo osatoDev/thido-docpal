@@ -45,7 +45,6 @@ function ChevronIcon({ pointing }: { pointing: "left" | "right" }) {
  */
 export function DocumentOutline({
   editor,
-  canEdit,
   expanded,
   onToggle,
 }: {
@@ -97,7 +96,7 @@ export function DocumentOutline({
         {toggle}
       </div>
       <div id="document-outline-days">
-        <DayOutline editor={editor} canEdit={canEdit} />
+        <DayOutline editor={editor} />
       </div>
     </aside>
   );
