@@ -17,6 +17,9 @@ export type TaskStyle = (typeof TASK_STYLES)[number];
 
 export const DEFAULT_TASK_STYLE: TaskStyle = "strike";
 const TASK_ITEM_MOVE_META = "taskItemMovement";
+/** Dispatched on the editor DOM; the editor opens a date picker for the item. */
+export const MOVE_TASK_TO_DAY_EVENT = "thido:move-task-to-day";
+export type MoveTaskToDayDetail = { position: number };
 
 export type TaskItemMoveDirection = "up" | "down";
 
@@ -160,6 +163,24 @@ function createMoveButton(
   return button;
 }
 
+function createMoveToDayButton(onClick: () => void) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "task-item-move-button";
+  button.title = "Move to another day";
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 16 16");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("class", "task-item-day-icon");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "M3 4.5h10v8.5H3zM3 7.5h10M5.5 3v3M10.5 3v3");
+  svg.append(path);
+  button.append(svg);
+  button.addEventListener("mousedown", (event) => event.preventDefault());
+  button.addEventListener("click", onClick);
+  return button;
+}
+
 function createDeleteButton(onDelete: () => void) {
   const button = document.createElement("button");
   button.type = "button";
@@ -233,6 +254,19 @@ export const MovableTaskItem = TaskItem.extend<MovableTaskItemOptions>({
         ? createMoveButton("down", () => move("down"))
         : null;
       const deleteButton = createDeleteButton(remove);
+      const dayButton =
+        showMoveControls && props.editor.schema.nodes.dayHeader
+          ? createMoveToDayButton(() => {
+              if (!props.editor.isEditable || typeof props.getPos !== "function") return;
+              const position = props.getPos();
+              if (typeof position !== "number") return;
+              props.editor.view.dom.dispatchEvent(
+                new CustomEvent<MoveTaskToDayDetail>(MOVE_TASK_TO_DAY_EVENT, {
+                  detail: { position },
+                }),
+              );
+            })
+          : null;
 
       const updateControls = () => {
         const position =
@@ -248,12 +282,14 @@ export const MovableTaskItem = TaskItem.extend<MovableTaskItemOptions>({
             typeof position !== "number" ||
             !canMoveTaskItem(props.editor.state, position, "down");
         }
+        if (dayButton) dayButton.ariaLabel = `Move to another day: ${label}`;
         deleteButton.ariaLabel = `Delete checklist item: ${label}`;
         deleteButton.hidden = currentNode.attrs.checked !== true;
       };
 
       if (upButton) controls.append(upButton);
       if (downButton) controls.append(downButton);
+      if (dayButton) controls.append(dayButton);
       controls.append(deleteButton);
       listItem.insertBefore(controls, listItem.firstChild);
       updateControls();
