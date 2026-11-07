@@ -1,7 +1,7 @@
 import type { Node as ProseMirrorNode, Schema } from "@tiptap/pm/model";
 import type { EditorState, Transaction } from "@tiptap/pm/state";
 import { TextSelection } from "@tiptap/pm/state";
-import { validDay } from "@/lib/documentDays";
+import { todayDay, validDay } from "@/lib/documentDays";
 
 /** Top-level blocks that sit after the writing and must stay last. */
 const TRAILING_NODE_TYPES = new Set(["footnote", "documentPreferences"]);
@@ -160,3 +160,30 @@ export function dayAtPosition(doc: ProseMirrorNode, position: number): string | 
   return current;
 }
 
+function nextYear(date: string) {
+  const year = Number(date.slice(0, 4)) + 1;
+  const moved = `${year}${date.slice(4)}`;
+  return validDay(moved) ? moved : `${year}-02-28`; // Feb 29 has no next-year twin.
+}
+
+/**
+ * Temporary repair for pasted lists that ran past New Year: a day that is
+ * already past and sits below a later day in the plan was filed under the
+ * wrong year, so it moves forward a year.
+ */
+export function fixRolledOverYears(state: EditorState, reference = todayDay()): { tr: Transaction; count: number } | null {
+  const tr = state.tr;
+  let count = 0;
+  let previous: string | null = null;
+  for (const block of topLevelBlocks(state.doc)) {
+    if (!isDay(block)) continue;
+    let date: string = block.node.attrs.date;
+    if (previous && date < reference && date < previous) {
+      date = nextYear(date);
+      tr.setNodeMarkup(block.pos, undefined, { ...block.node.attrs, date });
+      count += 1;
+    }
+    previous = date;
+  }
+  return count ? { tr, count } : null;
+}
