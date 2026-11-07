@@ -6,6 +6,8 @@ import { formatDay, todayDay } from "@/lib/documentDays";
 import { dayAtPosition, dayPlanText, insertScheduledTask, scheduledTaskText } from "@/lib/scheduleInsert";
 
 type Feedback = { id: string; day: string; trigger: "AUTO" | "MANUAL"; feedback: string };
+type AnswerOption = { title: string; details: string; time: string | null; task: string; sourceUrl: string | null };
+type Answer = { request: string; day: string; summary: string; options: AnswerOption[] };
 type Status = { kind: "info" | "error"; text: string } | null;
 
 function localContext() {
@@ -23,7 +25,8 @@ async function readError(response: Response, fallback: string) {
 /**
  * Natural-language task entry plus AI feedback on a day's plan. Tasks are
  * written into the document in the browser, so they autosave and undo like
- * any other edit.
+ * any other edit. Requests ("list 10 cinemas near the venue") are answered
+ * with web search; nothing is added until the user picks an option.
  */
 export function PlannerBar({ editor, documentId }: { editor: Editor; documentId: string }) {
   const [text, setText] = useState("");
@@ -31,6 +34,8 @@ export function PlannerBar({ editor, documentId }: { editor: Editor; documentId:
   const [reviewing, setReviewing] = useState(false);
   const [status, setStatus] = useState<Status>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [answer, setAnswer] = useState<Answer | null>(null);
+  const [addedOptions, setAddedOptions] = useState<ReadonlySet<number>>(new Set());
   const input = useRef<HTMLInputElement>(null);
 
   async function requestFeedback(day: string, trigger: "AUTO" | "MANUAL", newEntry?: string) {
@@ -67,6 +72,10 @@ export function PlannerBar({ editor, documentId }: { editor: Editor; documentId:
         input.current?.focus();
         return;
       }
+      if (parsed.kind === "request") {
+        await answerRequest(entry, parsed.date);
+        return;
+      }
       if (!editor.isEditable) {
         setStatus({ kind: "error", text: "This document can't be edited right now." });
         return;
@@ -99,6 +108,37 @@ export function PlannerBar({ editor, documentId }: { editor: Editor; documentId:
     }
   }
 
+  async function answerRequest(request: string, day: string) {
+    setStatus({ kind: "info", text: "Looking this up. This can take up to a minute…" });
+    const response = await fetch(`/api/documents/${documentId}/request`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: request, day, plan: dayPlanText(editor.state.doc, day) ?? "", ...localContext() }),
+    });
+    if (!response.ok) {
+      setStatus({ kind: "error", text: await readError(response, "Thido couldn't look that up.") });
+      return;
+    }
+    const { answer: found } = await response.json();
+    setAnswer({ request, ...found });
+    setAddedOptions(new Set());
+    setText("");
+    setStatus(null);
+  }
+
+  function addOption(index: number) {
+    if (!answer || !editor.isEditable) return;
+    const option = answer.options[index];
+    const tr = insertScheduledTask(editor.state, { date: answer.day, time: option.time, task: option.task });
+    if (!tr) {
+      setStatus({ kind: "error", text: "Thido couldn't add that task here." });
+      return;
+    }
+    editor.view.dispatch(tr);
+    setAddedOptions((current) => new Set(current).add(index));
+    setStatus({ kind: "info", text: `Added “${scheduledTaskText(option)}” to ${formatDay(answer.day)}.` });
+  }
+
   async function reviewDay() {
     const day = dayAtPosition(editor.state.doc, editor.state.selection.from) ?? localContext().today;
     setReviewing(true);
@@ -127,7 +167,7 @@ export function PlannerBar({ editor, documentId }: { editor: Editor; documentId:
           className="app-input h-11 min-w-0 flex-1 rounded-lg px-3.5 text-sm outline-none"
         />
         <button type="submit" disabled={adding || !text.trim()} className="primary-button h-11 rounded-lg px-4 text-sm font-semibold disabled:opacity-50">
-          {adding ? "Adding…" : "Add"}
+          {adding ? "Working…" : "Add"}
         </button>
         <button type="button" onClick={reviewDay} disabled={reviewing} className="secondary-button h-11 rounded-lg px-4 text-sm font-medium disabled:opacity-50">
           {reviewing ? "Reviewing…" : "Review my day"}
@@ -139,6 +179,47 @@ export function PlannerBar({ editor, documentId }: { editor: Editor; documentId:
       >
         {status?.text}
       </p>
+      {answer ? (
+        <section aria-label="Thido's answer" className="mt-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 text-sm leading-6">
+          <div className="flex items-start gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-[var(--accent-strong)]">For {formatDay(answer.day)}: {answer.request}</p>
+              <p className="mt-1">{answer.summary}</p>
+            </div>
+            <button type="button" aria-label="Dismiss answer" onClick={() => setAnswer(null)} className="inline-flex size-8 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--surface-subtle)]">
+              ×
+            </button>
+          </div>
+          {answer.options.length > 0 ? (
+            <ol className="mt-3 max-h-96 divide-y divide-[var(--border)] overflow-y-auto">
+              {answer.options.map((option, index) => (
+                <li key={`${option.title}-${index}`} className="flex flex-wrap items-start justify-between gap-3 py-2.5">
+                  <div className="min-w-0 flex-1 basis-64">
+                    <p className="font-medium">
+                      {option.time ? <span className="mr-1.5 font-mono text-xs text-[var(--accent-strong)]">{option.time}</span> : null}
+                      {option.title}
+                    </p>
+                    <p className="text-[var(--muted)]">{option.details}</p>
+                    {option.sourceUrl ? (
+                      <a href={option.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-link text-xs">
+                        Source: {new URL(option.sourceUrl).hostname}
+                      </a>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => addOption(index)}
+                    disabled={addedOptions.has(index)}
+                    className="secondary-button h-9 shrink-0 rounded-lg px-3 text-xs font-medium disabled:opacity-60"
+                  >
+                    {addedOptions.has(index) ? "Added" : "Add to plan"}
+                  </button>
+                </li>
+              ))}
+            </ol>
+          ) : null}
+        </section>
+      ) : null}
       {feedback ? (
         <aside aria-label="Plan feedback" className="mt-1 flex items-start gap-3 rounded-lg bg-[var(--accent-tint)] px-3.5 py-3 text-sm leading-6">
           <div className="min-w-0 flex-1">

@@ -66,10 +66,21 @@ function cannedPayload(body) {
       return day.toISOString().slice(0, 10);
     });
     return {
+      kind: /^(find|list|suggest)\b/i.test(entry) ? "request" : "task",
       dates: /someday/i.test(entry) ? [] : dates,
       time: /3pm/i.test(entry) ? "15:00" : /10:30/.test(entry) ? "10:30" : null,
       task: entry.replace(/\b(tomorrow|3pm|someday|10:30)\b|every ?day for the next week/gi, "").trim(),
       clarification: /someday/i.test(entry) ? "Which day do you mean?" : null,
+    };
+  }
+
+  if (system.includes("assistant inside a day planner")) {
+    return {
+      summary: "Two cinemas fit the gap after lunch and both have parking.",
+      options: [
+        { title: "Kino Nord", details: "15 minutes by car, garage next door.", suggested_time: "16:00", task: "Movie at Kino Nord", source_url: null },
+        { title: "Lichtspiele", details: "20 minutes by car; check times.", suggested_time: null, task: "Movie at Lichtspiele", source_url: null },
+      ],
     };
   }
 

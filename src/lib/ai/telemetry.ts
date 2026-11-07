@@ -10,6 +10,7 @@ export const AI_FEATURE_LABELS = {
   COMMENT_RESPOND: "Comment responses",
   TASK_SCHEDULE: "Scheduling tasks",
   PLAN_FEEDBACK: "Plan feedback",
+  PLAN_REQUEST: "Research requests",
 } as const;
 
 export type AiFeatureKey = keyof typeof AI_FEATURE_LABELS;
