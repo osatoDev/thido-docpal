@@ -7,7 +7,7 @@ import { DocumentFileMenu } from "@/components/documents/DocumentMoreActions";
 import type { RestoredDocument } from "@/components/documents/VersionHistoryControl";
 import { Tooltip } from "@/components/Tooltip";
 import { EditorMenu } from "./EditorMenu";
-import { guessDay, hasDayHeaders } from "@/lib/documentDays";
+import { guessDay } from "@/lib/documentDays";
 import { DayDialog } from "./DayDialog";
 import { BookmarkDialog } from "./BookmarkDialog";
 import { CustomBulletDialog } from "./CustomBulletDialog";
@@ -1068,10 +1068,7 @@ export function Toolbar({
                 label: "Panels",
                 children: [
                   {
-                    label: outlineOpen
-                      ? "Hide document outline"
-                      : "Show document outline",
-                    disabled: !editor || !hasDayHeaders(editor.state.doc),
+                    label: outlineOpen ? "Collapse outline" : "Expand outline",
                     onSelect: onToggleOutline,
                   },
                   ...(canEdit && editor

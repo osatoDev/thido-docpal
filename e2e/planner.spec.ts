@@ -35,6 +35,19 @@ test.describe("AI planner", () => {
     await expect(page.getByRole("complementary", { name: "Plan feedback" })).toContainText("book the dentist slot first");
   });
 
+  test("puts a repeating entry under each day it covers", async ({ page }) => {
+    await openPlan(page);
+    const editor = page.locator(".ProseMirror");
+    const planner = page.getByTestId("planner-bar");
+    await planner.getByLabel("Add a task to a day").fill("10:30 Oatmeal everyday for the next week");
+    await planner.getByRole("button", { name: "Add", exact: true }).click();
+    await expect(planner.getByRole("status")).toContainText("to 7 days");
+    for (let offset = 0; offset < 7; offset += 1) {
+      await expect(editor.locator(`[data-type="day-header"][data-date="${localDay(offset)}"]`)).toBeVisible();
+    }
+    await expect(editor.locator("li", { hasText: "10:30 Oatmeal" })).toHaveCount(7);
+  });
+
   test("asks for a day when the entry has none it can place", async ({ page }) => {
     await openPlan(page);
     const planner = page.getByTestId("planner-bar");

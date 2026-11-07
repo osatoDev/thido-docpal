@@ -73,7 +73,6 @@ export default async function SettingsPage({
       </div>
 
       <SettingsForm
-        initialAutosaveDelaySeconds={settings.autosaveDelaySeconds}
         initialAiModel={
           isAiModelId(settings.aiModel) ? settings.aiModel : DEFAULT_AI_MODEL
         }

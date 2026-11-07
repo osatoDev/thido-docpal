@@ -15,7 +15,7 @@ test.describe("document editing", () => {
     await editor.locator("p").first().click();
     await page.keyboard.press("End");
     await page.keyboard.type(marker);
-    await page.clock.fastForward(120_000);
+    await page.clock.fastForward(3_000);
 
     await expect(page.getByText("Saved", { exact: true })).toBeVisible({
       timeout: 15_000,

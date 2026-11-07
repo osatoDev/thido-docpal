@@ -24,14 +24,62 @@ export function readHeadings(editor: Editor) {
   return headings;
 }
 
+function ChevronIcon({ pointing }: { pointing: "left" | "right" }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      className={`size-4 fill-none stroke-current ${pointing === "right" ? "rotate-180" : ""}`}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12.5 5 7.5 10l5 5" />
+    </svg>
+  );
+}
+
+/** Always on screen: expanded shows the days, collapsed is a slim rail. */
 export function DocumentOutline({
   editor,
-  onClose,
+  expanded,
+  onToggle,
 }: {
   editor: Editor;
   canEdit: boolean;
-  onClose: () => void;
+  expanded: boolean;
+  onToggle: () => void;
 }) {
+  const toggleLabel = expanded ? "Collapse outline" : "Expand outline";
+  const toggle = (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={expanded}
+      aria-controls="document-outline-days"
+      aria-label={toggleLabel}
+      title={toggleLabel}
+      className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-[var(--muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--foreground)]"
+    >
+      <ChevronIcon pointing={expanded ? "left" : "right"} />
+    </button>
+  );
+
+  if (!expanded) {
+    return (
+      <aside
+        id="document-outline"
+        aria-label="Document outline"
+        className="print-hidden flex shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-3 py-2 lg:w-12 lg:flex-col lg:justify-start lg:border-r lg:border-b-0 lg:px-2 lg:py-3"
+      >
+        <span className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)] lg:sr-only">
+          Outline
+        </span>
+        {toggle}
+      </aside>
+    );
+  }
+
   return (
     <aside
       id="document-outline"
@@ -42,17 +90,11 @@ export function DocumentOutline({
         <h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
           Outline
         </h2>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Hide document outline"
-          title="Hide document outline"
-          className="inline-flex size-7 items-center justify-center rounded-sm text-[var(--muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--foreground)]"
-        >
-          ×
-        </button>
+        {toggle}
       </div>
-      <DayOutline editor={editor} />
+      <div id="document-outline-days">
+        <DayOutline editor={editor} />
+      </div>
     </aside>
   );
 }

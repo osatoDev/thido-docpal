@@ -1,10 +1,9 @@
 import { z } from "zod";
 
 export const scheduleEntrySchema = z.object({
-  date: z
-    .string()
-    .nullable()
-    .describe("Calendar date for the task as YYYY-MM-DD, or null if no day can be determined"),
+  dates: z
+    .array(z.string())
+    .describe("Every calendar date the task goes on, as YYYY-MM-DD: one date for a one-off task, one per day for a repeating task, or empty if no day can be determined"),
   time: z
     .string()
     .nullable()

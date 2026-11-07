@@ -34,7 +34,7 @@ describe("day sections", () => {
     expect(requested).toBe(1);
   });
 
-  it("only enables the outline while at least one day exists, including undo and reload", () => {
+  it("detects whether any day exists, including undo and reload", () => {
     const editor = make("<h1>A normal heading</h1><p>Text</p>");
     expect(hasDayHeaders(editor.state.doc)).toBe(false);
     editor.commands.setDayHeader("2026-10-11");

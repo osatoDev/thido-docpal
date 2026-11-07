@@ -59,10 +59,16 @@ function cannedPayload(body) {
     const entry = /<entry>\n([\s\S]*?)\n<\/entry>/.exec(text)?.[1] ?? "";
     const date = new Date(`${today}T12:00:00Z`);
     if (/tomorrow/i.test(entry)) date.setUTCDate(date.getUTCDate() + 1);
+    const days = /every ?day for the next week/i.test(entry) ? 7 : 1;
+    const dates = Array.from({ length: days }, (_, offset) => {
+      const day = new Date(date);
+      day.setUTCDate(day.getUTCDate() + offset);
+      return day.toISOString().slice(0, 10);
+    });
     return {
-      date: /someday/i.test(entry) ? null : date.toISOString().slice(0, 10),
-      time: /3pm/i.test(entry) ? "15:00" : null,
-      task: entry.replace(/\b(tomorrow|3pm|someday)\b/gi, "").trim(),
+      dates: /someday/i.test(entry) ? [] : dates,
+      time: /3pm/i.test(entry) ? "15:00" : /10:30/.test(entry) ? "10:30" : null,
+      task: entry.replace(/\b(tomorrow|3pm|someday|10:30)\b|every ?day for the next week/gi, "").trim(),
       clarification: /someday/i.test(entry) ? "Which day do you mean?" : null,
     };
   }
