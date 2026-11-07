@@ -117,6 +117,7 @@ describe("converting pasted date lines", () => {
     expect(dateOnlyLine("5th rehearsal of CIV presentation", "2026-11-07")).toBeNull();
     expect(dateOnlyLine("Call mum on 12 Nov", "2026-11-07")).toBeNull();
     expect(dateOnlyLine("03/04", "2026-11-07")).toBeNull();
+    expect(dateOnlyLine("Wed", "2026-11-07")).toBeNull();
   });
 
   it("turns date lines into day headers and leaves the entries under them", () => {
@@ -127,5 +128,11 @@ describe("converting pasted date lines", () => {
     expect(readDays(editor.state.doc).map(day => day.date)).toEqual(["2026-11-11", "2026-11-12", "2026-11-13"]);
     expect(dayPlanText(editor.state.doc, "2026-11-11")).toBe("5th rehearsal of CIV presentation\nFrench class presentation");
     expect(convertDateLines(editor.state, "2026-11-07")).toBeNull();
+  });
+
+  it("gives a date with no year the year of the section it sits in", () => {
+    const editor = make(day("2025-12-30") + "<p>31 Dec Wed</p><p>Party</p><h2>2026</h2><p>2 Jan Fri</p><p>December 2024</p><p>3 Dec Tue</p><p>4 Dec 2023</p><p>5 Dec</p>");
+    editor.view.dispatch(convertDateLines(editor.state, "2026-11-07")!.tr);
+    expect(readDays(editor.state.doc).map(day => day.date).sort()).toEqual(["2023-12-04", "2023-12-05", "2024-12-03", "2025-12-30", "2025-12-31", "2026-01-02"]);
   });
 });

@@ -1,7 +1,7 @@
 import type { Node as ProseMirrorNode, Schema } from "@tiptap/pm/model";
 import type { EditorState, Transaction } from "@tiptap/pm/state";
 import { TextSelection } from "@tiptap/pm/state";
-import { guessDay, validDay } from "@/lib/documentDays";
+import { guessDay, todayDay, validDay } from "@/lib/documentDays";
 
 /** Top-level blocks that sit after the writing and must stay last. */
 const TRAILING_NODE_TYPES = new Set(["footnote", "documentPreferences"]);
@@ -162,30 +162,51 @@ export function dayAtPosition(doc: ProseMirrorNode, position: number): string | 
 
 const DATE_WORDS = /\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|mon(?:day)?|tue(?:s(?:day)?)?|wed(?:nesday)?|thu(?:r(?:s(?:day)?)?)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?|\d{1,4}(?:st|nd|rd|th)?)\b/gi;
 
+const YEAR = /\b(\d{4})\b/;
+
+function onlyDateWords(text: string) {
+  return !text.replace(DATE_WORDS, "").replace(/[\s,./-]/g, "");
+}
+
 /** A line made only of a date, like "11 Nov Wed" or "2026-11-11", and nothing else. */
 export function dateOnlyLine(text: string, reference?: string): string | null {
   const trimmed = text.trim();
-  if (!trimmed || trimmed.length > 40 || trimmed.replace(DATE_WORDS, "").replace(/[\s,./-]/g, "")) return null;
+  if (!trimmed || trimmed.length > 40 || !/\d/.test(trimmed) || !onlyDateWords(trimmed)) return null;
   return guessDay(trimmed, reference);
 }
 
 /**
  * Temporary helper for pasted to-do lists: turns every top-level line that is
- * only a date into a day header, so it shows up in the outline.
+ * only a date into a day header, so it shows up in the outline. A date with no
+ * year takes the year of the section it sits in: the latest heading or line
+ * naming a year ("2025", "December 2025"), or the day above it. Before any of
+ * those, it uses the current year.
  */
-export function convertDateLines(state: EditorState, reference?: string): { tr: Transaction; count: number } | null {
+export function convertDateLines(state: EditorState, reference = todayDay()): { tr: Transaction; count: number } | null {
   const { schema, doc } = state;
   if (!schema.nodes.dayHeader) return null;
-  const tr = state.tr;
-  let count = 0;
-  const blocks = topLevelBlocks(doc);
-  for (let index = blocks.length - 1; index >= 0; index -= 1) {
-    const { node, pos } = blocks[index];
+  const changes: { pos: number; size: number; date: string }[] = [];
+  let year = reference.slice(0, 4);
+  for (const { node, pos } of topLevelBlocks(doc)) {
+    if (isDay({ node, pos })) {
+      year = node.attrs.date.slice(0, 4);
+      continue;
+    }
     if (node.type.name !== "paragraph" && node.type.name !== "heading") continue;
-    const date = dateOnlyLine(node.textContent, reference);
-    if (!date) continue;
-    tr.replaceWith(pos, pos + node.nodeSize, schema.nodes.dayHeader.create({ date }));
-    count += 1;
+    const text = node.textContent.trim();
+    const date = dateOnlyLine(text, `${year}${reference.slice(4)}`);
+    if (date) {
+      changes.push({ pos, size: node.nodeSize, date });
+      year = date.slice(0, 4);
+      continue;
+    }
+    const named = YEAR.exec(text);
+    if (named && (node.type.name === "heading" || onlyDateWords(text))) year = named[1];
   }
-  return count ? { tr, count } : null;
+  if (changes.length === 0) return null;
+  const tr = state.tr;
+  for (const { pos, size, date } of changes.reverse()) {
+    tr.replaceWith(pos, pos + size, schema.nodes.dayHeader.create({ date }));
+  }
+  return { tr, count: changes.length };
 }
