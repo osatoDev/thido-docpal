@@ -1,7 +1,7 @@
 import type { Node as ProseMirrorNode, Schema } from "@tiptap/pm/model";
 import type { EditorState, Transaction } from "@tiptap/pm/state";
 import { TextSelection } from "@tiptap/pm/state";
-import { validDay } from "@/lib/documentDays";
+import { guessDay, validDay } from "@/lib/documentDays";
 
 /** Top-level blocks that sit after the writing and must stay last. */
 const TRAILING_NODE_TYPES = new Set(["footnote", "documentPreferences"]);
@@ -158,4 +158,34 @@ export function dayAtPosition(doc: ProseMirrorNode, position: number): string | 
     if (isDay(block)) current = block.node.attrs.date;
   }
   return current;
+}
+
+const DATE_WORDS = /\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|mon(?:day)?|tue(?:s(?:day)?)?|wed(?:nesday)?|thu(?:r(?:s(?:day)?)?)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?|\d{1,4}(?:st|nd|rd|th)?)\b/gi;
+
+/** A line made only of a date, like "11 Nov Wed" or "2026-11-11", and nothing else. */
+export function dateOnlyLine(text: string, reference?: string): string | null {
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.length > 40 || trimmed.replace(DATE_WORDS, "").replace(/[\s,./-]/g, "")) return null;
+  return guessDay(trimmed, reference);
+}
+
+/**
+ * Temporary helper for pasted to-do lists: turns every top-level line that is
+ * only a date into a day header, so it shows up in the outline.
+ */
+export function convertDateLines(state: EditorState, reference?: string): { tr: Transaction; count: number } | null {
+  const { schema, doc } = state;
+  if (!schema.nodes.dayHeader) return null;
+  const tr = state.tr;
+  let count = 0;
+  const blocks = topLevelBlocks(doc);
+  for (let index = blocks.length - 1; index >= 0; index -= 1) {
+    const { node, pos } = blocks[index];
+    if (node.type.name !== "paragraph" && node.type.name !== "heading") continue;
+    const date = dateOnlyLine(node.textContent, reference);
+    if (!date) continue;
+    tr.replaceWith(pos, pos + node.nodeSize, schema.nodes.dayHeader.create({ date }));
+    count += 1;
+  }
+  return count ? { tr, count } : null;
 }
