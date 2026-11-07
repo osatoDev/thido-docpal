@@ -129,6 +129,20 @@ export function TiptapEditor({
       return !open;
     });
   }, []);
+  // The outline sticks just below the sticky header, toolbar and tabs, whose
+  // height changes with wrapping and zoom, so it is measured.
+  const layoutRef = useRef<HTMLDivElement>(null);
+  const stickyChromeRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const chrome = stickyChromeRef.current;
+    const layout = layoutRef.current;
+    if (!chrome || !layout || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      layout.style.setProperty("--editor-chrome-height", `${chrome.offsetHeight}px`);
+    });
+    observer.observe(chrome);
+    return () => observer.disconnect();
+  }, []);
   const [editorZoom, setEditorZoom] = useState(100);
   const [pendingTablePaste, setPendingTablePaste] =
     useState<PendingTablePaste | null>(null);
@@ -614,9 +628,9 @@ export function TiptapEditor({
   });
 
   return (
-    <div className="print-document-layout flex min-h-0 flex-1 flex-col lg:flex-row">
+    <div ref={layoutRef} className="print-document-layout flex min-h-0 flex-1 flex-col lg:flex-row">
       <div className="print-document-layout flex w-full min-w-0 flex-1 flex-col gap-3 px-2 py-3 sm:px-3 lg:px-4">
-        <div className="print-hidden sticky top-0 z-30 flex flex-col gap-3 bg-[var(--background)]">
+        <div ref={stickyChromeRef} className="print-hidden sticky top-0 z-30 flex flex-col gap-3 bg-[var(--background)]">
         <header className="mx-auto flex w-full max-w-none flex-col gap-3 border-b border-[var(--border)] pb-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <Brand href="/plan" showWordmark={false} />
@@ -716,7 +730,7 @@ export function TiptapEditor({
         ) : null}
 
         <div
-          className="print-document-panel app-panel relative mx-auto flex w-full max-w-none flex-1 flex-col overflow-hidden rounded-sm"
+          className="print-document-panel app-panel relative mx-auto flex w-full max-w-none flex-1 flex-col overflow-clip rounded-sm"
           aria-busy={documentImportMessage?.kind === "loading"}
           onDragEnter={(event) => {
             if (!canEditNow || !event.dataTransfer.types.includes("Files")) return;
@@ -753,7 +767,7 @@ export function TiptapEditor({
                 onToggle={toggleDocumentOutline}
               />
             ) : null}
-            <div className="print-document-content min-w-0 flex-1 overflow-y-auto py-6 sm:py-8">
+            <div className="print-document-content min-w-0 flex-1 overflow-y-auto border-[var(--border)] py-6 sm:py-8 lg:border-l">
               <div
                 className="editor-zoom"
                 style={{ zoom: editorZoom / 100 }}

@@ -11,7 +11,7 @@ export function DayOutline({ editor }: { editor: Editor }) {
     editor.on("update", refresh);
     return () => { editor.off("update", refresh); };
   }, [editor]);
-  return <nav aria-label="Document days" className="mt-4 max-h-80 overflow-y-auto border-b border-[var(--border)] pb-3 text-xs">
+  return <nav aria-label="Document days" className="mt-4 border-b border-[var(--border)] pb-3 text-xs">
     <h3 className="mb-2 font-semibold uppercase tracking-wide text-[var(--muted)]">Days</h3>
     {days.length === 0 ? <p className="text-[var(--muted)]">Use the calendar button beside the heading options to add a date.</p> : null}
     {[...new Set(days.map(day => day.year))].map(year => <details open key={year}>
