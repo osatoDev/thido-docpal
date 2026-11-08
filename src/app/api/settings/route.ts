@@ -1,5 +1,4 @@
-import { isPlanFeedbackDailyLimit } from "@/lib/planFeedbackPolicy";
-import { isTimeZone } from "@/lib/dailyPlanEmail";
+import { isPlanFeedbackDailyLimit, isTimeZone } from "@/lib/planFeedbackPolicy";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -95,7 +94,7 @@ export async function PATCH(request: Request) {
     data.dailyPlanEmail = body.dailyPlanEmail;
   }
 
-  // Sent with the daily email setting, so "today" is the person's own day.
+  // Sent with the daily email setting; the planner bar also keeps it current.
   if (body.timeZone !== undefined) {
     if (!isTimeZone(body.timeZone)) {
       return NextResponse.json({ error: "Unsupported time zone" }, { status: 400 });

@@ -17,9 +17,9 @@ function isAuthorizedCronRequest(request: Request) {
 }
 
 /**
- * Sends each opted-in person their plan for their own local day, once per
- * day. Vercel Hobby runs this once a day within the 05:00 UTC hour, which is
- * 6 to 7 in the morning in Berlin in winter.
+ * Sends each person their plan for their own local day, once per day. Vercel
+ * Hobby runs this once a day within the 05:00 UTC hour, which is 6 to 7 in
+ * the morning in Berlin in winter.
  */
 export async function GET(request: Request) {
   if (!isAuthorizedCronRequest(request)) {
@@ -27,32 +27,39 @@ export async function GET(request: Request) {
   }
 
   const now = new Date();
-  const recipients = await prisma.userSettings.findMany({
-    where: { dailyPlanEmail: true, user: { email: { not: null } } },
+  // On by default: people without a settings row get it too. Only people
+  // with a plan, so nobody who never opened Thido gets an empty email.
+  const recipients = await prisma.user.findMany({
+    where: {
+      email: { not: null },
+      betaSeat: { not: null },
+      planDocumentId: { not: null },
+      OR: [{ settings: null }, { settings: { dailyPlanEmail: true } }],
+    },
     select: {
-      userId: true,
-      timeZone: true,
-      dailyPlanEmailSentDay: true,
-      user: { select: { email: true, planDocument: { select: { content: true } } } },
+      id: true,
+      email: true,
+      planDocument: { select: { content: true } },
+      settings: { select: { timeZone: true, dailyPlanEmailSentDay: true } },
     },
   });
 
   let sent = 0;
   for (const recipient of recipients) {
-    const day = localDay(now, recipient.timeZone);
-    const email = recipient.user.email;
-    if (!email || recipient.dailyPlanEmailSentDay === day) continue;
+    const day = localDay(now, recipient.settings?.timeZone);
+    if (!recipient.email || recipient.settings?.dailyPlanEmailSentDay === day) continue;
     try {
       if (sent > 0) await new Promise((resolve) => setTimeout(resolve, SEND_GAP_MS));
       await sendDailyPlanEmail({
-        email,
-        userId: recipient.userId,
+        email: recipient.email,
+        userId: recipient.id,
         day,
-        summary: dailyPlanSummary(recipient.user.planDocument?.content ?? null, day),
+        summary: dailyPlanSummary(recipient.planDocument?.content ?? null, day),
       });
-      await prisma.userSettings.update({
-        where: { userId: recipient.userId },
-        data: { dailyPlanEmailSentDay: day },
+      await prisma.userSettings.upsert({
+        where: { userId: recipient.id },
+        update: { dailyPlanEmailSentDay: day },
+        create: { userId: recipient.id, dailyPlanEmailSentDay: day },
       });
       sent += 1;
     } catch (error) {
@@ -60,7 +67,7 @@ export async function GET(request: Request) {
       await reportServerError(error, {
         source: "cron",
         operation: "daily-plan-email",
-        userId: recipient.userId,
+        userId: recipient.id,
       });
     }
   }

@@ -136,7 +136,8 @@ export function SettingsForm({
             <h2 className="font-semibold">Daily email</h2>
             <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
               Each morning between 6 and 7 (Berlin time), Thido emails you
-              today&apos;s tasks and what you checked off yesterday.
+              today&apos;s tasks and what you checked off yesterday. It&apos;s
+              on unless you turn it off here.
             </p>
           </div>
           <select
@@ -152,8 +153,8 @@ export function SettingsForm({
             }}
             className="app-input rounded-md px-3 py-2.5 text-sm outline-none"
           >
-            <option value="false">Off (default)</option>
-            <option value="true">Every morning</option>
+            <option value="true">Every morning (default)</option>
+            <option value="false">Off</option>
           </select>
         </div>
       </section>

@@ -202,7 +202,7 @@ model UserSettings {
   checklistMoveControls  Boolean  @default(true)
   planFeedbackDailyLimit Int      @default(3)
   /// Morning email with today's tasks and what was checked off yesterday.
-  dailyPlanEmail         Boolean  @default(false)
+  dailyPlanEmail         Boolean  @default(true)
   /// IANA time zone from the browser, so "today" is the person's own day.
   timeZone               String?
   /// Local day (YYYY-MM-DD) the daily email last went out, so it sends once.

@@ -483,7 +483,7 @@ export async function sendDailyPlanEmail({
       (summary.today.length ? summary.today.map(dailyLineText).join("\n") : "Nothing planned yet.") +
       `\n\nChecked off yesterday:\n` +
       (summary.doneYesterday.length ? summary.doneYesterday.map(dailyLineText).join("\n") : "Nothing checked off.") +
-      `\n\nOpen your plan: ${url}\n\nTurn off this email in Settings: ${settingsUrl}`,
+      `\n\nOpen your plan: ${url}\n\nThido sends this every morning. If you'd rather not get it, you can turn it off in Settings: ${settingsUrl}`,
     html: emailShell(
       formatDay(day),
       `${heading("Today")}${todayHtml}${heading("Checked off yesterday")}${doneHtml}`,
@@ -491,7 +491,7 @@ export async function sendDailyPlanEmail({
       url,
       {
         blockBody: true,
-        footer: `You get this because the daily email is on. <a href="${escapeHtml(settingsUrl)}" style="color:#66737d">Turn it off in Settings</a>.`,
+        footer: `Thido sends this every morning. If you&rsquo;d rather not get it, you can <a href="${escapeHtml(settingsUrl)}" style="color:#66737d">turn it off in Settings</a>.`,
       },
     ),
     previewUrl: url,

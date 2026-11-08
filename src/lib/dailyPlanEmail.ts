@@ -1,4 +1,5 @@
 import { validDay } from "@/lib/documentDays";
+import { isTimeZone } from "@/lib/planFeedbackPolicy";
 
 /**
  * Pure helpers for the morning email: which day it is for someone, and what
@@ -19,16 +20,6 @@ export type DailyPlanSummary = {
   today: DailyPlanLine[];
   doneYesterday: DailyPlanLine[];
 };
-
-export function isTimeZone(value: unknown): value is string {
-  if (typeof value !== "string" || !value || value.length > 64) return false;
-  try {
-    new Intl.DateTimeFormat("en", { timeZone: value });
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 /** The calendar day (YYYY-MM-DD) at `now` in a time zone, UTC if it's unknown. */
 export function localDay(now: Date, timeZone: string | null | undefined) {

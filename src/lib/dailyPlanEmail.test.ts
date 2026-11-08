@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dailyPlanSummary, isTimeZone, localDay, previousDay } from "@/lib/dailyPlanEmail";
+import { dailyPlanSummary, localDay, previousDay } from "@/lib/dailyPlanEmail";
 
 const text = (value: string) => ({ type: "text", text: value });
 const paragraph = (value: string) => ({ type: "paragraph", content: [text(value)] });
@@ -21,10 +21,7 @@ describe("daily plan email days", () => {
     expect(localDay(now, null)).toBe("2026-11-08");
   });
 
-  it("validates time zones and steps back a day across months", () => {
-    expect(isTimeZone("Europe/Berlin")).toBe(true);
-    expect(isTimeZone("Mars/Base")).toBe(false);
-    expect(isTimeZone("")).toBe(false);
+  it("steps back a day across months and years", () => {
     expect(previousDay("2026-12-01")).toBe("2026-11-30");
     expect(previousDay("2027-01-01")).toBe("2026-12-31");
   });
