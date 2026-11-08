@@ -678,6 +678,27 @@ select {
   margin: 0;
 }
 
+.ProseMirror .task-item-project-chip {
+  flex: none;
+  max-width: 10rem;
+  margin-top: 0.3rem;
+  padding: 0.05rem 0.45rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--accent-tint);
+  color: var(--accent-strong);
+  font-family: var(--font-sans, inherit);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.ProseMirror .task-item-project-chip[hidden] {
+  display: none;
+}
+
 .ProseMirror
   ul[data-type="taskList"][data-task-style="strike"]
   > li[data-checked="true"]

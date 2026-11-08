@@ -3,7 +3,7 @@ import { EditorState, TextSelection, type Transaction } from "@tiptap/pm/state";
 import { validDay } from "@/lib/documentDays";
 
 /** Top-level blocks that sit after the writing and must stay last. */
-const TRAILING_NODE_TYPES = new Set(["footnote", "documentPreferences"]);
+const TRAILING_NODE_TYPES = new Set(["footnote", "documentPreferences", "planProjects"]);
 const TIME_PREFIX = /^([01]\d|2[0-3]):([0-5]\d)\b/;
 
 export type ScheduledTask = { date: string; time: string | null; task: string };

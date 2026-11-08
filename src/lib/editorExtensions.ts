@@ -26,6 +26,10 @@ import {
 import { HeadingAnchors } from "@/components/editor/extensions/HeadingAnchors";
 import { GoogleDocsPaste } from "@/components/editor/extensions/GoogleDocsPaste";
 import { DocumentNavigation } from "@/components/editor/extensions/DocumentNavigation";
+import {
+  PlanProjectsNode,
+  TaskProjectAttribute,
+} from "@/components/editor/extensions/PlanProjects";
 import { PageBreak } from "@/components/editor/extensions/PageBreak";
 import {
   FormattedHeading,
@@ -95,6 +99,8 @@ export function getEditorExtensions(
     Bookmarks,
     DocumentPreferencesNode,
     DocumentPreferences,
+    PlanProjectsNode,
+    TaskProjectAttribute,
     TableOfContents,
     TableOfContentsCommands,
     FootnoteReference,

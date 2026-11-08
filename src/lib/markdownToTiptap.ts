@@ -29,17 +29,18 @@ export function preserveDocumentPreferences(
   currentContent: JSONContent | null,
   replacementContent: JSONContent,
 ): JSONContent {
-  const preferences = currentContent?.content?.find(
-    (node) => node.type === "documentPreferences",
+  const hiddenTypes = new Set(["documentPreferences", "planProjects"]);
+  const preserved = (currentContent?.content ?? []).filter(
+    (node) => node.type && hiddenTypes.has(node.type),
   );
-  if (!preferences) return replacementContent;
+  if (preserved.length === 0) return replacementContent;
 
   return {
     ...replacementContent,
     content: [
-      preferences,
+      ...preserved,
       ...(replacementContent.content ?? []).filter(
-        (node) => node.type !== "documentPreferences",
+        (node) => !node.type || !hiddenTypes.has(node.type),
       ),
     ],
   };

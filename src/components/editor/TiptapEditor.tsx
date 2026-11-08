@@ -19,6 +19,7 @@ import { DocumentOutline } from "./DocumentOutline";
 import { DocumentTabs } from "./DocumentTabs";
 import { PlannerBar } from "./PlannerBar";
 import { MoveTaskDialog } from "./MoveTaskDialog";
+import { TaskProjectDialog } from "./TaskProjectDialog";
 import { TableContextMenu } from "./TableContextMenu";
 import { TableConversionDialog } from "./TableConversionDialog";
 import { useEditorHashNavigation } from "./useEditorHashNavigation";
@@ -788,6 +789,7 @@ export function TiptapEditor({
       </div>
 
       {editor && canEditNow ? <MoveTaskDialog editor={editor} /> : null}
+      {editor && canEditNow ? <TaskProjectDialog editor={editor} /> : null}
 
       {pendingTablePaste ? (
         <TableConversionDialog

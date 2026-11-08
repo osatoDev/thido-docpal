@@ -34,7 +34,7 @@ function currentBlock(state: EditorState): BlockContext | null {
   const selectionIndex = state.selection.$from.index(0);
   const index = Math.min(selectionIndex, childCount - 1);
   const node = state.doc.child(index);
-  if (node.type.name === "documentPreferences") return null;
+  if (node.type.name === "documentPreferences" || node.type.name === "planProjects") return null;
   let position = 0;
   for (let childIndex = 0; childIndex < index; childIndex += 1) {
     position += state.doc.child(childIndex).nodeSize;
@@ -66,7 +66,7 @@ export const BlockOperations = Extension.create({
           const block = currentBlock(state);
           if (!block || block.index === 0) return false;
           const previous = state.doc.child(block.index - 1);
-          if (previous.type.name === "documentPreferences") return false;
+          if (previous.type.name === "documentPreferences" || previous.type.name === "planProjects") return false;
           const newPosition = block.position - previous.nodeSize;
           const relativeSelection = Math.max(
             1,
@@ -155,7 +155,7 @@ export const BlockOperations = Extension.create({
           const remainingContentBlocks = Array.from(
             { length: tr.doc.childCount },
             (_, index) => tr.doc.child(index),
-          ).filter((node) => node.type.name !== "documentPreferences");
+          ).filter((node) => node.type.name !== "documentPreferences" && node.type.name !== "planProjects");
           if (remainingContentBlocks.length === 0) {
             tr.insert(tr.doc.content.size, paragraph.create());
           }

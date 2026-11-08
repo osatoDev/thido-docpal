@@ -2,6 +2,7 @@
 
 import type { Editor } from "@tiptap/react";
 import { DayOutline } from "./DayOutline";
+import { ProjectOutline } from "./ProjectOutline";
 
 export type OutlineHeading = {
   level: number;
@@ -40,11 +41,12 @@ function ChevronIcon({ pointing }: { pointing: "left" | "right" }) {
 }
 
 /**
- * Always on screen: expanded shows the days, collapsed is a slim rail. On wide
+ * Always on screen: expanded shows the days and projects, collapsed is a slim rail. On wide
  * screens it sticks below the editor header and scrolls on its own.
  */
 export function DocumentOutline({
   editor,
+  canEdit,
   expanded,
   onToggle,
 }: {
@@ -97,6 +99,7 @@ export function DocumentOutline({
       </div>
       <div id="document-outline-days">
         <DayOutline editor={editor} />
+        <ProjectOutline editor={editor} canEdit={canEdit} />
       </div>
     </aside>
   );
