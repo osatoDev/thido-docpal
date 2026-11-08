@@ -678,27 +678,6 @@ select {
   margin: 0;
 }
 
-.ProseMirror .task-item-project-chip {
-  flex: none;
-  max-width: 10rem;
-  margin-top: 0.3rem;
-  padding: 0.05rem 0.45rem;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--accent-tint);
-  color: var(--accent-strong);
-  font-family: var(--font-sans, inherit);
-  font-size: 0.72rem;
-  line-height: 1.4;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  user-select: none;
-}
-
-.ProseMirror .task-item-project-chip[hidden] {
-  display: none;
-}
-
 .ProseMirror
   ul[data-type="taskList"][data-task-style="strike"]
   > li[data-checked="true"]
@@ -944,5 +923,29 @@ select {
   break-after: avoid;
 }
 .document-day-header > time { font-weight: 600; }
+.document-project-header {
+  margin-block: 2em 0.5em;
+  padding-block: 0.2em;
+  font-family: var(--app-display-font-family);
+  font-size: 1.2em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
+  break-after: avoid;
+}
+.document-project-header > [data-project-label] {
+  margin-inline-end: 0.5em;
+  padding: 0.1em 0.5em;
+  border-radius: 999px;
+  background: var(--accent-tint);
+  color: var(--accent-strong);
+  font-family: var(--font-sans, inherit);
+  font-size: 0.6em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: 0.2em;
+  user-select: none;
+}
 /* An empty note still holds the editor's placeholder <br>, which is not :empty. */
 .document-day-header > [data-day-content]:not(:empty):not(:has(> br.ProseMirror-trailingBreak:only-child))::before { content: " \2014 "; }

@@ -5,7 +5,6 @@ import {
 } from "@tiptap/core";
 import { TaskItem, TaskList, type TaskItemOptions } from "@tiptap/extension-list";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
-import { readProjects } from "@/lib/planProjects";
 import {
   TextSelection,
   type EditorState,
@@ -21,9 +20,6 @@ const TASK_ITEM_MOVE_META = "taskItemMovement";
 /** Dispatched on the editor DOM; the editor opens a date picker for the item. */
 export const MOVE_TASK_TO_DAY_EVENT = "thido:move-task-to-day";
 export type MoveTaskToDayDetail = { position: number };
-/** Dispatched on the editor DOM; the editor opens the project picker for the item. */
-export const SET_TASK_PROJECT_EVENT = "thido:set-task-project";
-export type SetTaskProjectDetail = { position: number };
 
 export type TaskItemMoveDirection = "up" | "down";
 
@@ -185,24 +181,6 @@ function createMoveToDayButton(onClick: () => void) {
   return button;
 }
 
-function createProjectButton(onClick: () => void) {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "task-item-move-button";
-  button.title = "Set project";
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", "0 0 16 16");
-  svg.setAttribute("aria-hidden", "true");
-  svg.setAttribute("class", "task-item-day-icon");
-  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  path.setAttribute("d", "M2.5 4.5h4l1.5 1.5h5.5v6.5h-11z");
-  svg.append(path);
-  button.append(svg);
-  button.addEventListener("mousedown", (event) => event.preventDefault());
-  button.addEventListener("click", onClick);
-  return button;
-}
-
 function createDeleteButton(onDelete: () => void) {
   const button = document.createElement("button");
   button.type = "button";
@@ -289,36 +267,6 @@ export const MovableTaskItem = TaskItem.extend<MovableTaskItemOptions>({
               );
             })
           : null;
-      const projectButton =
-        showMoveControls && props.editor.schema.nodes.planProjects
-          ? createProjectButton(() => {
-              if (!props.editor.isEditable || typeof props.getPos !== "function") return;
-              const position = props.getPos();
-              if (typeof position !== "number") return;
-              props.editor.view.dom.dispatchEvent(
-                new CustomEvent<SetTaskProjectDetail>(SET_TASK_PROJECT_EVENT, {
-                  detail: { position },
-                }),
-              );
-            })
-          : null;
-      const projectChip = document.createElement("span");
-      projectChip.className = "task-item-project-chip";
-      projectChip.contentEditable = "false";
-      projectChip.hidden = true;
-      let chipName = "";
-      const updateProjectChip = () => {
-        const id = currentNode.attrs.project;
-        const name =
-          typeof id === "string" && id
-            ? (readProjects(props.editor.state.doc).find((project) => project.id === id)?.name ?? "")
-            : "";
-        if (name === chipName) return;
-        chipName = name;
-        projectChip.textContent = name;
-        projectChip.title = name ? `Project: ${name}` : "";
-        projectChip.hidden = !name;
-      };
 
       const updateControls = () => {
         const position =
@@ -335,7 +283,6 @@ export const MovableTaskItem = TaskItem.extend<MovableTaskItemOptions>({
             !canMoveTaskItem(props.editor.state, position, "down");
         }
         if (dayButton) dayButton.ariaLabel = `Move to another day: ${label}`;
-        if (projectButton) projectButton.ariaLabel = `Set project: ${label}`;
         deleteButton.ariaLabel = `Delete checklist item: ${label}`;
         deleteButton.hidden = currentNode.attrs.checked !== true;
       };
@@ -343,20 +290,15 @@ export const MovableTaskItem = TaskItem.extend<MovableTaskItemOptions>({
       if (upButton) controls.append(upButton);
       if (downButton) controls.append(downButton);
       if (dayButton) controls.append(dayButton);
-      if (projectButton) controls.append(projectButton);
       controls.append(deleteButton);
       listItem.insertBefore(controls, listItem.firstChild);
-      listItem.append(projectChip);
       updateControls();
-      updateProjectChip();
       const refreshAfterMovement = ({
         transaction,
       }: {
         transaction: Transaction;
       }) => {
         if (transaction.getMeta(TASK_ITEM_MOVE_META)) updateControls();
-        // A renamed or deleted project changes the chip without touching this item.
-        if (transaction.docChanged) updateProjectChip();
       };
       props.editor.on("transaction", refreshAfterMovement);
 
@@ -371,15 +313,7 @@ export const MovableTaskItem = TaskItem.extend<MovableTaskItemOptions>({
           if (!updated) return false;
           currentNode = updatedNode;
           updateControls();
-          updateProjectChip();
           return true;
-        },
-        ignoreMutation(mutation) {
-          // The chip and controls are ours, not document content.
-          if (mutation.type !== "selection" && (projectChip.contains(mutation.target) || controls.contains(mutation.target))) {
-            return true;
-          }
-          return nodeView.ignoreMutation ? nodeView.ignoreMutation(mutation) : false;
         },
         destroy() {
           props.editor.off("transaction", refreshAfterMovement);

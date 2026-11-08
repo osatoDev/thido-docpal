@@ -66,37 +66,36 @@ test.describe("AI planner", () => {
     await expect(editor.locator("li", { hasText: "Water the plants" })).toHaveCount(1);
   });
 
-  test("groups tasks from different days under a project in the outline", async ({ page }) => {
+  test("keeps a project's to-do list of its own, apart from the days", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await openPlan(page);
     const editor = page.locator(".ProseMirror");
-    const planner = page.getByTestId("planner-bar");
     const outline = page.getByRole("complementary", { name: "Document outline" });
     const expand = outline.getByRole("button", { name: "Expand outline" });
     if (await expand.isVisible()) await expand.click();
-
-    for (const entry of ["Pack the kitchen tomorrow", "Book movers in 3 days"]) {
-      await planner.getByLabel("Add a task to a day").fill(entry);
-      await planner.getByRole("button", { name: "Add", exact: true }).click();
-      await expect(planner.getByRole("status")).toContainText("Added");
-    }
 
     const projects = outline.getByRole("navigation", { name: "Projects" });
     await projects.getByLabel("New project name").fill("Home move");
     await projects.getByRole("button", { name: "Add", exact: true }).click();
 
-    for (const task of ["Pack the kitchen", "Book movers"]) {
-      await editor.getByRole("button", { name: new RegExp(`^Set project: .*${task}`) }).click();
-      const dialog = page.getByRole("dialog", { name: "Set project" });
-      await dialog.getByRole("button", { name: "Home move" }).click();
-      await expect(dialog).toBeHidden();
-      await expect(editor.locator("li", { hasText: task }).locator(".task-item-project-chip")).toHaveText("Home move");
-    }
+    // The cursor lands in the project's first task.
+    await page.keyboard.type("Order boxes");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("Book movers");
 
-    await projects.getByText("Home move").click();
-    await expect(projects.getByRole("button", { name: /Pack the kitchen/ })).toBeVisible();
-    await expect(projects.getByRole("button", { name: /Book movers/ })).toBeVisible();
-    await expect(projects.getByText("2/2")).toBeVisible();
+    const header = editor.locator('[data-type="project-header"]', { hasText: "Home move" });
+    await expect(header).toBeVisible();
+    await expect(header.locator("~ ul li", { hasText: "Order boxes" })).toHaveCount(1);
+    await editor.locator("li", { hasText: "Order boxes" }).locator('input[type="checkbox"]').check();
+    await expect(projects.getByRole("button", { name: /Home move/ })).toContainText("1/2");
+
+    // A task added for a new day lands with the days, not inside the project.
+    const planner = page.getByTestId("planner-bar");
+    await planner.getByLabel("Add a task to a day").fill("Water the plants tomorrow");
+    await planner.getByRole("button", { name: "Add", exact: true }).click();
+    await expect(planner.getByRole("status")).toContainText("Added");
+    await expect(header.locator("~ ul li", { hasText: "Water the plants" })).toHaveCount(0);
+    await expect(projects.getByRole("button", { name: /Home move/ })).toContainText("1/2");
   });
 
   test("keeps the outline in place while the plan scrolls", async ({ page }) => {

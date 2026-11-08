@@ -8,16 +8,16 @@ const TIME_PREFIX = /^([01]\d|2[0-3]):([0-5]\d)\b/;
 
 export type ScheduledTask = { date: string; time: string | null; task: string };
 
-type TopLevelBlock = { node: ProseMirrorNode; pos: number };
+export type TopLevelBlock = { node: ProseMirrorNode; pos: number };
 
-function topLevelBlocks(doc: ProseMirrorNode): TopLevelBlock[] {
+export function topLevelBlocks(doc: ProseMirrorNode): TopLevelBlock[] {
   const blocks: TopLevelBlock[] = [];
   doc.forEach((node, offset) => blocks.push({ node, pos: offset }));
   return blocks;
 }
 
 /** End of the writable body: before footnotes/preferences that close the document. */
-function bodyEnd(blocks: TopLevelBlock[], doc: ProseMirrorNode) {
+export function bodyEnd(blocks: TopLevelBlock[], doc: ProseMirrorNode) {
   let end = doc.content.size;
   for (let index = blocks.length - 1; index >= 0; index -= 1) {
     if (!TRAILING_NODE_TYPES.has(blocks[index].node.type.name)) break;
@@ -28,6 +28,26 @@ function bodyEnd(blocks: TopLevelBlock[], doc: ProseMirrorNode) {
 
 function isDay(block: TopLevelBlock) {
   return block.node.type.name === "dayHeader" && validDay(block.node.attrs.date);
+}
+
+export function isProject(block: TopLevelBlock) {
+  return block.node.type.name === "projectHeader";
+}
+
+/** A day or project header: where the previous section ends. */
+function isSectionStart(block: TopLevelBlock) {
+  return isDay(block) || isProject(block);
+}
+
+/** The blocks after `index` up to the next day or project header, or the end of the body. */
+export function sectionMembers(blocks: TopLevelBlock[], index: number, end: number) {
+  const members: TopLevelBlock[] = [];
+  for (let next = index + 1; next < blocks.length; next += 1) {
+    const block = blocks[next];
+    if (block.pos >= end || isSectionStart(block)) break;
+    members.push(block);
+  }
+  return members;
 }
 
 /** "15:00 Dentist" keeps the time visible in the list and parseable for future reminders. */
@@ -49,21 +69,15 @@ function taskItemNode(schema: Schema, text: string) {
 }
 
 /**
- * The blocks that belong to a day: from its header up to the next day header
- * (in document order) or the end of the body.
+ * The blocks that belong to a day: from its header up to the next day or
+ * project header (in document order) or the end of the body.
  */
 export function daySection(doc: ProseMirrorNode, date: string) {
   const blocks = topLevelBlocks(doc);
   const end = bodyEnd(blocks, doc);
   const index = blocks.findIndex(block => isDay(block) && block.node.attrs.date === date);
   if (index === -1) return null;
-  const members: TopLevelBlock[] = [];
-  for (let next = index + 1; next < blocks.length; next += 1) {
-    const block = blocks[next];
-    if (block.pos >= end || isDay(block)) break;
-    members.push(block);
-  }
-  return { header: blocks[index], members };
+  return { header: blocks[index], members: sectionMembers(blocks, index, end) };
 }
 
 /**
@@ -115,11 +129,22 @@ function insertTaskItem(state: EditorState, date: string, item: ProseMirrorNode)
     const blocks = topLevelBlocks(doc);
     const end = bodyEnd(blocks, doc);
     const later = blocks.find(block => block.pos < end && isDay(block) && block.node.attrs.date > date);
-    const insertAt = later ? later.pos : end;
+    let insertAt = later ? later.pos : end;
+    if (!later) {
+      // After the last day's section, so a new day never lands inside a project.
+      const lastDay = blocks.findLastIndex(block => block.pos < end && isDay(block));
+      const firstProject = blocks.find(block => block.pos < end && isProject(block));
+      if (lastDay !== -1) {
+        const after = sectionMembers(blocks, lastDay, end).at(-1) ?? blocks[lastDay];
+        insertAt = after.pos + after.node.nodeSize;
+      } else if (firstProject) {
+        insertAt = firstProject.pos;
+      }
+    }
     const header = schema.nodes.dayHeader.create({ date });
     const list = schema.nodes.taskList.create(null, item);
     const spacer = schema.nodes.paragraph.create();
-    tr.insert(insertAt, later ? [header, list, spacer] : [header, list]);
+    tr.insert(insertAt, insertAt < end ? [header, list, spacer] : [header, list]);
     cursor = insertAt + header.nodeSize + item.nodeSize;
   }
   const resolved = Math.min(Math.max(cursor - 1, 0), tr.doc.content.size);
@@ -161,6 +186,7 @@ export function dayAtPosition(doc: ProseMirrorNode, position: number): string | 
   for (const block of topLevelBlocks(doc)) {
     if (block.pos > position) break;
     if (isDay(block)) current = block.node.attrs.date;
+    else if (isProject(block)) current = null;
   }
   return current;
 }

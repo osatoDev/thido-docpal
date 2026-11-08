@@ -87,6 +87,8 @@ export function dailyPlanSummary(content: unknown, today: string): DailyPlanSumm
       if (note) current.push({ type: "paragraph", content: [{ type: "text", text: note }] });
       continue;
     }
+    // A project's list is not on any day.
+    if (block.type === "projectHeader") { current = null; continue; }
     if (block.type === "footnote" || block.type === "documentPreferences" || block.type === "planProjects") continue;
     current?.push(block);
   }

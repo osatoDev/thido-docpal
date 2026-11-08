@@ -30,6 +30,7 @@ import {
   PlanProjectsNode,
   TaskProjectAttribute,
 } from "@/components/editor/extensions/PlanProjects";
+import { ProjectHeader } from "@/components/editor/extensions/ProjectHeader";
 import { PageBreak } from "@/components/editor/extensions/PageBreak";
 import {
   FormattedHeading,
@@ -70,7 +71,7 @@ export function getEditorExtensions(
 ): Extensions {
   return [
     StarterKit.configure({
-      trailingNode: { notAfter: ["dayHeader"] },
+      trailingNode: { notAfter: ["dayHeader", "projectHeader"] },
       bulletList: false,
       heading: false,
       paragraph: false,
@@ -90,6 +91,7 @@ export function getEditorExtensions(
     }),
     FormattedParagraph,
     DayHeader,
+    ProjectHeader,
     FormattedHeading.configure({ levels: [1, 2, 3, 4, 5, 6] }),
     GoogleDocsPaste,
     HeadingAnchors,
