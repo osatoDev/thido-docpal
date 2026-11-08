@@ -1,7 +1,11 @@
 import { Extension, Node } from "@tiptap/core";
-import { normalizeProjects } from "@/lib/planProjects";
 
-/** Hidden block that holds the plan's project list, so it saves with the plan. */
+/**
+ * Legacy: an earlier version tagged day tasks with projects and kept the list
+ * in this hidden node. Projects are now their own sections (ProjectHeader), but
+ * plans saved back then still hold this node and attribute, and an unknown
+ * node type would stop them loading. Both stay in the schema with no UI.
+ */
 export const PlanProjectsNode = Node.create({
   name: "planProjects",
   group: "block",
@@ -14,13 +18,14 @@ export const PlanProjectsNode = Node.create({
         default: [],
         parseHTML: (element: HTMLElement) => {
           try {
-            return normalizeProjects(JSON.parse(element.getAttribute("data-projects") ?? "[]"));
+            const value: unknown = JSON.parse(element.getAttribute("data-projects") ?? "[]");
+            return Array.isArray(value) ? value : [];
           } catch {
             return [];
           }
         },
         renderHTML: (attributes: Record<string, unknown>) => ({
-          "data-projects": JSON.stringify(normalizeProjects(attributes.projects)),
+          "data-projects": JSON.stringify(Array.isArray(attributes.projects) ? attributes.projects : []),
         }),
       },
     };
@@ -35,7 +40,6 @@ export const PlanProjectsNode = Node.create({
   },
 });
 
-/** A task's project id. A new task made by pressing Enter starts without one. */
 export const TaskProjectAttribute = Extension.create({
   name: "taskProjectAttribute",
 
