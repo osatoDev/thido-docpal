@@ -1,4 +1,5 @@
 import { isPlanFeedbackDailyLimit } from "@/lib/planFeedbackPolicy";
+import { isTimeZone } from "@/lib/dailyPlanEmail";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -32,6 +33,8 @@ export async function PATCH(request: Request) {
     aiModel?: string;
     checklistMoveControls?: boolean;
     planFeedbackDailyLimit?: number;
+    dailyPlanEmail?: boolean;
+    timeZone?: string;
   } = {};
 
   if (body.aiModel !== undefined) {
@@ -80,6 +83,24 @@ export async function PATCH(request: Request) {
       );
     }
     data.planFeedbackDailyLimit = body.planFeedbackDailyLimit;
+  }
+
+  if (body.dailyPlanEmail !== undefined) {
+    if (typeof body.dailyPlanEmail !== "boolean") {
+      return NextResponse.json(
+        { error: "dailyPlanEmail must be a boolean" },
+        { status: 400 },
+      );
+    }
+    data.dailyPlanEmail = body.dailyPlanEmail;
+  }
+
+  // Sent with the daily email setting, so "today" is the person's own day.
+  if (body.timeZone !== undefined) {
+    if (!isTimeZone(body.timeZone)) {
+      return NextResponse.json({ error: "Unsupported time zone" }, { status: 400 });
+    }
+    data.timeZone = body.timeZone;
   }
 
   if (Object.keys(data).length === 0) {

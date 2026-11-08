@@ -3,6 +3,8 @@ import "server-only";
 import { Resend } from "resend";
 
 import { adminDetailHref } from "@/lib/adminDetails";
+import type { DailyPlanLine, DailyPlanSummary } from "@/lib/dailyPlanEmail";
+import { formatDay } from "@/lib/documentDays";
 import { founderFeedbackRecipients } from "@/lib/feedback";
 
 let resendClient: Resend | null = null;
@@ -244,7 +246,14 @@ export async function sendAdminNewSignupNotification({
   });
 }
 
-function emailShell(title: string, body: string, action: string, url: string) {
+function emailShell(
+  title: string,
+  body: string,
+  action: string,
+  url: string,
+  { blockBody = false, footer = "If you did not request this, you can ignore this email." }: { blockBody?: boolean; footer?: string } = {},
+) {
+  const bodyTag = blockBody ? "div" : "p";
   return `<!doctype html>
 <html lang="en">
   <body style="margin:0;background:#eef2f5;color:#18232b;font-family:Inter,Arial,sans-serif">
@@ -252,10 +261,10 @@ function emailShell(title: string, body: string, action: string, url: string) {
       <p style="margin:0 0 28px;font-size:26px;font-weight:700;letter-spacing:-0.5px">thido</p>
       <div style="border:1px solid #d5dee5;border-radius:14px;background:#fff;padding:32px">
         <h1 style="margin:0 0 16px;font-size:26px;font-weight:600;letter-spacing:-0.3px">${escapeHtml(title)}</h1>
-        <p style="margin:0 0 28px;color:#55636e;font-size:15px;line-height:1.6">${body}</p>
+        <${bodyTag} style="margin:0 0 28px;color:#55636e;font-size:15px;line-height:1.6">${body}</${bodyTag}>
         <a href="${escapeHtml(url)}" style="display:inline-block;border-radius:10px;background:#245e80;color:#fff;padding:12px 18px;text-decoration:none;font-size:14px;font-weight:600">${escapeHtml(action)}</a>
       </div>
-      <p style="margin:20px 0 0;color:#66737d;font-size:12px;line-height:1.5">If you did not request this, you can ignore this email.</p>
+      <p style="margin:20px 0 0;color:#66737d;font-size:12px;line-height:1.5">${footer}</p>
     </div>
   </body>
 </html>`;
@@ -424,5 +433,68 @@ export async function sendActivationNudgeEmail({
     ),
     previewUrl: url,
     idempotencyKey: `activation-nudge-${email.toLowerCase()}`,
+  });
+}
+
+function dailyLineText(line: DailyPlanLine) {
+  const mark = line.checked === null ? "-" : line.checked ? "[x]" : "[ ]";
+  return `${"  ".repeat(line.depth)}${mark} ${line.text}`;
+}
+
+function dailyLinesHtml(lines: DailyPlanLine[]) {
+  const items = lines
+    .map((line) => {
+      const mark = line.checked === null ? "&bull;" : line.checked ? "&#10003;" : "&#9744;";
+      const style = line.checked ? "color:#66737d;text-decoration:line-through" : "color:#18232b";
+      return `<li style="margin:0 0 6px;padding-left:${line.depth * 20}px;list-style:none;${style}"><span style="display:inline-block;width:20px;color:#245e80">${mark}</span>${escapeHtml(line.text)}</li>`;
+    })
+    .join("");
+  return `<ul style="margin:0 0 20px;padding:0">${items}</ul>`;
+}
+
+/** Morning email: today's plan, and what was ticked off yesterday. */
+export async function sendDailyPlanEmail({
+  email,
+  userId,
+  day,
+  summary,
+}: {
+  email: string;
+  userId: string;
+  day: string;
+  summary: DailyPlanSummary;
+}) {
+  const url = appUrl("/plan");
+  const settingsUrl = appUrl("/settings");
+  const heading = (text: string) =>
+    `<h2 style="margin:0 0 10px;color:#18232b;font-size:15px;font-weight:600">${text}</h2>`;
+  const empty = (text: string) => `<p style="margin:0 0 20px">${text}</p>`;
+  const todayHtml = summary.today.length
+    ? dailyLinesHtml(summary.today)
+    : empty("Nothing planned yet.");
+  const doneHtml = summary.doneYesterday.length
+    ? dailyLinesHtml(summary.doneYesterday)
+    : empty("Nothing checked off.");
+  await sendEmail({
+    to: email,
+    subject: `Your plan for ${formatDay(day)}`,
+    text:
+      `Today, ${formatDay(day)}:\n` +
+      (summary.today.length ? summary.today.map(dailyLineText).join("\n") : "Nothing planned yet.") +
+      `\n\nChecked off yesterday:\n` +
+      (summary.doneYesterday.length ? summary.doneYesterday.map(dailyLineText).join("\n") : "Nothing checked off.") +
+      `\n\nOpen your plan: ${url}\n\nTurn off this email in Settings: ${settingsUrl}`,
+    html: emailShell(
+      formatDay(day),
+      `${heading("Today")}${todayHtml}${heading("Checked off yesterday")}${doneHtml}`,
+      "Open your plan",
+      url,
+      {
+        blockBody: true,
+        footer: `You get this because the daily email is on. <a href="${escapeHtml(settingsUrl)}" style="color:#66737d">Turn it off in Settings</a>.`,
+      },
+    ),
+    previewUrl: url,
+    idempotencyKey: `daily-plan-${userId}-${day}`,
   });
 }

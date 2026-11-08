@@ -5,6 +5,7 @@ export const APP_URL = `http://127.0.0.1:${APP_PORT}`;
 
 export const AI_MOCK_PORT = 54321;
 export const AI_MOCK_URL = `http://127.0.0.1:${AI_MOCK_PORT}`;
+export const E2E_CRON_SECRET = "e2e-cron-secret";
 
 export const PG_PORT = 55432;
 export const PG_CONTAINER = "thido-e2e-pg";
