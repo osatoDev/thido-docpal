@@ -7,6 +7,7 @@ import { AiAllowanceExceededError } from "@/lib/entitlements";
 import { isTimeZone } from "@/lib/planFeedbackPolicy";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { aiAllowanceExceededResponse, unauthorizedResponse } from "@/lib/apiResponses";
+import { prisma } from "@/lib/prisma";
 import { reportServerError } from "@/lib/rollbar/server";
 
 type Params = { params: Promise<{ id: string }> };
@@ -38,6 +39,13 @@ export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
   const document = await getDocumentForUser(id, session.user.id);
   if (!document) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // The daily email uses this to work out the person's own "today".
+  await prisma.userSettings.upsert({
+    where: { userId: session.user.id },
+    update: { timeZone: body.timeZone },
+    create: { userId: session.user.id, timeZone: body.timeZone },
+  }).catch((error) => reportServerError(error, { source: "document-schedule", operation: "save-time-zone" }));
 
   try {
     const entry = await parseScheduleEntry({

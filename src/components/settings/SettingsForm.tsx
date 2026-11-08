@@ -9,12 +9,14 @@ type Props = {
   initialAiModel: AiModelId;
   initialChecklistMoveControls: boolean;
   initialPlanFeedbackDailyLimit: number;
+  initialDailyPlanEmail: boolean;
 };
 
 export function SettingsForm({
   initialAiModel,
   initialChecklistMoveControls,
   initialPlanFeedbackDailyLimit,
+  initialDailyPlanEmail,
 }: Props) {
   const router = useRouter();
   const [aiModel, setAiModel] = useState(initialAiModel);
@@ -24,6 +26,7 @@ export function SettingsForm({
   const [planFeedbackDailyLimit, setPlanFeedbackDailyLimit] = useState(
     initialPlanFeedbackDailyLimit,
   );
+  const [dailyPlanEmail, setDailyPlanEmail] = useState(initialDailyPlanEmail);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   async function save(update: Record<string, string | boolean | number>) {
@@ -123,6 +126,35 @@ export function SettingsForm({
                   : `Up to ${limit} time${limit === 1 ? "" : "s"} a day${limit === 3 ? " (default)" : ""}`}
               </option>
             ))}
+          </select>
+        </div>
+      </section>
+
+      <section className="border-b border-[var(--border)] py-7">
+        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] sm:items-center sm:gap-10">
+          <div>
+            <h2 className="font-semibold">Daily email</h2>
+            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+              Each morning between 6 and 7 (Berlin time), Thido emails you
+              today&apos;s tasks and what you checked off yesterday. It&apos;s
+              on unless you turn it off here.
+            </p>
+          </div>
+          <select
+            aria-label="Daily email"
+            value={dailyPlanEmail ? "true" : "false"}
+            onChange={(event) => {
+              const next = event.target.value === "true";
+              setDailyPlanEmail(next);
+              void save({
+                dailyPlanEmail: next,
+                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+              });
+            }}
+            className="app-input rounded-md px-3 py-2.5 text-sm outline-none"
+          >
+            <option value="true">Every morning (default)</option>
+            <option value="false">Off</option>
           </select>
         </div>
       </section>

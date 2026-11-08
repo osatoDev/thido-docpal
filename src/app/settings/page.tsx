@@ -78,6 +78,7 @@ export default async function SettingsPage({
         }
         initialChecklistMoveControls={settings.checklistMoveControls}
         initialPlanFeedbackDailyLimit={settings.planFeedbackDailyLimit}
+        initialDailyPlanEmail={settings.dailyPlanEmail}
       />
       {/* <ConnectedAccounts
         email={user.email ?? session.user.email ?? "your email"}

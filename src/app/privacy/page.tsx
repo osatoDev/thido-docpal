@@ -52,6 +52,9 @@ export default function PrivacyPage() {
           We process your email address and the content needed to send account
           verification, password-reset, and service messages, such as a
           reminder shortly after sign-up if you have not added anything yet. If
+          you have a plan, each morning we email you that day&apos;s tasks and
+          what you checked off the day before, unless you turn this off in
+          Settings. If
           you contact us, we may retain your message and related support
           correspondence.
         </p>
@@ -183,7 +186,7 @@ export default function PrivacyPage() {
                   </a>
                 </td>
                 <td>Transactional email delivery</td>
-                <td>Email address and verification, reset, or service email content</td>
+                <td>Email address and verification, reset, or service email content, including the tasks in the daily email</td>
               </tr>
               <tr>
                 <td>

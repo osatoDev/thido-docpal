@@ -36,6 +36,8 @@ export async function GET() {
           aiModel: true,
           checklistMoveControls: true,
           planFeedbackDailyLimit: true,
+          dailyPlanEmail: true,
+          timeZone: true,
         },
       }),
       prisma.document.findMany({

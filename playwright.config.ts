@@ -3,6 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 import {
   AI_MOCK_PORT,
   AI_MOCK_URL,
+  E2E_CRON_SECRET,
   APP_PORT,
   APP_URL,
   DATABASE_URL,
@@ -62,6 +63,9 @@ export default defineConfig({
         NEXTAUTH_URL: APP_URL,
         AUTH_URL: APP_URL,
         NEXT_TELEMETRY_DISABLED: "1",
+        // Never send real email from tests; emails are logged as previews.
+        RESEND_API_KEY: "",
+        CRON_SECRET: E2E_CRON_SECRET,
       },
     },
   ],
