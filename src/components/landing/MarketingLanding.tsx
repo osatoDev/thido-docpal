@@ -2,20 +2,19 @@ import Link from "next/link";
 
 import { Brand } from "@/components/Brand";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { HOW_IT_WORKS_STEPS } from "@/lib/howItWorks";
 
-const VALUE_PROPS = [
+const KEY_FEATURES = [
   {
-    title: "One line in, right day out",
-    body: "Type a task the way it came to you. Thido reads the date and time and slots it into place.",
+    title: "Type it like you'd say it",
+    body: "\u201cDentist next Tuesday 3pm\u201d lands under Tuesday at 15:00, in time order with the rest of your day. No forms, no date pickers.",
   },
   {
-    title: "Your days on one page",
-    body: "Every day is a checklist under its date. Jump around by year, month and week.",
+    title: "Your day, in your inbox",
+    body: "Every morning Thido emails today's plan and what you ticked off yesterday, so you start the day knowing what's on.",
   },
   {
-    title: "A second look, when you want it",
-    body: "Review my day gives two to four sentences on how a day is shaping up. Thido can also check in on its own a few times a day, or never, if you prefer.",
+    title: "A planner that thinks with you",
+    body: "Ask Thido to review a day and get a short, honest take on what fits and what could move. It can check in on its own, or stay quiet.",
   },
 ] as const;
 
@@ -24,7 +23,11 @@ const PREVIEW_DAYS = [
     date: "2026-11-10",
     label: "Nov 10 Tue",
     tasks: [
+      { text: "07:00 Morning run", done: true },
       { text: "08:30 Gym", done: true },
+      { text: "09:30 Team standup", done: true },
+      { text: "11:00 Review Q4 budget", done: false },
+      { text: "13:00 Lunch with Sam", done: false },
       { text: "15:00 Dentist", done: false },
       { text: "Pick up dry cleaning", done: false },
     ],
@@ -33,7 +36,11 @@ const PREVIEW_DAYS = [
     date: "2026-11-11",
     label: "Nov 11 Wed",
     tasks: [
+      { text: "08:00 School drop-off", done: false },
       { text: "09:30 Team standup", done: false },
+      { text: "10:30 Call the landlord", done: false },
+      { text: "14:00 Design review", done: false },
+      { text: "16:30 Groceries", done: false },
       { text: "18:00 Dinner with Ana", done: false },
     ],
   },
@@ -90,8 +97,8 @@ function PlannerPreview() {
             Thido&rsquo;s take on Nov 10 Tue
           </p>
           <p className="mt-1 text-[var(--foreground)]">
-            A light day. If the dentist runs long, the dry cleaning can move to
-            Wednesday morning.
+            A full day with a gap after lunch. If the dentist runs long, the
+            dry cleaning can move to Wednesday afternoon.
           </p>
         </div>
 
@@ -151,7 +158,7 @@ export function MarketingLanding() {
         <div>
           <p className="page-kicker mb-3">AI day planner</p>
           <h1 className="page-title max-w-xl">
-            Write it like you&rsquo;d say it. Thido finds the day.
+            Organize your life with Thido
           </h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-[var(--muted)]">
             &ldquo;Dentist next Tuesday 3pm&rdquo; lands under Tuesday at
@@ -190,50 +197,23 @@ export function MarketingLanding() {
 
       <section
         className="border-t border-[var(--border-strong)] py-14"
-        aria-labelledby="value-heading"
+        aria-labelledby="features-heading"
       >
-        <p id="value-heading" className="page-kicker mb-8">
-          What Thido does
+        <p id="features-heading" className="page-kicker mb-8">
+          Key features
         </p>
         <div className="grid gap-8 sm:grid-cols-3 sm:gap-10">
-          {VALUE_PROPS.map((prop) => (
-            <div key={prop.title}>
+          {KEY_FEATURES.map((feature) => (
+            <div key={feature.title}>
               <h2 className="font-display text-xl font-medium tracking-[-0.02em]">
-                {prop.title}
+                {feature.title}
               </h2>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                {prop.body}
+                {feature.body}
               </p>
             </div>
           ))}
         </div>
-      </section>
-
-      <section
-        className="border-t border-[var(--border-strong)] py-14"
-        aria-labelledby="how-heading"
-      >
-        <p id="how-heading" className="page-kicker mb-8">
-          How it works
-        </p>
-        <ol className="grid gap-8 sm:grid-cols-3 sm:gap-6">
-          {HOW_IT_WORKS_STEPS.map((step) => (
-            <li
-              key={step.number}
-              className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 sm:block"
-            >
-              <span className="font-mono text-xs text-[var(--accent-strong)]">
-                {step.number}
-              </span>
-              <div className="sm:mt-5">
-                <h3 className="text-sm font-semibold">{step.title}</h3>
-                <p className="mt-2 max-w-xs text-xs leading-5 text-[var(--muted)]">
-                  {step.description}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ol>
       </section>
 
       <section
