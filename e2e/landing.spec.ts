@@ -8,9 +8,9 @@ test.describe("marketing landing and onboarding", () => {
     await page.goto("/");
 
     await expect(
-      page.getByRole("heading", { name: "Write it like you’d say it. Thido finds the day." }),
+      page.getByRole("heading", { name: "Organize your life with Thido" }),
     ).toBeVisible();
-    await expect(page.getByText("What Thido does")).toBeVisible();
+    await expect(page.getByText("Key features")).toBeVisible();
     await expect(
       page.getByRole("heading", {
         name: "Telegram, Google Calendar and Microsoft Outlook",
