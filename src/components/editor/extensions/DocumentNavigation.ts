@@ -109,7 +109,7 @@ export const DocumentNavigation = Extension.create({
         ({ state, dispatch, view }) => {
           let target: number | null = null;
           state.doc.descendants((node, position) => {
-            if (target !== null || node.type.name === "documentPreferences") {
+            if (target !== null || node.type.name === "documentPreferences" || node.type.name === "planProjects") {
               return;
             }
             if (node.isTextblock) {
