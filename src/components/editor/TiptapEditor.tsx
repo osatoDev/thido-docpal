@@ -22,6 +22,8 @@ import { MoveTaskDialog } from "./MoveTaskDialog";
 import { TableContextMenu } from "./TableContextMenu";
 import { TableConversionDialog } from "./TableConversionDialog";
 import { useEditorHashNavigation } from "./useEditorHashNavigation";
+import { announceSavedRevision, useRemoteEditWatch } from "./useRemoteEditWatch";
+import { RemoteEditNotice } from "@/components/conflicts/RemoteEditNotice";
 import {
   UserMenu,
   type UserMenuProfile,
@@ -116,6 +118,8 @@ export function TiptapEditor({
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveDeadline, setSaveDeadline] = useState<number | null>(null);
   const [documentConflict, setDocumentConflict] = useState<string | null>(null);
+  // Another browser or tab saved the plan; editing waits for a reload.
+  const [editedElsewhere, setEditedElsewhere] = useState(false);
   // The outline is always shown; whether it is expanded is a per-browser
   // preference. It renders only after the editor mounts, so reading storage
   // here cannot cause a hydration mismatch.
@@ -164,12 +168,15 @@ export function TiptapEditor({
   const saveChainRef = useRef<Promise<void>>(Promise.resolve());
   const revisionRef = useRef(initialRevision);
   const conflictRef = useRef(false);
+  const editedElsewhereRef = useRef(false);
+  const savesSentRef = useRef(0);
+  const savesInFlightRef = useRef(0);
   const mountedRef = useRef(true);
   const titleRef = useRef(initialTitle);
   const titleManuallySetRef = useRef(initialTitleManuallySet);
   const pendingTablePasteRef = useRef<PendingTablePaste | null>(null);
   const documentImportingRef = useRef(false);
-  const canEditNow = !documentConflict;
+  const canEditNow = !documentConflict && !editedElsewhere;
 
   const updateRevision = useCallback((nextRevision: number) => {
     revisionRef.current = nextRevision;
@@ -397,7 +404,7 @@ export function TiptapEditor({
   }, [canEditNow, editor]);
 
   function scheduleSave(next: DocumentSave) {
-    if (conflictRef.current) return;
+    if (conflictRef.current || editedElsewhereRef.current) return;
     unsavedChangesRef.current = true;
     saveVersionRef.current += 1;
     pendingSaveRef.current = { ...pendingSaveRef.current, ...next };
@@ -415,7 +422,7 @@ export function TiptapEditor({
   }
 
   function saveNow() {
-    if (conflictRef.current) return;
+    if (conflictRef.current || editedElsewhereRef.current) return;
     if (!pendingSaveRef.current && !failedSaveRef.current) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = null;
@@ -437,6 +444,8 @@ export function TiptapEditor({
       // Carry a failed title/content update into the next attempt. Newer fields win.
       const payload = { ...failedSaveRef.current, ...next };
       failedSaveRef.current = null;
+      savesSentRef.current += 1;
+      savesInFlightRef.current += 1;
       try {
         const response = await fetch(`/api/documents/${documentId}`, {
           method: "PATCH",
@@ -457,6 +466,7 @@ export function TiptapEditor({
             | undefined;
           if (typeof savedDocument?.revision === "number") {
             updateRevision(savedDocument.revision);
+            announceSavedRevision(documentId, savedDocument.revision);
           }
           if (typeof savedDocument?.title === "string") {
             replaceDocumentUrl(savedDocument.title);
@@ -484,6 +494,8 @@ export function TiptapEditor({
         failedSaveRef.current = payload;
         if (saveVersion === saveVersionRef.current) setSaveState("error");
         return { ok: false, body: null };
+      } finally {
+        savesInFlightRef.current -= 1;
       }
     });
 
@@ -528,6 +540,8 @@ export function TiptapEditor({
     resetPendingSaves();
     conflictRef.current = false;
     setDocumentConflict(null);
+    editedElsewhereRef.current = false;
+    setEditedElsewhere(false);
     updateRevision(latest.revision);
     setSaveState("saved");
   }
@@ -548,6 +562,25 @@ export function TiptapEditor({
     updateRevision(document.revision);
     setSaveState("saved");
   }
+
+  useRemoteEditWatch({
+    documentId,
+    enabled: isPlan && !documentConflict && !editedElsewhere,
+    getLocalRevision: () => revisionRef.current,
+    getSaveCount: () => savesSentRef.current,
+    isSaving: () => savesInFlightRef.current > 0,
+    onNewerRevision: () => {
+      if (conflictRef.current || editedElsewhereRef.current) return;
+      if (unsavedChangesRef.current) {
+        // Typing here would overwrite the other edit: keep it via recovery.
+        handleDocumentConflict("Your plan was edited in another window.");
+        return;
+      }
+      editedElsewhereRef.current = true;
+      setEditedElsewhere(true);
+      editorRef.current?.commands.blur();
+    },
+  });
 
   function handleDocumentConflict(message: string) {
     conflictRef.current = true;
@@ -699,6 +732,10 @@ export function TiptapEditor({
         <h1 className="print-document-title editor-title hidden font-display text-4xl font-normal tracking-[-0.035em]">
           {title}
         </h1>
+
+        {editedElsewhere && !documentConflict ? (
+          <RemoteEditNotice onReload={reloadLatestDocument} />
+        ) : null}
 
         {documentConflict && (
           <ConflictRecovery
