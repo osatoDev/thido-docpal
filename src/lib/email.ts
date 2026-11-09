@@ -49,6 +49,7 @@ async function sendEmail({
   html,
   previewUrl,
   idempotencyKey,
+  from,
 }: {
   to: string | string[];
   subject: string;
@@ -56,6 +57,8 @@ async function sendEmail({
   html: string;
   previewUrl: string;
   idempotencyKey?: string;
+  /** Defaults to the account sender (AUTH_EMAIL_FROM). */
+  from?: string;
 }) {
   const resend = getResend();
 
@@ -70,7 +73,7 @@ async function sendEmail({
 
   const { data, error } = await resend.emails.send(
     {
-      from: process.env.AUTH_EMAIL_FROM ?? "Thido <auth@thido.ai>",
+      from: from ?? process.env.AUTH_EMAIL_FROM ?? "Thido <auth@thido.ai>",
       to,
       subject,
       text,
@@ -496,5 +499,6 @@ export async function sendDailyPlanEmail({
     ),
     previewUrl: url,
     idempotencyKey: `daily-plan-${userId}-${day}`,
+    from: process.env.PLANNER_EMAIL_FROM ?? "Thido <planner@thido.ai>",
   });
 }
