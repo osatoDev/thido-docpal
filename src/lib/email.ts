@@ -455,17 +455,29 @@ function dailyLinesHtml(lines: DailyPlanLine[]) {
   return `<ul style="margin:0 0 20px;padding:0">${items}</ul>`;
 }
 
-/** Morning email: today's plan, and what was ticked off yesterday. */
+function pointsHtml(points: string[]) {
+  const items = points
+    .map((point) => `<li style="margin:0 0 8px;color:#18232b">${escapeHtml(point)}</li>`)
+    .join("");
+  return `<ul style="margin:0 0 20px;padding-left:20px">${items}</ul>`;
+}
+
+/**
+ * Morning email: today's plan, what was ticked off yesterday and, when the AI
+ * call worked, Thido's notes on both and suggestions for what's next.
+ */
 export async function sendDailyPlanEmail({
   email,
   userId,
   day,
   summary,
+  insights,
 }: {
   email: string;
   userId: string;
   day: string;
   summary: DailyPlanSummary;
+  insights?: { feedback: string[]; suggestions: string[] } | null;
 }) {
   const url = appUrl("/plan");
   const settingsUrl = appUrl("/settings");
@@ -478,6 +490,14 @@ export async function sendDailyPlanEmail({
   const doneHtml = summary.doneYesterday.length
     ? dailyLinesHtml(summary.doneYesterday)
     : empty("Nothing checked off.");
+  const feedback = insights?.feedback ?? [];
+  const suggestions = insights?.suggestions ?? [];
+  const insightsHtml =
+    (feedback.length ? `${heading("Thido&rsquo;s take")}${pointsHtml(feedback)}` : "") +
+    (suggestions.length ? `${heading("Ideas for the days ahead")}${pointsHtml(suggestions)}` : "");
+  const insightsText =
+    (feedback.length ? `\n\nThido's take:\n${feedback.map((point) => `- ${point}`).join("\n")}` : "") +
+    (suggestions.length ? `\n\nIdeas for the days ahead:\n${suggestions.map((point) => `- ${point}`).join("\n")}` : "");
   await sendEmail({
     to: email,
     subject: `Your plan for ${formatDay(day)}`,
@@ -486,10 +506,11 @@ export async function sendDailyPlanEmail({
       (summary.today.length ? summary.today.map(dailyLineText).join("\n") : "Nothing planned yet.") +
       `\n\nChecked off yesterday:\n` +
       (summary.doneYesterday.length ? summary.doneYesterday.map(dailyLineText).join("\n") : "Nothing checked off.") +
+      insightsText +
       `\n\nOpen your plan: ${url}\n\nThido sends this every morning. If you'd rather not get it, you can turn it off in Settings: ${settingsUrl}`,
     html: emailShell(
       formatDay(day),
-      `${heading("Today")}${todayHtml}${heading("Checked off yesterday")}${doneHtml}`,
+      `${heading("Today")}${todayHtml}${heading("Checked off yesterday")}${doneHtml}${insightsHtml}`,
       "Open your plan",
       url,
       {

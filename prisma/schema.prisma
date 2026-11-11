@@ -291,6 +291,7 @@ enum AiFeature {
   TASK_SCHEDULE
   PLAN_FEEDBACK
   PLAN_REQUEST
+  DAILY_EMAIL_INSIGHTS
 }
 
 enum PlanFeedbackTrigger {

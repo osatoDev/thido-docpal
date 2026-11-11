@@ -12,6 +12,7 @@ export const AI_CREDIT_ACTION_LABELS: Record<AiFeature, string> = {
   TASK_SCHEDULE: "Scheduling tasks",
   PLAN_FEEDBACK: "Plan feedback",
   PLAN_REQUEST: "Research requests",
+  DAILY_EMAIL_INSIGHTS: "Morning email notes",
 };
 
 export function aiCreditActionLabel(action: AiFeature): string {
