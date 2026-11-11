@@ -12,7 +12,7 @@ import { prisma } from "@/lib/prisma";
 export function getEditorSettings(userId: string) {
   return prisma.userSettings.findUnique({
     where: { userId },
-    select: { checklistMoveControls: true },
+    select: { checklistMoveControls: true, timeZone: true },
   });
 }
 

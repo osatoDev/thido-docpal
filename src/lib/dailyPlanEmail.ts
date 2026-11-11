@@ -1,5 +1,5 @@
 import { validDay } from "@/lib/documentDays";
-import { isTimeZone } from "@/lib/planFeedbackPolicy";
+import { isTimeZone } from "@/lib/timeZone";
 
 /**
  * Pure helpers for the morning email: which day it is for someone, and what

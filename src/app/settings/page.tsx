@@ -77,7 +77,6 @@ export default async function SettingsPage({
           isAiModelId(settings.aiModel) ? settings.aiModel : DEFAULT_AI_MODEL
         }
         initialChecklistMoveControls={settings.checklistMoveControls}
-        initialPlanFeedbackDailyLimit={settings.planFeedbackDailyLimit}
         initialDailyPlanEmail={settings.dailyPlanEmail}
       />
       {/* <ConnectedAccounts

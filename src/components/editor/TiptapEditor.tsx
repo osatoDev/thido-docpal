@@ -17,7 +17,6 @@ import { AutosaveStatus, type SaveState } from "./AutosaveStatus";
 import { applyDocumentPreferencesToDom } from "./extensions/DocumentPreferences";
 import { DocumentOutline } from "./DocumentOutline";
 import { DocumentTabs } from "./DocumentTabs";
-import { PlannerBar } from "./PlannerBar";
 import { MoveTaskDialog } from "./MoveTaskDialog";
 import { TableContextMenu } from "./TableContextMenu";
 import { TableConversionDialog } from "./TableConversionDialog";
@@ -761,10 +760,6 @@ export function TiptapEditor({
             ) : null}
             {documentImportMessage.text}
           </p>
-        ) : null}
-
-        {editor && canEditNow && isPlan ? (
-          <PlannerBar editor={editor} documentId={documentId} />
         ) : null}
 
         <div
