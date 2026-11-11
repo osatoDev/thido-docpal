@@ -1,12 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { openPlan } from "./helpers";
+import { openPlan, typeTaskForToday } from "./helpers";
 
 async function addTask(page: Page, text: string) {
-  const planner = page.getByTestId("planner-bar");
-  await planner.getByLabel("Add a task to a day").fill(text);
-  await planner.getByRole("button", { name: "Add", exact: true }).click();
-  await expect(planner.getByRole("status")).toContainText("Added");
+  await typeTaskForToday(page, text);
   // Save now rather than waiting out the autosave delay.
   await page.keyboard.press("ControlOrMeta+s");
   await expect(page.getByText("Saved", { exact: true }).first()).toBeVisible();
@@ -27,7 +24,6 @@ test.describe("editing the plan in more than one place", () => {
     const notice = page.getByRole("alert").filter({ hasText: "Your plan was edited in another window." });
     await expect(notice).toBeVisible({ timeout: 15_000 });
     await expect(page.locator(".ProseMirror")).toHaveAttribute("contenteditable", "false");
-    await expect(page.getByTestId("planner-bar")).toHaveCount(0);
 
     await page.getByRole("button", { name: "Reload", exact: true }).click();
     await expect(notice).toBeHidden();

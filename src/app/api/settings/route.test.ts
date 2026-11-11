@@ -13,33 +13,33 @@ import { PATCH } from "./route";
 function request(value: unknown) {
   return new Request("https://thido.test/api/settings", {
     method: "PATCH",
-    body: JSON.stringify({ planFeedbackDailyLimit: value }),
+    body: JSON.stringify({ timeZone: value }),
   });
 }
 
-describe("automatic plan feedback setting", () => {
+describe("time zone setting", () => {
   beforeEach(() => {
     mocks.auth.mockResolvedValue({ user: { id: "user-1" } });
-    mocks.upsert.mockResolvedValue({ planFeedbackDailyLimit: 5 });
+    mocks.upsert.mockResolvedValue({ timeZone: "Europe/Berlin" });
   });
 
-  it("persists the preference for the signed-in user", async () => {
-    expect((await PATCH(request(5))).status).toBe(200);
+  it("persists the time zone for the signed-in user", async () => {
+    expect((await PATCH(request("Europe/Berlin"))).status).toBe(200);
     expect(mocks.upsert).toHaveBeenCalledWith({
       where: { userId: "user-1" },
-      update: { planFeedbackDailyLimit: 5 },
-      create: { userId: "user-1", planFeedbackDailyLimit: 5 },
+      update: { timeZone: "Europe/Berlin" },
+      create: { userId: "user-1", timeZone: "Europe/Berlin" },
     });
   });
 
-  it.each([-1, 4, 1.5, 11, "3", null])("rejects invalid limit %s without writing", async value => {
+  it.each(["Mars/Base", 3, null])("rejects invalid zone %s without writing", async value => {
     expect((await PATCH(request(value))).status).toBe(400);
     expect(mocks.upsert).not.toHaveBeenCalled();
   });
 
   it("requires authentication", async () => {
     mocks.auth.mockResolvedValue(null);
-    expect((await PATCH(request(5))).status).toBe(401);
+    expect((await PATCH(request("Europe/Berlin"))).status).toBe(401);
     expect(mocks.upsert).not.toHaveBeenCalled();
   });
 });

@@ -53,45 +53,11 @@ function cannedPayload(body) {
     };
   }
 
-  if (system.includes("dated task for a day-by-day planner")) {
-    const text = body?.messages?.map((m) => m.content).join("\n") ?? "";
-    const today = /Current date: (\d{4}-\d{2}-\d{2})/.exec(text)?.[1];
-    const entry = /<entry>\n([\s\S]*?)\n<\/entry>/.exec(text)?.[1] ?? "";
-    const date = new Date(`${today}T12:00:00Z`);
-    if (/tomorrow/i.test(entry)) date.setUTCDate(date.getUTCDate() + 1);
-    const days = /every ?day for the next week/i.test(entry) ? 7 : 1;
-    const dates = Array.from({ length: days }, (_, offset) => {
-      const day = new Date(date);
-      day.setUTCDate(day.getUTCDate() + offset);
-      return day.toISOString().slice(0, 10);
-    });
-    return {
-      kind: /^(find|list|suggest)\b/i.test(entry) ? "request" : "task",
-      dates: /someday/i.test(entry) ? [] : dates,
-      time: /3pm/i.test(entry) ? "15:00" : /10:30/.test(entry) ? "10:30" : null,
-      task: entry.replace(/\b(tomorrow|3pm|someday|10:30)\b|every ?day for the next week/gi, "").trim(),
-      clarification: /someday/i.test(entry) ? "Which day do you mean?" : null,
-    };
-  }
-
-  if (system.includes("assistant inside a day planner")) {
-    return {
-      summary: "Two cinemas fit the gap after lunch and both have parking.",
-      options: [
-        { title: "Kino Nord", details: "15 minutes by car, garage next door.", suggested_time: "16:00", task: "Movie at Kino Nord", source_url: null },
-        { title: "Lichtspiele", details: "20 minutes by car; check times.", suggested_time: null, task: "Movie at Lichtspiele", source_url: null },
-      ],
-    };
-  }
-
   if (system.includes("morning email")) {
     return {
       feedback: ["You checked things off yesterday.", "Today is light, so start with the most important task."],
       suggestions: ["Put one project task on tomorrow."],
     };
-  }
-  if (system.includes("planning coach")) {
-    return { feedback: "A light day: book the dentist slot first, then batch the rest." };
   }
 
   // Planning follow-up questions.

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { getEditorSettings } from "@/app/documents/[id]/edit/EditDocumentPageContent";
 import { TiptapEditor } from "@/components/editor/TiptapEditor";
+import { PlanTimeZoneSync } from "@/components/editor/PlanTimeZoneSync";
 import { auth } from "@/lib/auth";
 import { recordDocumentAccess } from "@/lib/documentAccess";
 import { getOrCreatePlan, PLAN_TITLE } from "@/lib/plan";
@@ -25,6 +26,8 @@ export default async function PlanPage() {
   recordDocumentAccess(document.id);
 
   return (
+    <>
+    <PlanTimeZoneSync savedTimeZone={settings?.timeZone ?? null} />
     <TiptapEditor
       isPlan
       documentId={document.id}
@@ -40,5 +43,6 @@ export default async function PlanPage() {
       currentUser={session.user}
       checklistMoveControls={settings?.checklistMoveControls ?? true}
     />
+    </>
   );
 }

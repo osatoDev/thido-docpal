@@ -23,7 +23,39 @@ export async function signInAsSeedUser(page: Page, callbackUrl = "/plan") {
 export async function openPlan(page: Page) {
   await page.goto("/plan");
   await expect(page.getByRole("heading", { name: "My plan", level: 1 })).toBeVisible();
-  await expect(page.getByTestId("planner-bar")).toBeVisible();
+  await expect(page.locator(".ProseMirror")).toBeVisible();
+}
+
+/** Today's date in the browser's time zone, as YYYY-MM-DD, shifted by `offset` days. */
+export function localDay(offset = 0) {
+  const date = new Date();
+  date.setDate(date.getDate() + offset);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Types a task into today's checklist the way a person would: at the end of
+ * the list right under today's date, or as a new checklist ("[ ] ") when today
+ * has none.
+ */
+export async function typeTaskForToday(page: Page, text: string) {
+  const editor = page.locator(".ProseMirror");
+  const header = editor.locator(`[data-type="day-header"][data-date="${localDay()}"]`);
+  await expect(header).toBeVisible();
+  const list = header.locator('xpath=following-sibling::*[1][self::ul[@data-type="taskList"]]');
+  if (await list.count()) {
+    const last = list.locator(":scope > li").last().locator("p").first();
+    await last.click();
+    await page.keyboard.press("End");
+    if ((await last.innerText()).trim()) await page.keyboard.press("Enter");
+    await page.keyboard.type(text);
+  } else {
+    await header.click();
+    await page.keyboard.press("End");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type(`[ ] ${text}`);
+  }
+  await expect(editor.locator("li", { hasText: text }).first()).toBeVisible();
 }
 
 /** Opens the seeded READY document (an older document) in the editor. */
