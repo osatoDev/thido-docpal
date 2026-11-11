@@ -106,7 +106,7 @@ export function SettingsForm({
             <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
               After you add a task with the planner bar, Thido sometimes
               reviews that day&apos;s plan. This caps how often it happens each
-              day. Review my day always works on request.
+              day.
             </p>
           </div>
           <select

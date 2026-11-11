@@ -14,7 +14,7 @@ const KEY_FEATURES = [
   },
   {
     title: "A planner that thinks with you",
-    body: "Ask Thido to review a day and get a short, honest take on what fits and what could move. It can check in on its own, or stay quiet.",
+    body: "As you add tasks, Thido checks in with a short, honest take on what fits and what could move. You choose how often, or turn it off.",
   },
 ] as const;
 

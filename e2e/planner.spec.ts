@@ -18,7 +18,7 @@ test.describe("AI planner", () => {
     await expect(page.getByTestId("planner-bar")).toHaveCount(0);
   });
 
-  test("writes a natural-language entry under its day and reviews the plan", async ({ page }) => {
+  test("writes a natural-language entry under its day", async ({ page }) => {
     await openPlan(page);
     const editor = page.locator(".ProseMirror");
     const planner = page.getByTestId("planner-bar");
@@ -31,8 +31,8 @@ test.describe("AI planner", () => {
     await expect(editor.locator("li", { hasText: "15:00 Dentist" }).locator('input[type="checkbox"]')).not.toBeChecked();
     await expect(planner.getByRole("status")).toContainText("Added “15:00 Dentist”");
 
-    await planner.getByRole("button", { name: "Review my day" }).click();
-    await expect(page.getByRole("complementary", { name: "Plan feedback" })).toContainText("book the dentist slot first");
+    // Feedback now only comes automatically (by chance, capped per day); there is no manual review.
+    await expect(planner.getByRole("button", { name: "Review my day" })).toHaveCount(0);
   });
 
   test("puts a repeating entry under each day it covers", async ({ page }) => {

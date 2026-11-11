@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import { formatDay, todayDay } from "@/lib/documentDays";
-import { dayAtPosition, dayPlanText, insertScheduledTask, scheduledTaskText } from "@/lib/scheduleInsert";
+import { dayPlanText, insertScheduledTask, scheduledTaskText } from "@/lib/scheduleInsert";
 
 type Feedback = { id: string; day: string; trigger: "AUTO" | "MANUAL"; feedback: string };
 type AnswerOption = { title: string; details: string; time: string | null; task: string; sourceUrl: string | null };
@@ -23,7 +23,8 @@ async function readError(response: Response, fallback: string) {
 }
 
 /**
- * Natural-language task entry plus AI feedback on a day's plan. Tasks are
+ * Natural-language task entry, with automatic AI feedback on the day a task
+ * lands on. Tasks are
  * written into the document in the browser, so they autosave and undo like
  * any other edit. Requests ("list 10 cinemas near the venue") are answered
  * with web search; nothing is added until the user picks an option.
@@ -31,19 +32,18 @@ async function readError(response: Response, fallback: string) {
 export function PlannerBar({ editor, documentId }: { editor: Editor; documentId: string }) {
   const [text, setText] = useState("");
   const [adding, setAdding] = useState(false);
-  const [reviewing, setReviewing] = useState(false);
   const [status, setStatus] = useState<Status>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [answer, setAnswer] = useState<Answer | null>(null);
   const [addedOptions, setAddedOptions] = useState<ReadonlySet<number>>(new Set());
   const input = useRef<HTMLInputElement>(null);
 
-  async function requestFeedback(day: string, trigger: "AUTO" | "MANUAL", newEntry?: string) {
+  async function requestFeedback(day: string, newEntry: string) {
     const plan = dayPlanText(editor.state.doc, day) ?? "";
     const response = await fetch(`/api/documents/${documentId}/plan-feedback`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ day, today: localContext().today, plan, trigger, newEntry }),
+      body: JSON.stringify({ day, today: localContext().today, plan, trigger: "AUTO", newEntry }),
     });
     if (!response.ok) throw new Error(await readError(response, "Thido couldn't review this day."));
     const body = await response.json();
@@ -100,7 +100,7 @@ export function PlannerBar({ editor, documentId }: { editor: Editor; documentId:
           : `Added “${taskText}” to ${added.length} days, ${formatDay(added[0])} to ${formatDay(added[added.length - 1])}.`,
       });
       // Automatic feedback is decided (and capped) by the server; failures stay silent.
-      void requestFeedback(added[0], "AUTO", taskText).catch(() => undefined);
+      void requestFeedback(added[0], taskText).catch(() => undefined);
     } catch {
       setStatus({ kind: "error", text: "Thido couldn't reach the server. Try again." });
     } finally {
@@ -139,19 +139,6 @@ export function PlannerBar({ editor, documentId }: { editor: Editor; documentId:
     setStatus({ kind: "info", text: `Added “${scheduledTaskText(option)}” to ${formatDay(answer.day)}.` });
   }
 
-  async function reviewDay() {
-    const day = dayAtPosition(editor.state.doc, editor.state.selection.from) ?? localContext().today;
-    setReviewing(true);
-    setStatus(null);
-    try {
-      await requestFeedback(day, "MANUAL");
-    } catch (error) {
-      setStatus({ kind: "error", text: error instanceof Error ? error.message : "Thido couldn't review this day." });
-    } finally {
-      setReviewing(false);
-    }
-  }
-
   return (
     <div className="print-hidden mx-auto w-full max-w-none" data-testid="planner-bar">
       <form onSubmit={addTask} className="flex flex-wrap items-center gap-2">
@@ -168,9 +155,6 @@ export function PlannerBar({ editor, documentId }: { editor: Editor; documentId:
         />
         <button type="submit" disabled={adding || !text.trim()} className="primary-button h-11 rounded-lg px-4 text-sm font-semibold disabled:opacity-50">
           {adding ? "Working…" : "Add"}
-        </button>
-        <button type="button" onClick={reviewDay} disabled={reviewing} className="secondary-button h-11 rounded-lg px-4 text-sm font-medium disabled:opacity-50">
-          {reviewing ? "Reviewing…" : "Review my day"}
         </button>
       </form>
       <p
