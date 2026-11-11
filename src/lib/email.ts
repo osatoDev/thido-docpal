@@ -425,12 +425,12 @@ export async function sendActivationNudgeEmail({
     subject: "Haven't had a chance to try Thido yet?",
     text:
       `${greeting}\n\nYou signed up for Thido but haven't opened it yet. ` +
-      `The easiest way in is to type one task the way you would say it, like ` +
-      `"Dentist next Tuesday 3pm", and Thido puts it under the right day.` +
+      `Open your plan and write one task under today. From tomorrow, Thido ` +
+      `emails you each morning with your plan and notes on what to do next.` +
       `\n\nTry it: ${url}`,
     html: emailShell(
       "Haven't had a chance to try Thido yet?",
-      `${escapeHtml(greeting)} You signed up for Thido but haven't opened it yet. The easiest way in is to type one task the way you would say it, like &ldquo;Dentist next Tuesday 3pm&rdquo;, and Thido puts it under the right day.`,
+      `${escapeHtml(greeting)} You signed up for Thido but haven't opened it yet. Open your plan and write one task under today. From tomorrow, Thido emails you each morning with your plan and notes on what to do next.`,
       "Plan your day",
       url,
     ),

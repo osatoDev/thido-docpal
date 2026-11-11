@@ -5,16 +5,16 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 
 const KEY_FEATURES = [
   {
-    title: "Type it like you'd say it",
-    body: "\u201cDentist next Tuesday 3pm\u201d lands under Tuesday at 15:00, in time order with the rest of your day. No forms, no date pickers.",
+    title: "Days and projects on one page",
+    body: "Every day is a checklist under its date, and every project keeps a list of its own. Jump to any of them from the outline, or move a task to another day in one click.",
   },
   {
     title: "Your day, in your inbox",
     body: "Every morning Thido emails today's plan and what you ticked off yesterday, so you start the day knowing what's on.",
   },
   {
-    title: "A planner that thinks with you",
-    body: "As you add tasks, Thido checks in with a short, honest take on what fits and what could move. You choose how often, or turn it off.",
+    title: "A coach that reads the whole list",
+    body: "The same email carries Thido's notes: a few points on today and yesterday, and ideas for the days ahead, drawn from everything on your list.",
   },
 ] as const;
 
@@ -45,6 +45,15 @@ const PREVIEW_DAYS = [
     ],
   },
 ] as const;
+
+const PREVIEW_PROJECT = {
+  name: "Home move",
+  tasks: [
+    { text: "Give notice on the flat", done: true },
+    { text: "Order boxes", done: false },
+    { text: "Book movers", done: false },
+  ],
+} as const;
 
 function Checkbox({ checked }: { checked: boolean }) {
   return (
@@ -83,27 +92,8 @@ function PlannerPreview() {
         <span className="ml-3 text-xs text-[var(--muted-soft)]">My plan</span>
       </div>
       <div className="p-5 sm:p-7">
-        <div className="flex items-center gap-2">
-          <div className="app-input min-w-0 flex-1 truncate rounded-md px-3 py-2 text-sm text-[var(--muted-soft)]">
-            Dinner with Ana Wednesday 6pm
-          </div>
-          <span className="primary-button shrink-0 rounded-md px-3 py-2 text-sm font-semibold">
-            Add
-          </span>
-        </div>
-
-        <div className="mt-2 rounded-lg bg-[var(--accent-tint)] px-3.5 py-3 text-sm leading-6">
-          <p className="text-xs font-semibold text-[var(--accent-strong)]">
-            Thido&rsquo;s take on Nov 10 Tue
-          </p>
-          <p className="mt-1 text-[var(--foreground)]">
-            A full day with a gap after lunch. If the dentist runs long, the
-            dry cleaning can move to Wednesday afternoon.
-          </p>
-        </div>
-
-        {PREVIEW_DAYS.map((day) => (
-          <div key={day.date} className="mt-5">
+        {PREVIEW_DAYS.map((day, index) => (
+          <div key={day.date} className={index === 0 ? "" : "mt-5"}>
             <p className="font-display text-base font-semibold text-[var(--foreground)]">
               <time dateTime={day.date} className="font-medium">
                 {day.label}
@@ -127,6 +117,25 @@ function PlannerPreview() {
             </ul>
           </div>
         ))}
+
+        <div className="mt-6">
+          <p className="flex items-center gap-2 font-display text-base font-semibold text-[var(--foreground)]">
+            <span className="rounded-full bg-[var(--accent-tint)] px-2 py-0.5 font-sans text-[0.65rem] font-semibold tracking-wide text-[var(--accent-strong)] uppercase">
+              Project
+            </span>
+            {PREVIEW_PROJECT.name}
+          </p>
+          <ul className="mt-2 space-y-2">
+            {PREVIEW_PROJECT.tasks.map((task) => (
+              <li key={task.text} className="flex items-start gap-2.5 text-sm">
+                <Checkbox checked={task.done} />
+                <span className={task.done ? "text-[var(--muted)] line-through" : "text-[var(--foreground)]"}>
+                  {task.text}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );
@@ -156,14 +165,14 @@ export function MarketingLanding() {
 
       <section className="grid gap-12 py-14 sm:py-20 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-center lg:gap-16">
         <div>
-          <p className="page-kicker mb-3">AI day planner</p>
+          <p className="page-kicker mb-3">Day planner</p>
           <h1 className="page-title max-w-xl">
             Organize your life with Thido
           </h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-[var(--muted)]">
-            &ldquo;Dentist next Tuesday 3pm&rdquo; lands under Tuesday at
-            15:00, in order with everything else that day. When a day looks
-            full, ask Thido for a second look.
+            Your days as checklists, your projects as lists of their own, all
+            on one page. Each morning, Thido emails you the day&rsquo;s plan
+            with notes on what to do next.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
@@ -188,9 +197,9 @@ export function MarketingLanding() {
 
       <section className="border-t border-[var(--border-strong)] py-14">
         <p className="mx-auto max-w-2xl text-center font-display text-2xl leading-snug font-medium tracking-[-0.02em] sm:text-3xl">
-          Most tasks arrive as a sentence.
+          A plan only helps if you look at it.
           <span className="mt-1 block text-[var(--muted)]">
-            Thido keeps them that way and does the filing for you.
+            Thido brings yours to your inbox every morning.
           </span>
         </p>
       </section>

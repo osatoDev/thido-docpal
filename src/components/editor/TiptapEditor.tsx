@@ -58,7 +58,7 @@ type Props = {
   initialContent: JSONContent | null;
   initialRevision: number;
   currentUser: UserMenuProfile;
-  /** The person's one plan: fixed title, planner bar, today's day on first open. */
+  /** The person's one plan: fixed title, edit lock across windows, today's day on first open. */
   isPlan?: boolean;
   checklistMoveControls?: boolean;
 };

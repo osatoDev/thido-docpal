@@ -12,7 +12,7 @@ export default function PrivacyPage() {
     <LegalDocument
       title="Privacy Policy"
       description="This Policy explains what information Thido handles, why we use it, which service providers help us operate the product, and the choices available to you."
-      effectiveDate="6 November 2026"
+      effectiveDate="11 November 2026"
     >
       <section>
         <h2>1. Who is responsible for your data</h2>
@@ -111,18 +111,17 @@ export default function PrivacyPage() {
         <h2>4. AI processing</h2>
         <p>
           Thido sends the text and instructions needed for its AI features to
-          one or more third-party AI model providers. When you add a task in
-          plain language, this is the text you typed, your local date, and your
-          time zone. When Thido reviews a day, this is that day&apos;s tasks.
-          The provider may vary based on feature availability, performance,
-          safety, or product configuration. Do not include personal or
-          confidential information that is unnecessary for your request.
+          one or more third-party AI model providers. For the notes in the
+          daily email, this is your whole plan once a day: your days, tasks,
+          notes and project lists, with whether each task is done, and the
+          current date. The provider may vary based on feature availability,
+          performance, safety, or product configuration. Do not include
+          personal or confidential information in your plan that you would not
+          want processed this way.
         </p>
         <p>
-          Besides reviews you ask for, Thido may automatically review a
-          day&apos;s plan a few times a day after you add a task. You can lower
-          how often this happens, or turn it off, under Automatic plan feedback
-          in Settings.
+          You can stop this, together with the daily email, by turning off
+          Daily email in Settings.
         </p>
         <p>
           We select provider accounts and commercial services intended for API
