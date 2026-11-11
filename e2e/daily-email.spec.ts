@@ -11,7 +11,8 @@ test("the daily email is on by default, sends once a day, and can be turned off"
   expect(unauthorized.status()).toBe(401);
 
   const first = await request.get("/api/cron/daily-plan-email", { headers });
-  expect(await first.json()).toMatchObject({ recipients: 1, sent: 1 });
+  // The mock AI writes the notes; a failed AI call would still send, with withNotes 0.
+  expect(await first.json()).toMatchObject({ recipients: 1, sent: 1, withNotes: 1 });
   const second = await request.get("/api/cron/daily-plan-email", { headers });
   expect(await second.json()).toMatchObject({ recipients: 1, sent: 0 });
 

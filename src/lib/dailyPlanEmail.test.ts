@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dailyPlanSummary, localDay, previousDay } from "@/lib/dailyPlanEmail";
+import { dailyPlanSummary, localDay, planContextText, previousDay } from "@/lib/dailyPlanEmail";
 
 const text = (value: string) => ({ type: "text", text: value });
 const paragraph = (value: string) => ({ type: "paragraph", content: [text(value)] });
@@ -64,5 +64,36 @@ describe("daily plan summary", () => {
   it("copes with an empty or missing plan", () => {
     expect(dailyPlanSummary(null, "2026-11-08")).toEqual({ today: [], doneYesterday: [] });
     expect(dailyPlanSummary(content, "2026-12-25")).toEqual({ today: [], doneYesterday: [] });
+  });
+});
+
+describe("whole plan as AI context", () => {
+  it("lists every day in order with its place in time, then projects", () => {
+    const content = {
+      type: "doc",
+      content: [
+        day("2026-11-12"),
+        tasks(task("Dentist")),
+        day("2026-11-09", "busy"),
+        tasks(task("Call landlord")),
+        day("2026-11-10"),
+        tasks(task("Gym", true), task("Report", false, task("Draft", true))),
+        { type: "projectHeader", content: [text("Home move")] },
+        tasks(task("Order boxes"), task("Book movers", true)),
+        { type: "documentPreferences", attrs: {} },
+      ],
+    };
+    expect(planContextText(content, "2026-11-11")).toBe([
+      "Day 2026-11-09 (Monday, past):\n  - Note: busy\n  [ ] Call landlord",
+      "Day 2026-11-10 (Tuesday, yesterday):\n  [x] Gym\n  [ ] Report\n    [x] Draft",
+      "Day 2026-11-11 (Wednesday, today):\n  (nothing listed)",
+      "Day 2026-11-12 (Thursday, upcoming):\n  [ ] Dentist",
+      "Project \"Home move\" (no day):\n  [ ] Order boxes\n  [x] Book movers",
+    ].join("\n\n"));
+  });
+
+  it("keeps notes written before the first day", () => {
+    expect(planContextText({ type: "doc", content: [paragraph("Goals: run a 10k")] }, "2026-11-11"))
+      .toBe("Notes outside any day:\n  - Goals: run a 10k\n\nDay 2026-11-11 (Wednesday, today):\n  (nothing listed)");
   });
 });

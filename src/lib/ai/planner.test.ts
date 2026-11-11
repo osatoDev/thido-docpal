@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 vi.mock("@/lib/ai/client", () => ({ anthropic: {} }));
 
-const { normalizePlanRequest, normalizeScheduleEntry } = await import("@/lib/ai/planner");
+const { normalizeDailyEmailInsights, normalizePlanRequest, normalizeScheduleEntry } = await import("@/lib/ai/planner");
 
 const TODAY = "2026-11-07";
 const task = (fields: Partial<Parameters<typeof normalizeScheduleEntry>[0]>) => ({
@@ -76,5 +76,21 @@ describe("plan request normalisation", () => {
     expect(result.options).toHaveLength(10);
     expect(result.options[0]).toMatchObject({ time: "16:00", task: "Option 0" });
     expect(result.options[1].time).toBeNull();
+  });
+});
+
+describe("morning email notes", () => {
+  it("tidies points and keeps at most five of each", () => {
+    expect(normalizeDailyEmailInsights({
+      feedback: ["  You  ticked off the gym. ", "", "a", "b", "c", "d", "e"],
+      suggestions: ["Put \"Order boxes\" on Friday."],
+    })).toEqual({
+      feedback: ["You ticked off the gym.", "a", "b", "c", "d"],
+      suggestions: ["Put \"Order boxes\" on Friday."],
+    });
+  });
+
+  it("drops the section when the model returned nothing usable", () => {
+    expect(normalizeDailyEmailInsights({ feedback: [" "], suggestions: [] })).toBeNull();
   });
 });

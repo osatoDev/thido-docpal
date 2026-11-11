@@ -84,6 +84,12 @@ function cannedPayload(body) {
     };
   }
 
+  if (system.includes("morning email")) {
+    return {
+      feedback: ["You checked things off yesterday.", "Today is light, so start with the most important task."],
+      suggestions: ["Put one project task on tomorrow."],
+    };
+  }
   if (system.includes("planning coach")) {
     return { feedback: "A light day: book the dentist slot first, then batch the rest." };
   }
