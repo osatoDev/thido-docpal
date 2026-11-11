@@ -41,7 +41,7 @@ export function LegalDocument({
 
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] py-6 text-xs text-[var(--muted)]">
         <span>© 2026 Thido</span>
-        <span>Write it like you&apos;d say it.</span>
+        <span>Organize your life with Thido.</span>
       </footer>
     </main>
   );

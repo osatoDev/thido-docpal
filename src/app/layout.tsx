@@ -28,9 +28,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Thido | Write it like you'd say it",
+  title: "Thido | Organize your life",
   description:
-    "A day planner with AI. Type a task in one line, and Thido puts it on the right day, at the right time, in order. Ask for a quick read on any day.",
+    "A day planner: your days as checklists and your projects as lists of their own, on one page. Every morning Thido emails your plan with notes on what to do next.",
   icons: { icon: "/thido-docpal-mark.svg" },
 };
 

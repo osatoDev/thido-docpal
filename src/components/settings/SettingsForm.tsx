@@ -99,8 +99,9 @@ export function SettingsForm({
             <h2 className="font-semibold">Daily email</h2>
             <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
               Each morning between 6 and 7 (Berlin time), Thido emails you
-              today&apos;s tasks and what you checked off yesterday. It&apos;s
-              on unless you turn it off here.
+              today&apos;s tasks and what you checked off yesterday, with AI
+              notes on your plan and ideas for the days ahead. It&apos;s on
+              unless you turn it off here.
             </p>
           </div>
           <select

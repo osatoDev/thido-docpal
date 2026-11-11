@@ -23,9 +23,9 @@ export async function GET(request: Request) {
       where: {
         email: { not: null },
         activationNudgeSentAt: null,
-        // Everyone gets a plan on first visit, so "hasn't started" means no
-        // task added with the planner bar yet.
-        aiCreditCharges: { none: { action: "TASK_SCHEDULE" } },
+        // Everyone gets a plan on first visit, so "hasn't started" means
+        // they have never opened it.
+        planDocumentId: null,
       },
       select: { id: true, email: true, name: true, createdAt: true },
     })
